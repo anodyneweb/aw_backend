@@ -54,4 +54,5 @@ Werkzeug==0.14.1
 XlsxWriter==1.1.2
 django-queryset-csv
 pandas
-
+djangorestframework-simplejwt
+django-cors-headers
