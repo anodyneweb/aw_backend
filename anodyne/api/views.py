@@ -1,5 +1,6 @@
 # ViewSets define the view behavior.
 from rest_framework import viewsets
+
 from api.serializers import UserSerializer, IndustrySerializer, \
     StationSerializer
 from api.models import User, Industry, Station
@@ -18,3 +19,4 @@ class IndustryViewSet(viewsets.ModelViewSet):
 class StationViewSet(viewsets.ModelViewSet):
     queryset = Station.objects.all()
     serializer_class = StationSerializer
+
