@@ -47,7 +47,8 @@ class UserManager(BaseUserManager):
         user.staff = True
         user.admin = True
         user.name = name
-        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN', 'STAFF'] else 'ADMIN'
+        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN',
+                                     'STAFF'] else 'ADMIN'
         user.save(using=self._db)
         return user
 
@@ -63,8 +64,9 @@ class User(AbstractBaseUser):
     active = models.BooleanField(default=True)
     staff = models.BooleanField(default=False)  # a admin user; non super-user
     admin = models.BooleanField(default=False)  # a superuser
-    date_joined = models.DateTimeField(default=django.utils.timezone.now,
-                                       blank=True, editable=False)
+    created = models.DateTimeField(default=django.utils.timezone.now,
+                                       blank=True, editable=False,
+                                   verbose_name='Joined On')
     # notice the absence of a "Password field", that's built in.
 
     # USER DETAILS STARTS
@@ -83,8 +85,7 @@ class User(AbstractBaseUser):
     # USER DETAILS ENDS
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name',
-                       'type']  # Email & Password are required by default.
+    REQUIRED_FIELDS = ['name', 'type']
 
     def get_full_name(self):
         # The user is identified by their email address
@@ -314,5 +315,35 @@ class Station(models.Model):
             self.pub_key = None
 
         super(Station, self).save(*args, **kwargs)
+
+
+class StationInfo(models.Model):
+    site = models.OneToOneField(
+        Station,
+        on_delete=models.CASCADE,
+        primary_key=True,
+    )
+    last_seen = models.DateTimeField(
+        verbose_name='Last Seen',
+        auto_now_add=True,
+        null=True
+    )
+    mail_interval = models.IntegerField(
+        default=12,  # hours
+        null=True,
+        verbose_name='Mail Alert Intervals'
+    )
+    sms_interval = models.IntegerField(
+        default=12,  # hours
+        null=True,
+        verbose_name='SMS Alert Intervals'
+    )
+    last_upload_info = models.TextField(
+        max_length=256,
+        blank=True,
+        default=''
+    )
+    latest_reading = models.TextField(max_length=999, blank=True)
+
 
 ##############################################################################
