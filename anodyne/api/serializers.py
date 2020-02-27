@@ -40,11 +40,14 @@ class UserSerializer(serializers.ModelSerializer):
         from django.template.loader import render_to_string
         html_content = render_to_string('registration/welcome.html',
                                         context)
-        send_mail(subject='Welcome from VepoLink',
-                  message='',
-                  from_email=settings.EMAIL_HOST_USER,
-                  recipient_list=[user.email],
-                  html_message=html_content)
+        try:
+            send_mail(subject='Welcome from VepoLink',
+                      message='',
+                      from_email=settings.EMAIL_HOST_USER,
+                      recipient_list=[user.email],
+                      html_message=html_content)
+        except Exception as err:
+            print('Failing to send mail %s' % err)
 
 
 class IndustrySerializer(serializers.ModelSerializer):
