@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
@@ -40,9 +42,9 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     # TODO: to user Token authentication uncomment below
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [
-    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
-    # ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_PERMISSION_CLASSES': (
@@ -142,3 +144,127 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'trip2thailand2020@gmail.com'
 EMAIL_HOST_PASSWORD = 'sagaraiesec'
+
+APP_NAME = 'VepoLink'
+
+
+# Logging Setup
+# can set environ LOGLEVEL=debug/info/error etc
+LOGLEVEL = os.environ.get('LOGLEVEL', 'debug').upper()
+LOG_PATH = os.path.join('/var/log/', 'anodyne')
+
+if not os.path.exists(LOG_PATH):
+    os.makedirs(LOG_PATH)
+
+LOG_FILE = os.path.join(LOG_PATH, 'anodyne.log')
+CELERY_LOG_FILE = os.path.join(LOG_PATH, 'celerytasks.log')
+REQ_LOG_FILE = os.path.join(LOG_PATH, 'requests.log')
+READINGS_LOG_FILE = os.path.join(LOG_PATH, 'readings.log')
+VIEW_LOG_FILE = os.path.join(LOG_PATH, 'views.log')
+RECEPTION_LOG_FILE = os.path.join(LOG_PATH, 'reception.log')
+ALERT_LOG_FILE = os.path.join(LOG_PATH, 'alerts.log')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s (%(levelname)s) [%(module)s:%(lineno)d]: %(message)s',
+        },
+    },
+    'handlers': {
+        'default': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FILE,
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 10,
+            'formatter': 'standard',
+        },
+        'celery_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': CELERY_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 4 MB
+            'backupCount': 4,
+            'formatter': 'standard',
+        },
+        'reception_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': RECEPTION_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 40,  # 4 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        'request_handler': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': REQ_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'reading_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': READINGS_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'view_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': VIEW_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'alert_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': ALERT_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 4,  # 4 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+        },
+    },
+    'loggers': {
+        'anodyne': {
+            'handlers': ['console', 'default'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'alerts': {
+            'handlers': ['alert_logs'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'django.request': {
+            'handlers': ['request_handler'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'celery': {
+            'handlers': ['celery_logs'],
+            'propagate': True
+        },
+        'reception': {
+            'handlers': ['reception_logs'],
+            'level': 'DEBUG',
+        },
+        'readings': {
+            'handlers': ['reading_logs'],
+            'level': 'DEBUG',
+        },
+        'views': {
+            'handlers': ['view_logs'],
+            'level': 'DEBUG',
+        },
+    }
+}

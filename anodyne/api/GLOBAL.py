@@ -95,11 +95,9 @@ USER_CHOICES = (
 #     ('DPCC', 'DPCC'), ('JSPCB', 'JSPCB'),
 #     # add PCBs above below remains fix
 #     ('CETP', 'CETP'), ('ADMIN', 'ADMIN'), ('DEMO', 'DEMO'),
-#     ('Aaxis Only', 'Aaxis Only')
 # )
 PCB_CHOICES = (
     (None, '-Select Type-'),
-    ('Aaxis Only', 'Aaxis Only'),
     ('BSPCB', 'BSPCB'),
     ('CETP', 'CETP'),
     ('CPCB', 'CPCB'),
@@ -1646,7 +1644,7 @@ STATE_N_CITY = {
                           'Pasighat'],
     'Dadra and Nagar Haveli': ['-Select City-', 'Silvassa'],
     'Maharashtra': ['-Select City-',
-                    'Ahmadnagar (Ahmednagar)',
+                    'Ahmadnagar(Ahmednagar)',
                     'Akola',
                     'Amravati',
                     'Aurangabad',

@@ -8,6 +8,38 @@ from django.db import models
 from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES
 
 
+class State(models.Model):
+    name = models.CharField(max_length=256, blank=True, unique=True)
+
+    def __str__(self):  # __unicode__ on Python 2
+        return self.name
+
+
+class City(models.Model):
+    name = models.CharField(max_length=256, blank=True)
+    state = models.ForeignKey(State, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return '%s: %s' % (self.state, self.name)
+
+    class Meta:
+        unique_together = (('name', 'state'),)
+
+
+class PCB(models.Model):
+    name = models.CharField(max_length=256, unique=True)
+    var1 = models.CharField(max_length=256)
+    var2 = models.CharField(max_length=256)
+    var3 = models.TextField(default=None)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
+    country = models.CharField(max_length=80, default='India', editable=False)
+
+    def __str__(self):
+        return self.name
+
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None):
         """
@@ -65,7 +97,7 @@ class User(AbstractBaseUser):
     staff = models.BooleanField(default=False)  # a admin user; non super-user
     admin = models.BooleanField(default=False)  # a superuser
     created = models.DateTimeField(default=django.utils.timezone.now,
-                                       blank=True, editable=False,
+                                   blank=True, editable=False,
                                    verbose_name='Joined On')
     # notice the absence of a "Password field", that's built in.
 
@@ -77,10 +109,9 @@ class User(AbstractBaseUser):
                             default='ADMIN')
     address = models.TextField(default=None, null=True)
     zipcode = models.IntegerField(default=None, null=True)
-    state = models.CharField(max_length=80, choices=STATES, default=None,
-                             null=True)
-    city = models.CharField(max_length=80, choices=CITIES, default=None,
-                            null=True)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     # USER DETAILS ENDS
 
@@ -154,8 +185,9 @@ class Industry(models.Model):
     # Address details of the Industry
     address = models.TextField(default=None, null=True)
     zipcode = models.IntegerField(default=None, null=True)
-    state = models.CharField(max_length=160, default=None, choices=STATES)
-    city = models.CharField(max_length=160, default=None, choices=CITIES)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     created = models.DateTimeField(auto_now_add=True,
                                    blank=True)  # Need not to show
@@ -222,9 +254,8 @@ class Station(models.Model):
     pvt_key = models.TextField(max_length=1000, null=True, default=None,
                                verbose_name='Private Key', blank=True)
     # NOT FOR ALL PCBs Ends #
-    pcb = models.CharField(max_length=50, default='CPCB',
-                           choices=PCB_CHOICES,
-                           verbose_name='PCB')
+    pcb = models.ForeignKey(PCB, on_delete=models.DO_NOTHING,
+                                  to_field='name', null=True)
     realtime_url = models.CharField(verbose_name='Realtime URL',
                                     default=None, null=True,
                                     max_length=1024,
@@ -248,9 +279,9 @@ class Station(models.Model):
                                     blank=True)
     latitude = models.DecimalField(decimal_places=15, max_digits=20, null=True,
                                    blank=True)
-    state = models.CharField(max_length=80, choices=STATES, blank=True)
-    city = models.CharField(max_length=80, default=None, choices=CITIES,
-                            blank=True)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
     country = models.CharField(max_length=80, default='India', editable=False,
                                blank=True)
     # emails/phone of customer
@@ -344,6 +375,7 @@ class StationInfo(models.Model):
         default=''
     )
     latest_reading = models.TextField(max_length=999, blank=True)
+
 
 
 ##############################################################################
