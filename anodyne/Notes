@@ -1,0 +1,4 @@
+"refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTU3NzcxNDEyMSwianRpIjoiNDk1N2QzZDJjODdmNDJhNzhmYTg4YWNkYjcyZWIyZDciLCJ1c2VyX2lkIjoxfQ.hAfbS1zGvnu1YXQSTd5X0C_Ut8Zgd-XfGFbo0HrvJ58",
+
+
+curl -i -X POST 'Accept: application/json' "http://127.0.0.1:8001/api/token/refresh/" -d '{"refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTU3NzcxNDEyMSwianRpIjoiNDk1N2QzZDJjODdmNDJhNzhmYTg4YWNkYjcyZWIyZDciLCJ1c2VyX2lkIjoxfQ.hAfbS1zGvnu1YXQSTd5X0C_Ut8Zgd-XfGFbo0HrvJ58"}'
