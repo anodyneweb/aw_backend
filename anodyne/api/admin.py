@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Station, Industry, State, PCB, City
+from .models import *
 
 
 class UserAdmin(BaseUserAdmin):
@@ -22,7 +22,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': ('email', 'name',
-                       'password1', 'password2', 'type', 'site',
+                       'password1', 'password2', 'type',
                        'phone', 'address', 'zipcode')}
          ),
     )
@@ -37,5 +37,8 @@ admin.site.register(Station)
 admin.site.register(PCB)
 admin.site.register(State)
 admin.site.register(City)
+admin.site.register(Reading)
+admin.site.register(StationParameter)
+admin.site.register(Parameter)
 # Remove Group Model from admin. We're not using it.
 admin.site.unregister(Group)

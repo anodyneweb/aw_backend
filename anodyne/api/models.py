@@ -1,11 +1,19 @@
 # Create your models here.
+import json
+import logging
 import uuid as uuid
 
 import django.utils.timezone
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
+from django.contrib.postgres.fields import JSONField
+from django.db.models.signals import post_save
 
-from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES
+from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES, \
+    UNIT
+from django.contrib.postgres.fields import CICharField
+
+log = logging.getLogger('anodyne')
 
 
 class State(models.Model):
@@ -255,7 +263,7 @@ class Station(models.Model):
                                verbose_name='Private Key', blank=True)
     # NOT FOR ALL PCBs Ends #
     pcb = models.ForeignKey(PCB, on_delete=models.DO_NOTHING,
-                                  to_field='name', null=True)
+                            to_field='name', null=True)
     realtime_url = models.CharField(verbose_name='Realtime URL',
                                     default=None, null=True,
                                     max_length=1024,
@@ -377,5 +385,169 @@ class StationInfo(models.Model):
     latest_reading = models.TextField(max_length=999, blank=True)
 
 
+class Parameter(models.Model):
+    """
+    This model will have parameters list
+    """
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True,
+                            max_length=120)
+    """
+    Add the citext extension to postgres: e.g. in psql:
+    # connect to database and 
+    # CREATE EXTENSION IF NOT EXISTS citext;
+    else migration will fail
+    """
+    parameter = CICharField(max_length=80, default=None, unique=True)
+    unit = models.CharField(max_length=50, default=None, choices=UNIT,
+                            null=True)
+    station = models.ManyToManyField(Station, default=None)
+    alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
+    # hex code or color name
+    color_code = models.CharField(max_length=50, null=True, default=None,
+                                  verbose_name='Param Color')
+    allowed = models.BooleanField(default=False, verbose_name='Is Allowed')
+
+    @staticmethod
+    def check4new(sender, created, instance=None, **kwargs):
+        if created:
+            param, pcreated = Parameter.objects.get_or_create(
+                parameter=instance.parameter)
+            param.station.add(instance.station)
+            if pcreated:
+                log.info(
+                    'New Param: %s Added' % instance.parameter
+                )
+        # Sync units of all SiteParameters
+        parameters = Parameter.objects.all().values_list('parameter',
+                                                         flat=True)
+        try:
+            for p in parameters:
+                sparams = StationParameter.objects.filter(
+                    unit=None,
+                    parameter=p
+                )
+                p = Parameter.objects.get(parameter=p)
+                if sparams and p.unit:
+                    sparams.update(unit=p.unit)
+        except:
+            pass
+
+    def __str__(self):
+        return self.parameter
+
+
+class StationParameter(models.Model):
+    """
+    This will have all the parameters attached to a Site
+    """
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        max_length=120,
+        unique=True,
+        primary_key=True,
+        editable=False
+    )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        editable=False
+    )
+    parameter = models.CharField(
+        max_length=100,
+        null=True,
+        verbose_name='Parameter'
+    )
+    unit = models.CharField(
+        max_length=50,
+        default=None,
+        choices=UNIT,
+        null=True
+    )
+    minimum = models.FloatField(
+        default=0,
+        null=True
+    )
+    maximum = models.FloatField(
+        default=0,
+        null=True
+    )
+    process_name = models.CharField(
+        max_length=120,
+        default='Inlet',
+        choices=(('Inlet', 'Inlet'),
+                 ('Outlet', 'Outlet'),
+                 ),
+        verbose_name='Process'
+    )
+    monitoring_type = models.CharField(
+        max_length=20,
+        default=None,
+        choices=Station.MONITORING_TYPE_CHOICES,
+        null=True,
+        verbose_name='Monitoring'
+    )
+    monitoring_id = models.CharField(
+        max_length=50,
+        null=True,
+        verbose_name='Monitoring ID'
+    )
+    analyzer_id = models.CharField(
+        max_length=50,
+        null=True,
+        verbose_name='Analyzer ID'
+    )
+    parameter_id = models.CharField(
+        max_length=50,
+        null=True,
+        verbose_name='Parameter ID'
+    )
+    unit_id = models.CharField(
+        max_length=50,
+        null=True,
+        verbose_name='Unit ID'
+    )
+    allowed = models.BooleanField(
+        default=True,
+        verbose_name='Is Active'
+    )
+    analyzer_range = models.FloatField(
+        default=0,
+        null=True
+    )
+
+    class Meta:
+        unique_together = (('station', 'parameter'),)
+
+    def __str__(self):
+        return '%s: %s' % (self.station.name, self.parameter)
+
+
+class Reading(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE
+    )
+    reading = JSONField(
+        max_length=9999,
+        default=dict,
+        verbose_name='Reading',
+        blank=True
+    )
+    timestamp = models.DateTimeField(
+        db_index=True,
+        auto_now_add=True,
+        blank=True,
+    )
+    filename = models.CharField(
+        max_length=120
+    )
+
+    class Meta:
+        unique_together = (('timestamp', 'filename'),)
+
+
+
 
 ##############################################################################
+# SIGNALS
+post_save.connect(Parameter.check4new, sender=StationParameter)

@@ -14,7 +14,9 @@ from os.path import basename
 import inotify.adapters
 from inotify.constants import *
 
-FTP_BASE = os.environ.get('GATEKEEPER_PATH', '/var/www/ftp_home/')
+from anodyne.connectors import connector
+
+FTP_BASE = os.environ.get('FTP_PATH', '/var/www/ftp_home/')
 
 logging.basicConfig(filename='/var/log/anodyne/reception.log',
                     level=logging.DEBUG)
@@ -22,7 +24,7 @@ import os
 
 
 #  you have to set the correct path to you settings module
-#TODO: to enable this host django app properly on server
+# TODO: to enable this host django app properly on server
 
 # os.environ.setdefault("DJANGO_SETTINGS_MODULE", "anodyne.settings")
 # PROJ_PATH = "/home/aw_backend/anodyne/anodyne"
@@ -61,8 +63,7 @@ def process(f):
     """
     try:
         logging.debug('Received: %s' % basename(f))
-        # g = GenFile4PCB(f)
-        # g.initiate()
+        print(connector.ReadCSV(f).to_list)
     except Exception as error:
         if type(error).__name__ == 'ConnectionError':
             logging.debug('%s: Server not responding...', basename(f))
