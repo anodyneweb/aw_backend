@@ -11,8 +11,11 @@ urlpatterns = [
                   # views with context
                   path('hello/', views.HelloView.as_view(), name='hello'),
                   path('admin/', admin.site.urls),
-                  path('api/token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
-                  path('api/token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
+                  path('api/token/', jwt_views.TokenObtainPairView.as_view(),
+                       name='token_obtain_pair'),
+                  path('api/token/refresh/',
+                       jwt_views.TokenRefreshView.as_view(),
+                       name='token_refresh'),
                   # including API app urls.py, serializer responses
                   path('api/', include('api.urls')),
 
