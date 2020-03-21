@@ -3,7 +3,7 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.fields import Field
 
 from anodyne import settings
-from .models import User, Station, Industry, StationInfo, City, State
+from .models import User, Station, Industry, StationInfo, City, State, PCB
 from rest_framework import serializers
 
 from .utils import send_mail
@@ -53,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
 class IndustrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Industry
-        exclude = ('uuid',)
+        # exclude = ('uuid',)
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -77,4 +77,10 @@ class StateSerializer(serializers.ModelSerializer):
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
+        fields = '__all__'
+
+
+class PCBSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PCB
         fields = '__all__'

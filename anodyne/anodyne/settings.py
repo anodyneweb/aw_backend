@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    # 'rest_framework.authtoken',
+    'rest_framework.authtoken',
     'api',
 ]
 
@@ -136,7 +136,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
-# AUTH_USER_MODEL = 'api.User'
+
+# ValidationError at /api/ if below commented
+# specifying the User model to be used for authentication
+AUTH_USER_MODEL = 'api.User'
 
 ANONYMOUS_USER_NAME = 'AnonymousUser'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -145,9 +148,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'trip2thailand2020@gmail.com'
 EMAIL_HOST_PASSWORD = 'sagaraiesec'
-
 APP_NAME = 'VepoLink'
-
 
 # Logging Setup
 # can set environ LOGLEVEL=debug/info/error etc

@@ -5,8 +5,9 @@ from rest_framework.fields import IntegerField
 from rest_framework.response import Response
 
 from api.serializers import UserSerializer, IndustrySerializer, \
-    StationSerializer, StationInfoSerializer, StateSerializer, CitySerializer
-from api.models import User, Industry, Station, StationInfo, State, City
+    StationSerializer, StationInfoSerializer, StateSerializer, CitySerializer, \
+    PCBSerializer
+from api.models import User, Industry, Station, StationInfo, State, City, PCB
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -61,3 +62,8 @@ class StateViewSet(viewsets.ModelViewSet):
 class CityViewSet(viewsets.ModelViewSet):
     queryset = City.objects.all()
     serializer_class = CitySerializer
+
+
+class PCBViewSet(viewsets.ModelViewSet):
+    queryset = PCB.objects.all()
+    serializer_class = PCBSerializer
