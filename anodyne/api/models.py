@@ -34,6 +34,10 @@ class City(models.Model):
         unique_together = (('name', 'state'),)
 
 
+class Unit(models.Model):
+    unit = models.CharField(max_length=20)
+
+
 class PCB(models.Model):
     name = models.CharField(max_length=256, unique=True)
     var1 = models.CharField(max_length=256)
@@ -387,25 +391,20 @@ class StationInfo(models.Model):
 
 class Parameter(models.Model):
     """
-    This model will have parameters list
-    """
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True,
-                            max_length=120)
-    """
     Add the citext extension to postgres: e.g. in psql:
-    # connect to database and 
+    # connect to database and
     # CREATE EXTENSION IF NOT EXISTS citext;
     else migration will fail
     """
-    parameter = CICharField(max_length=80, default=None, unique=True)
+    name = CICharField(max_length=80, default=None, unique=True)
     unit = models.CharField(max_length=50, default=None, choices=UNIT,
                             null=True)
-    station = models.ManyToManyField(Station, default=None)
     alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
     # hex code or color name
     color_code = models.CharField(max_length=50, null=True, default=None,
                                   verbose_name='Param Color')
-    allowed = models.BooleanField(default=False, verbose_name='Is Allowed')
+
+    # allowed = models.BooleanField(default=False, verbose_name='Is Allowed')
 
     @staticmethod
     def check4new(sender, created, instance=None, **kwargs):
@@ -433,35 +432,20 @@ class Parameter(models.Model):
             pass
 
     def __str__(self):
-        return self.parameter
+        return '%s (%s)' % (self.name, self.unit)
 
 
 class StationParameter(models.Model):
     """
     This will have all the parameters attached to a Site
     """
-    uuid = models.UUIDField(
-        default=uuid.uuid4,
-        max_length=120,
-        unique=True,
-        primary_key=True,
-        editable=False
-    )
     station = models.ForeignKey(
         Station,
+        on_delete=models.CASCADE
+    )
+    parameter = models.ForeignKey(
+        Parameter,
         on_delete=models.CASCADE,
-        editable=False
-    )
-    parameter = models.CharField(
-        max_length=100,
-        null=True,
-        verbose_name='Parameter'
-    )
-    unit = models.CharField(
-        max_length=50,
-        default=None,
-        choices=UNIT,
-        null=True
     )
     minimum = models.FloatField(
         default=0,
@@ -486,33 +470,9 @@ class StationParameter(models.Model):
         null=True,
         verbose_name='Monitoring'
     )
-    monitoring_id = models.CharField(
-        max_length=50,
-        null=True,
-        verbose_name='Monitoring ID'
-    )
-    analyzer_id = models.CharField(
-        max_length=50,
-        null=True,
-        verbose_name='Analyzer ID'
-    )
-    parameter_id = models.CharField(
-        max_length=50,
-        null=True,
-        verbose_name='Parameter ID'
-    )
-    unit_id = models.CharField(
-        max_length=50,
-        null=True,
-        verbose_name='Unit ID'
-    )
     allowed = models.BooleanField(
         default=True,
         verbose_name='Is Active'
-    )
-    analyzer_range = models.FloatField(
-        default=0,
-        null=True
     )
 
     class Meta:
@@ -527,26 +487,48 @@ class Reading(models.Model):
         Station,
         on_delete=models.CASCADE
     )
-    reading = JSONField(
-        max_length=9999,
-        default=dict,
-        verbose_name='Reading',
-        blank=True
+    parameter = models.ForeignKey(
+        Parameter,
+        on_delete=models.CASCADE,
     )
+    value = models.FloatField()
     timestamp = models.DateTimeField(
         db_index=True,
         auto_now_add=True,
         blank=True,
     )
     filename = models.CharField(
-        max_length=120
+        max_length=120, null=True
     )
 
     class Meta:
         unique_together = (('timestamp', 'filename'),)
 
 
-
+# class ReadingJSON(models.Model):
+#     station = models.ForeignKey(
+#         Station,
+#         on_delete=models.CASCADE
+#     )
+#     # {'param1': 'val1', 'param2': 'val2'...}
+#     reading = JSONField(
+#         max_length=9999,
+#         blank=True
+#     )
+#     timestamp = models.DateTimeField(
+#         db_index=True,
+#         auto_now_add=True,
+#         blank=True
+#     )
+#     filename = models.CharField(
+#         max_length=80
+#     )
+#
+#     class Meta:
+#         unique_together = (('timestamp', 'filename'),)
+#
+#     def __str__(self):
+#         return "%s: \n %s" % (self.station.name, self.reading)
 
 ##############################################################################
 # SIGNALS

@@ -24,18 +24,27 @@ class ToDatabase:
         log.info('Parameters found in %s\n%s' % (
             self.kwargs.get('filename'), parameters)
                  )
-        try:
-            reading = Reading.objects.create(
-                station__uuid=self.kwargs.get('station'),
-                reading=self.kwargs.get('reading'),
-                filename=self.kwargs.get('filename')
-            )
-            reading.save()
-            response['success'] = True
-            response['add_reading_msg'] = "Successfully added %s readings to" \
-                                          " database" % self.kwargs.get(
+        for a in df.index:
+            parameter = df.parameter[a]
+            value = df.value[a]
+            timestamp = df.timestamp[a]
+            filename = df.filename[a]
+            try:
+                reading = Reading.objects.create(
+                    station__uuid=self.kwargs.get('station'),
+                    parameter__name=parameter,
+                    value=value,
+                    filename=filename,
+                    timestamp=timestamp
+                )
+                reading.save()
+                response['success'] = True
+            except Exception as err:
+                response['add_reading_%s_msg' % parameter] = err
+                continue
+        if response.get('success'):
+            response[
+                'add_reading_msg'] = "Successfully added %s readings to" \
+                                     " database" % self.kwargs.get(
                 'filename')
-        except Exception as err:
-            response['add_reading_msg'] = err
-
         return to_db_info

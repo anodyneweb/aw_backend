@@ -6,8 +6,9 @@ from rest_framework.response import Response
 
 from api.serializers import UserSerializer, IndustrySerializer, \
     StationSerializer, StationInfoSerializer, StateSerializer, CitySerializer, \
-    PCBSerializer
-from api.models import User, Industry, Station, StationInfo, State, City, PCB
+    PCBSerializer, StationParameterSerializer
+from api.models import User, Industry, Station, StationInfo, State, City, PCB, \
+    StationParameter
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -67,3 +68,8 @@ class CityViewSet(viewsets.ModelViewSet):
 class PCBViewSet(viewsets.ModelViewSet):
     queryset = PCB.objects.all()
     serializer_class = PCBSerializer
+
+
+class StationParameterViewSet(viewsets.ModelViewSet):
+    queryset = StationParameter.objects.all()
+    serializer_class = StationParameterSerializer

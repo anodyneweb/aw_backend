@@ -504,7 +504,6 @@ class HelloView(APIView):
 
     def get(self, request):
         content = {'message': 'Hello, World!'}
-
         # x = send_mail(subject='Hello API from VepoLink',
         #               message='',
         #               from_email='VepoLink',
