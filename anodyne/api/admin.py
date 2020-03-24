@@ -22,7 +22,7 @@ class UserAdmin(BaseUserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': ('email', 'name',
-                       'password1', 'password2', 'type',
+                       'password1', 'password2', 'type', 'admin', 'staff',
                        'phone', 'address', 'zipcode')}
          ),
     )
@@ -40,5 +40,6 @@ admin.site.register(City)
 admin.site.register(Reading)
 admin.site.register(StationParameter)
 admin.site.register(Parameter)
+admin.site.register(Registration)
 # Remove Group Model from admin. We're not using it.
 admin.site.unregister(Group)

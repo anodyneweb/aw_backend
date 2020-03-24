@@ -81,7 +81,7 @@ PERMISSIONS = (
 USER_CHOICES = (
     ('CUSTOMER', 'Customer'),
     ('CPCB', 'CPCB'),
-    ('ADMIN', 'Super Admin'),
+    # ('ADMIN', 'Super Admin'),
     ('STAFF', 'Staff User'),
 )
 # PCB_CHOICES = (

@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
@@ -25,7 +24,8 @@ SECRET_KEY = '2=4xw8rppm!#v&4kicf#2nwqx!!ekg=vk(vr(qapx*5_nvm0c&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_LOCATION = os.path.dirname(os.path.dirname(__file__))
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api',
+    'django_filters'
 ]
 
 REST_FRAMEWORK = {
@@ -49,7 +50,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',)
+        'rest_framework.permissions.IsAuthenticated',
+    )
 
 }
 
@@ -62,17 +64,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 ROOT_URLCONF = 'anodyne.urls'
 
-SETTINGS_PATH = os.path.dirname(os.path.dirname(__file__))
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(SETTINGS_PATH, 'templates')],
+        'DIRS': [os.path.join(BASE_LOCATION, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -123,20 +123,18 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
-
+STATIC_ROOT = os.path.join(BASE_LOCATION, 'api', 'static')
 STATIC_URL = '/static/'
-
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
 # ValidationError at /api/ if below commented
 # specifying the User model to be used for authentication
 AUTH_USER_MODEL = 'api.User'
@@ -153,12 +151,12 @@ APP_NAME = 'VepoLink'
 # Logging Setup
 # can set environ LOGLEVEL=debug/info/error etc
 LOGLEVEL = os.environ.get('LOGLEVEL', 'debug').upper()
-LOG_PATH = os.path.join('/var/log/', 'anodyne')
+LOG_PATH = os.path.join('/var/log/', 'vepolink')
 
 if not os.path.exists(LOG_PATH):
     os.makedirs(LOG_PATH)
 
-LOG_FILE = os.path.join(LOG_PATH, 'anodyne.log')
+LOG_FILE = os.path.join(LOG_PATH, 'vepolink.log')
 CELERY_LOG_FILE = os.path.join(LOG_PATH, 'celerytasks.log')
 REQ_LOG_FILE = os.path.join(LOG_PATH, 'requests.log')
 READINGS_LOG_FILE = os.path.join(LOG_PATH, 'readings.log')
@@ -237,7 +235,7 @@ LOGGING = {
         },
     },
     'loggers': {
-        'anodyne': {
+        'vepolink': {
             'handlers': ['console', 'default'],
             'level': 'DEBUG',
             'propagate': True

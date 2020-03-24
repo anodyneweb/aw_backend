@@ -1,11 +1,14 @@
 from django.core.mail import send_mail
 from django.db import IntegrityError
+from rest_framework import status, viewsets
+from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from anodyne import settings
-from api.models import State, City
+from api.models import State, City, User, Registration
+from api.serializers import UserSerializer, RegistrationSerializer
 
 
 def add_state_city():
@@ -503,7 +506,7 @@ class HelloView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        content = {'message': 'Hello, World!'}
+        content = {'message': 'Hello, %s!' % request.user}
         # x = send_mail(subject='Hello API from VepoLink',
         #               message='',
         #               from_email='VepoLink',
@@ -512,3 +515,9 @@ class HelloView(APIView):
         # print(x)
 
         return Response(content)
+
+class RegistrationViewSet(viewsets.GenericViewSet):
+    # settings permission_classes empty will open this API
+    permission_classes = []
+    queryset = Registration.objects.all()
+    serializer_class = RegistrationSerializer

@@ -106,8 +106,8 @@ class User(AbstractBaseUser):
         unique=True,
     )
     active = models.BooleanField(default=True)
-    staff = models.BooleanField(default=False)  # a admin user; non super-user
-    admin = models.BooleanField(default=False)  # a superuser
+    staff = models.BooleanField(default=False)  # a staff;
+    admin = models.BooleanField(default=False)  # a admin
     created = models.DateTimeField(default=django.utils.timezone.now,
                                    blank=True, editable=False,
                                    verbose_name='Joined On')
@@ -176,33 +176,76 @@ class Industry(models.Model):
         ('Delay', 'Delay'),
         ('Offline', 'Offline'),
     )
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True,
-                            max_length=120, unique=True)
-    name = models.CharField(max_length=256, unique=True,
-                            verbose_name='Industry Name')
-    dir = models.CharField(max_length=50, null=False, blank=False,
-                           editable=False,
-                           verbose_name='Data File Directory Name')
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True,
+        max_length=120,
+        unique=True
+    )
+    user = models.ForeignKey(
+        User,
+        null=True,
+        on_delete=models.SET_NULL
+    )
+    name = models.CharField(
+        max_length=256,
+        unique=True,
+        verbose_name='Industry Name'
+    )
+    dir = models.CharField(
+        max_length=50,
+        null=False,
+        blank=False,
+        editable=False,
+        verbose_name='Data File Directory Name'
+    )
     industry_code = models.CharField(max_length=160,
                                      verbose_name='Industry Code (as per CPCB)')
-    status = models.CharField(max_length=120, choices=industry_status,
-                              default='Offline')
-    type = models.CharField(max_length=80, choices=sorted(CATEGORIES),
-                            default='Other', verbose_name='Category')
-    industry_id = models.CharField(max_length=160,
-                                   default='',
-                                   # unique=True,
-                                   verbose_name='Industry Id')
+    status = models.CharField(
+        max_length=120,
+        choices=industry_status,
+        default='Offline'
+    )
+    type = models.CharField(
+        max_length=80,
+        choices=sorted(CATEGORIES),
+        default='Other',
+        verbose_name='Category'
+    )
+    industry_id = models.CharField(
+        max_length=160,
+        default='',
+        verbose_name='Industry Id'
+    )
     # Address details of the Industry
-    address = models.TextField(default=None, null=True)
-    zipcode = models.IntegerField(default=None, null=True)
-    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
-                              to_field='name', null=True)
-    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
-    country = models.CharField(max_length=80, default='India', editable=False)
-    created = models.DateTimeField(auto_now_add=True,
-                                   blank=True)  # Need not to show
+    address = models.TextField(
+        default=None,
+        null=True
+    )
+    zipcode = models.IntegerField(
+        default=None,
+        null=True
+    )
+    state = models.ForeignKey(
+        State,
+        on_delete=models.DO_NOTHING,
+        to_field='name',
+        null=True
+    )
+    city = models.ForeignKey(
+        City,
+        on_delete=models.DO_NOTHING,
+        null=True,
+    )
+    country = models.CharField(
+        max_length=80,
+        default='India',
+        editable=False
+    )
+    created = models.DateTimeField(
+        auto_now_add=True,
+        blank=True
+    )
 
     class Meta:
         default_permissions = ()
@@ -361,7 +404,7 @@ class Station(models.Model):
 
 
 class StationInfo(models.Model):
-    site = models.OneToOneField(
+    station = models.OneToOneField(
         Station,
         on_delete=models.CASCADE,
         primary_key=True,
@@ -493,9 +536,7 @@ class Reading(models.Model):
     )
     value = models.FloatField()
     timestamp = models.DateTimeField(
-        db_index=True,
-        auto_now_add=True,
-        blank=True,
+        db_index=True
     )
     filename = models.CharField(
         max_length=120, null=True
@@ -503,6 +544,33 @@ class Reading(models.Model):
 
     class Meta:
         unique_together = (('timestamp', 'filename'),)
+
+
+class Registration(models.Model):
+    email = models.EmailField(
+        verbose_name='email address',
+        max_length=255,
+        unique=True
+    )
+    fname = models.CharField(
+        max_length=120, verbose_name='First Name',
+    )
+    lname = models.CharField(
+        max_length=120,
+        verbose_name='Last Name',
+        blank=True
+    )
+    phone = models.CharField(
+        max_length=120,
+    )
+    industry = models.CharField(
+        max_length=120,
+        blank=True
+    )
+    query = models.TextField(
+        default=None,
+        blank=True
+    )
 
 
 # class ReadingJSON(models.Model):
