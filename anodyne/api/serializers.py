@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from anodyne import settings
 from .models import User, Station, Industry, StationInfo, City, State, PCB, \
-    StationParameter, Reading, Registration
+    StationParameter, Reading, Registration, Category
 from .utils import send_mail
 
 
@@ -52,7 +52,8 @@ class UserSerializer(serializers.ModelSerializer):
 class IndustrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Industry
-        fields = '__all__'
+        # fields = '__all__'
+        exclude = ('uuid',)
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -100,4 +101,10 @@ class ReadingSerializer(serializers.ModelSerializer):
 class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration
+        fields = '__all__'
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
         fields = '__all__'

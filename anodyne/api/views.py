@@ -4,11 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.models import User, Industry, Station, StationInfo, State, City, \
-    PCB, StationParameter, Reading, Registration
+    PCB, StationParameter, Reading, Registration, Category
 from api.serializers import UserSerializer, IndustrySerializer, \
     StationSerializer, StationInfoSerializer, StateSerializer, \
     CitySerializer, PCBSerializer, StationParameterSerializer, \
-    ReadingSerializer, RegistrationSerializer
+    ReadingSerializer, RegistrationSerializer, CategorySerializer
 from django_filters import rest_framework as filters
 
 
@@ -62,7 +62,6 @@ class IndustryViewSet(viewsets.ModelViewSet):
         by filtering against a `username` query parameter in the URL.
         """
         queryset = Industry.objects.all()
-        print(self.request.query_params)
         q = {}
         if self.request.query_params:
             uuid = self.request.query_params.getlist('uuid')
@@ -160,3 +159,8 @@ class ReadingViewSet(viewsets.ModelViewSet):
 class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = Registration.objects.all()
     serializer_class = RegistrationSerializer
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer

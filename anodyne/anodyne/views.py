@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from anodyne import settings
-from api.models import State, City, User, Registration
+from api.models import State, City, User, Registration, Category
 from api.serializers import UserSerializer, RegistrationSerializer
 
 
@@ -488,18 +488,43 @@ def add_state_city():
     s.delete()
     c.delete()
     #
+    state_rec = []
+    city_rec = []
     for k, v in STATE_N_CITY.items():
-        s = State.objects.create(name=k)
-        s.save()
+        state_rec.append({
+            'name': k
+        })
+        # s = State.objects.create(name=k)
+        # s.save()
         for cty in v:
-            try:
-                c = City.objects.create(state=s)
-                c.name = cty
-                c.save()
-            except IntegrityError:
-                continue
-
+            city_rec.append(
+                {
+                    'name': cty,
+                    'state': s
+                }
+            )
+            # try:
+            #     c = City.objects.create(state=s)
+            #     c.name = cty
+            #     c.save()
+            # except IntegrityError:
+            #     continue
+    State.objects.bulk_create([State(**q) for q in state_rec])
+    City.objects.bulk_create([City(**q) for q in city_rec])
     print('done')
+
+
+def add_category():
+    from api import GLOBAL
+    c = Category.objects.all()
+    c.delete()
+    rec = []
+    for a, b in GLOBAL.CATEGORIES:
+        rec.append(
+            {'name': b.strip()}
+        )
+    Category.objects.bulk_create([Category(**q) for q in rec])
+    print('done...')
 
 
 class HelloView(APIView):
@@ -507,6 +532,7 @@ class HelloView(APIView):
 
     def get(self, request):
         content = {'message': 'Hello, %s!' % request.user}
+        # add_category()
         # x = send_mail(subject='Hello API from VepoLink',
         #               message='',
         #               from_email='VepoLink',
@@ -515,6 +541,7 @@ class HelloView(APIView):
         # print(x)
 
         return Response(content)
+
 
 class RegistrationViewSet(viewsets.GenericViewSet):
     # settings permission_classes empty will open this API

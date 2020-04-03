@@ -4,7 +4,8 @@ from rest_framework import routers, serializers, viewsets
 # Routers provide an easy way of automatically determining the URL conf.
 from api.views import UserViewSet, IndustryViewSet, StationViewSet, \
     StationInfoViewSet, StateViewSet, CityViewSet, PCBViewSet, \
-    StationParameterViewSet, ReadingViewSet, RegistrationViewSet
+    StationParameterViewSet, ReadingViewSet, RegistrationViewSet, \
+    CategoryViewSet
 
 router = routers.DefaultRouter()
 
@@ -15,6 +16,7 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'state', StateViewSet, basename='state')
 router.register(r'city', CityViewSet, basename='city')
 router.register(r'pcb', PCBViewSet, basename='pcb')
+router.register(r'category', CategoryViewSet, basename='category')
 router.register(r'station-parameter', StationParameterViewSet,
                 basename='station-parameter')
 router.register(r'reading', ReadingViewSet, basename='reading')

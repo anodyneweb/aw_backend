@@ -35,7 +35,17 @@ class City(models.Model):
 
 
 class Unit(models.Model):
-    unit = models.CharField(max_length=20)
+    unit = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return self.unit
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+
+    def __str__(self):
+        return self.name
 
 
 class PCB(models.Model):
@@ -206,11 +216,11 @@ class Industry(models.Model):
         choices=industry_status,
         default='Offline'
     )
-    type = models.CharField(
-        max_length=80,
-        choices=sorted(CATEGORIES),
-        default='Other',
-        verbose_name='Category'
+    type = models.ForeignKey(
+        Category,
+        on_delete=models.DO_NOTHING,
+        to_field='name',
+        null=True
     )
     industry_id = models.CharField(
         max_length=160,
