@@ -1,11 +1,65 @@
 # Create your models here.
+import json
+import logging
 import uuid as uuid
 
 import django.utils.timezone
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
+from django.contrib.postgres.fields import JSONField
+from django.db.models.signals import post_save
 
-from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES
+from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES, \
+    UNIT
+from django.contrib.postgres.fields import CICharField
+
+log = logging.getLogger('anodyne')
+
+
+class State(models.Model):
+    name = models.CharField(max_length=256, blank=True, unique=True)
+
+    def __str__(self):  # __unicode__ on Python 2
+        return self.name
+
+
+class City(models.Model):
+    name = models.CharField(max_length=256, blank=True)
+    state = models.ForeignKey(State, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return '%s: %s' % (self.state, self.name)
+
+    class Meta:
+        unique_together = (('name', 'state'),)
+
+
+class Unit(models.Model):
+    unit = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return self.unit
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class PCB(models.Model):
+    name = models.CharField(max_length=256, unique=True)
+    var1 = models.CharField(max_length=256)
+    var2 = models.CharField(max_length=256)
+    var3 = models.TextField(default=None)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
+    country = models.CharField(max_length=80, default='India', editable=False)
+
+    def __str__(self):
+        return self.name
 
 
 class UserManager(BaseUserManager):
@@ -62,10 +116,10 @@ class User(AbstractBaseUser):
         unique=True,
     )
     active = models.BooleanField(default=True)
-    staff = models.BooleanField(default=False)  # a admin user; non super-user
-    admin = models.BooleanField(default=False)  # a superuser
+    staff = models.BooleanField(default=False)  # a staff;
+    admin = models.BooleanField(default=False)  # a admin
     created = models.DateTimeField(default=django.utils.timezone.now,
-                                       blank=True, editable=False,
+                                   blank=True, editable=False,
                                    verbose_name='Joined On')
     # notice the absence of a "Password field", that's built in.
 
@@ -77,10 +131,9 @@ class User(AbstractBaseUser):
                             default='ADMIN')
     address = models.TextField(default=None, null=True)
     zipcode = models.IntegerField(default=None, null=True)
-    state = models.CharField(max_length=80, choices=STATES, default=None,
-                             null=True)
-    city = models.CharField(max_length=80, choices=CITIES, default=None,
-                            null=True)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     # USER DETAILS ENDS
 
@@ -133,32 +186,76 @@ class Industry(models.Model):
         ('Delay', 'Delay'),
         ('Offline', 'Offline'),
     )
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True,
-                            max_length=120, unique=True)
-    name = models.CharField(max_length=256, unique=True,
-                            verbose_name='Industry Name')
-    dir = models.CharField(max_length=50, null=False, blank=False,
-                           editable=False,
-                           verbose_name='Data File Directory Name')
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True,
+        max_length=120,
+        unique=True
+    )
+    user = models.ForeignKey(
+        User,
+        null=True,
+        on_delete=models.SET_NULL
+    )
+    name = models.CharField(
+        max_length=256,
+        unique=True,
+        verbose_name='Industry Name'
+    )
+    dir = models.CharField(
+        max_length=50,
+        null=False,
+        blank=False,
+        editable=False,
+        verbose_name='Data File Directory Name'
+    )
     industry_code = models.CharField(max_length=160,
                                      verbose_name='Industry Code (as per CPCB)')
-    status = models.CharField(max_length=120, choices=industry_status,
-                              default='Offline')
-    type = models.CharField(max_length=80, choices=sorted(CATEGORIES),
-                            default='Other', verbose_name='Category')
-    industry_id = models.CharField(max_length=160,
-                                   default='',
-                                   # unique=True,
-                                   verbose_name='Industry Id')
+    status = models.CharField(
+        max_length=120,
+        choices=industry_status,
+        default='Offline'
+    )
+    type = models.ForeignKey(
+        Category,
+        on_delete=models.DO_NOTHING,
+        to_field='name',
+        null=True
+    )
+    industry_id = models.CharField(
+        max_length=160,
+        default='',
+        verbose_name='Industry Id'
+    )
     # Address details of the Industry
-    address = models.TextField(default=None, null=True)
-    zipcode = models.IntegerField(default=None, null=True)
-    state = models.CharField(max_length=160, default=None, choices=STATES)
-    city = models.CharField(max_length=160, default=None, choices=CITIES)
-    country = models.CharField(max_length=80, default='India', editable=False)
-    created = models.DateTimeField(auto_now_add=True,
-                                   blank=True)  # Need not to show
+    address = models.TextField(
+        default=None,
+        null=True
+    )
+    zipcode = models.IntegerField(
+        default=None,
+        null=True
+    )
+    state = models.ForeignKey(
+        State,
+        on_delete=models.DO_NOTHING,
+        to_field='name',
+        null=True
+    )
+    city = models.ForeignKey(
+        City,
+        on_delete=models.DO_NOTHING,
+        null=True,
+    )
+    country = models.CharField(
+        max_length=80,
+        default='India',
+        editable=False
+    )
+    created = models.DateTimeField(
+        auto_now_add=True,
+        blank=True
+    )
 
     class Meta:
         default_permissions = ()
@@ -222,9 +319,8 @@ class Station(models.Model):
     pvt_key = models.TextField(max_length=1000, null=True, default=None,
                                verbose_name='Private Key', blank=True)
     # NOT FOR ALL PCBs Ends #
-    pcb = models.CharField(max_length=50, default='CPCB',
-                           choices=PCB_CHOICES,
-                           verbose_name='PCB')
+    pcb = models.ForeignKey(PCB, on_delete=models.DO_NOTHING,
+                            to_field='name', null=True)
     realtime_url = models.CharField(verbose_name='Realtime URL',
                                     default=None, null=True,
                                     max_length=1024,
@@ -248,9 +344,9 @@ class Station(models.Model):
                                     blank=True)
     latitude = models.DecimalField(decimal_places=15, max_digits=20, null=True,
                                    blank=True)
-    state = models.CharField(max_length=80, choices=STATES, blank=True)
-    city = models.CharField(max_length=80, default=None, choices=CITIES,
-                            blank=True)
+    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+                              to_field='name', null=True)
+    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
     country = models.CharField(max_length=80, default='India', editable=False,
                                blank=True)
     # emails/phone of customer
@@ -318,7 +414,7 @@ class Station(models.Model):
 
 
 class StationInfo(models.Model):
-    site = models.OneToOneField(
+    station = models.OneToOneField(
         Station,
         on_delete=models.CASCADE,
         primary_key=True,
@@ -346,4 +442,172 @@ class StationInfo(models.Model):
     latest_reading = models.TextField(max_length=999, blank=True)
 
 
+class Parameter(models.Model):
+    """
+    Add the citext extension to postgres: e.g. in psql:
+    # connect to database and
+    # CREATE EXTENSION IF NOT EXISTS citext;
+    else migration will fail
+    """
+    name = CICharField(max_length=80, default=None, unique=True)
+    unit = models.CharField(max_length=50, default=None, choices=UNIT,
+                            null=True)
+    alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
+    # hex code or color name
+    color_code = models.CharField(max_length=50, null=True, default=None,
+                                  verbose_name='Param Color')
+
+    # allowed = models.BooleanField(default=False, verbose_name='Is Allowed')
+
+    @staticmethod
+    def check4new(sender, created, instance=None, **kwargs):
+        if created:
+            param, pcreated = Parameter.objects.get_or_create(
+                parameter=instance.parameter)
+            param.station.add(instance.station)
+            if pcreated:
+                log.info(
+                    'New Param: %s Added' % instance.parameter
+                )
+        # Sync units of all SiteParameters
+        parameters = Parameter.objects.all().values_list('parameter',
+                                                         flat=True)
+        try:
+            for p in parameters:
+                sparams = StationParameter.objects.filter(
+                    unit=None,
+                    parameter=p
+                )
+                p = Parameter.objects.get(parameter=p)
+                if sparams and p.unit:
+                    sparams.update(unit=p.unit)
+        except:
+            pass
+
+    def __str__(self):
+        return '%s (%s)' % (self.name, self.unit)
+
+
+class StationParameter(models.Model):
+    """
+    This will have all the parameters attached to a Site
+    """
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE
+    )
+    parameter = models.ForeignKey(
+        Parameter,
+        on_delete=models.CASCADE,
+    )
+    minimum = models.FloatField(
+        default=0,
+        null=True
+    )
+    maximum = models.FloatField(
+        default=0,
+        null=True
+    )
+    process_name = models.CharField(
+        max_length=120,
+        default='Inlet',
+        choices=(('Inlet', 'Inlet'),
+                 ('Outlet', 'Outlet'),
+                 ),
+        verbose_name='Process'
+    )
+    monitoring_type = models.CharField(
+        max_length=20,
+        default=None,
+        choices=Station.MONITORING_TYPE_CHOICES,
+        null=True,
+        verbose_name='Monitoring'
+    )
+    allowed = models.BooleanField(
+        default=True,
+        verbose_name='Is Active'
+    )
+
+    class Meta:
+        unique_together = (('station', 'parameter'),)
+
+    def __str__(self):
+        return '%s: %s' % (self.station.name, self.parameter)
+
+
+class Reading(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE
+    )
+    parameter = models.ForeignKey(
+        Parameter,
+        on_delete=models.CASCADE,
+    )
+    value = models.FloatField()
+    timestamp = models.DateTimeField(
+        db_index=True
+    )
+    filename = models.CharField(
+        max_length=120, null=True
+    )
+
+    class Meta:
+        unique_together = (('timestamp', 'filename'),)
+
+
+class Registration(models.Model):
+    email = models.EmailField(
+        verbose_name='email address',
+        max_length=255,
+        unique=True
+    )
+    fname = models.CharField(
+        max_length=120, verbose_name='First Name',
+    )
+    lname = models.CharField(
+        max_length=120,
+        verbose_name='Last Name',
+        blank=True
+    )
+    phone = models.CharField(
+        max_length=120,
+    )
+    industry = models.CharField(
+        max_length=120,
+        blank=True
+    )
+    query = models.TextField(
+        default=None,
+        blank=True
+    )
+
+
+# class ReadingJSON(models.Model):
+#     station = models.ForeignKey(
+#         Station,
+#         on_delete=models.CASCADE
+#     )
+#     # {'param1': 'val1', 'param2': 'val2'...}
+#     reading = JSONField(
+#         max_length=9999,
+#         blank=True
+#     )
+#     timestamp = models.DateTimeField(
+#         db_index=True,
+#         auto_now_add=True,
+#         blank=True
+#     )
+#     filename = models.CharField(
+#         max_length=80
+#     )
+#
+#     class Meta:
+#         unique_together = (('timestamp', 'filename'),)
+#
+#     def __str__(self):
+#         return "%s: \n %s" % (self.station.name, self.reading)
+
 ##############################################################################
+# SIGNALS
+post_save.connect(Parameter.check4new, sender=StationParameter)

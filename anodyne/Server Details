@@ -1,0 +1,36 @@
+Anodyne Servers:
+# Setting Up Timezone on server
+timedatectl
+sudo timedatectl set-timezone Asia/Kolkata
+
+
+
+# Setting up database psql server
+sudo su - postgres
+psql
+CREATE DATABASE anodyne_db;
+CREATE USER anodyne WITH PASSWORD '@n0dyn3';
+ALTER ROLE anodyne SET client_encoding TO 'utf8';
+ALTER ROLE anodyne SET timezone TO 'Asia/Calcutta';
+GRANT ALL PRIVILEGES ON DATABASE anodyne_db TO anodyne;
+#
+sudo vi /etc/postgresql/10/main/postgresql.conf
+# add below line
+listen_addresses = '*'
+
+sudo vi /etc/postgresql/10/main/pg_hba.conf
+# add below line
+host    all             all             0.0.0.0/0               md5
+sudo service postgresql restart
+
+
+
+
+# Setting up wsgi
+#sudo pip install uwsgi
+install virtual env
+Current Scneario
+created venv in name of anod-env
+#source /home/ubuntu/anod-venv/bin/activate
+# pip install base_requirements.txt
+# if psycopg2 failing (sudo apt-get install libpq-dev) then install psycopg2

@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import sys
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
@@ -23,7 +24,8 @@ SECRET_KEY = '2=4xw8rppm!#v&4kicf#2nwqx!!ekg=vk(vr(qapx*5_nvm0c&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_LOCATION = os.path.dirname(os.path.dirname(__file__))
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -36,17 +38,20 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api',
+    'django_filters'
 ]
 
 REST_FRAMEWORK = {
     # TODO: to user Token authentication uncomment below
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [
-    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
-    # ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 100,
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',)
+        'rest_framework.permissions.IsAuthenticated',
+    )
 
 }
 
@@ -59,17 +64,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
 ]
 
 ROOT_URLCONF = 'anodyne.urls'
 
-SETTINGS_PATH = os.path.dirname(os.path.dirname(__file__))
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(SETTINGS_PATH, 'templates')],
+        'DIRS': [os.path.join(BASE_LOCATION, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,19 +123,20 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
-
+STATIC_ROOT = os.path.join(BASE_LOCATION, 'api', 'static')
 STATIC_URL = '/static/'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
+# ValidationError at /api/ if below commented
+# specifying the User model to be used for authentication
 AUTH_USER_MODEL = 'api.User'
 
 ANONYMOUS_USER_NAME = 'AnonymousUser'
@@ -142,3 +146,125 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'trip2thailand2020@gmail.com'
 EMAIL_HOST_PASSWORD = 'sagaraiesec'
+APP_NAME = 'VepoLink'
+
+# Logging Setup
+# can set environ LOGLEVEL=debug/info/error etc
+LOGLEVEL = os.environ.get('LOGLEVEL', 'debug').upper()
+LOG_PATH = os.path.join('/var/log/', 'vepolink')
+
+if not os.path.exists(LOG_PATH):
+    os.makedirs(LOG_PATH)
+
+LOG_FILE = os.path.join(LOG_PATH, 'vepolink.log')
+CELERY_LOG_FILE = os.path.join(LOG_PATH, 'celerytasks.log')
+REQ_LOG_FILE = os.path.join(LOG_PATH, 'requests.log')
+READINGS_LOG_FILE = os.path.join(LOG_PATH, 'readings.log')
+VIEW_LOG_FILE = os.path.join(LOG_PATH, 'views.log')
+RECEPTION_LOG_FILE = os.path.join(LOG_PATH, 'reception.log')
+ALERT_LOG_FILE = os.path.join(LOG_PATH, 'alerts.log')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s (%(levelname)s) [%(module)s:%(lineno)d]: %(message)s',
+        },
+    },
+    'handlers': {
+        'default': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_FILE,
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 10,
+            'formatter': 'standard',
+        },
+        'celery_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': CELERY_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 4 MB
+            'backupCount': 4,
+            'formatter': 'standard',
+        },
+        'reception_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': RECEPTION_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 40,  # 4 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+        },
+        'request_handler': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': REQ_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'reading_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': READINGS_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'view_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': VIEW_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'alert_logs': {
+            'level': LOGLEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': ALERT_LOG_FILE,
+            'maxBytes': 1024 * 1024 * 4,  # 4 MB
+            'backupCount': 2,
+            'formatter': 'standard',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': sys.stdout,
+        },
+    },
+    'loggers': {
+        'vepolink': {
+            'handlers': ['console', 'default'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'alerts': {
+            'handlers': ['alert_logs'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'django.request': {
+            'handlers': ['request_handler'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'celery': {
+            'handlers': ['celery_logs'],
+            'propagate': True
+        },
+        'reception': {
+            'handlers': ['reception_logs'],
+            'level': 'DEBUG',
+        },
+        'readings': {
+            'handlers': ['reading_logs'],
+            'level': 'DEBUG',
+        },
+        'views': {
+            'handlers': ['view_logs'],
+            'level': 'DEBUG',
+        },
+    }
+}

@@ -1,0 +1,7 @@
+*.pyc
+__pycache__
+migrations
+.idea
+src/*.egg-info
+lib
+lib64
