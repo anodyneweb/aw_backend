@@ -50,16 +50,21 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class IndustrySerializer(serializers.ModelSerializer):
+    uuid = serializers.UUIDField(required=False)
+
     class Meta:
         model = Industry
-        # fields = '__all__'
-        exclude = ('uuid',)
+        fields = '__all__'
+        # exclude = ('uuid',)
 
 
 class StationSerializer(serializers.ModelSerializer):
+    uuid = serializers.UUIDField(required=False)
+
     class Meta:
         model = Station
-        exclude = ('uuid',)
+        fields = '__all__'
+        # exclude = ('uuid',)
 
 
 class StationInfoSerializer(serializers.ModelSerializer):
