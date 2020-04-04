@@ -225,7 +225,8 @@ class Industry(models.Model):
     industry_id = models.CharField(
         max_length=160,
         default='',
-        verbose_name='Industry Id'
+        verbose_name='Industry Id',
+        null=True
     )
     # Address details of the Industry
     address = models.TextField(
