@@ -11,7 +11,7 @@ from anodyne.public_api import views as public_views
 urlpatterns = [
                   # views with context
                   path('', views.HelloView.as_view(), name='hello'),
-                  url(r'readings', views.ReadingView),
+                  url(r'readings', views.get_station_reading),
                   path('admin/', admin.site.urls),
                   path('api/token/', jwt_views.TokenObtainPairView.as_view(),
                        name='token_obtain_pair'),

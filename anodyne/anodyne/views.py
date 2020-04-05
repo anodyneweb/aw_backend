@@ -2,6 +2,7 @@ import logging
 
 from django.http import HttpResponseBadRequest, JsonResponse
 from rest_framework import viewsets, status
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -554,7 +555,10 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     serializer_class = RegistrationSerializer
 
 
-def ReadingView(request):
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_station_reading(request):
+    # User /api/reading to POST
     message = []
     pk = request.GET.get('pk')
     # date format 200213122657 => strptime '%y%m%d%H%M%S'
@@ -587,9 +591,6 @@ def ReadingView(request):
             message=message,
             readings=list(qs)
         )
-        # df=pd.DataFrame(qs)
-        # print(df.to_json())
-        # serializer_class = ReadingSerializer(queryset)
         return JsonResponse(qs, status=status.HTTP_200_OK)
     except Station.DoesNotExist:
         return HttpResponseBadRequest('Station missing')
