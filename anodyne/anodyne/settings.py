@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api',
-    'django_filters'
+    'django_filters',
+    'django.contrib.postgres',
 ]
 
 REST_FRAMEWORK = {

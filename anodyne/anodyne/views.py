@@ -1,14 +1,18 @@
-from django.core.mail import send_mail
-from django.db import IntegrityError
-from rest_framework import status, viewsets
-from rest_framework.decorators import api_view
+import logging
+
+from django.http import HttpResponseBadRequest, JsonResponse
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import F
+from api.models import State, City, Registration, Category, Reading, \
+    Station
+from api.serializers import RegistrationSerializer
+import pandas as pd
+from datetime import datetime, timedelta
 
-from anodyne import settings
-from api.models import State, City, User, Registration, Category
-from api.serializers import UserSerializer, RegistrationSerializer
+log = logging.getLogger('vepolink')
 
 
 def add_state_city():
@@ -548,3 +552,44 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     permission_classes = []
     queryset = Registration.objects.all()
     serializer_class = RegistrationSerializer
+
+
+def ReadingView(request):
+    message = []
+    pk = request.GET.get('pk')
+    # date format 200213122657 => strptime '%y%m%d%H%M%S'
+    from_dt = request.GET.get('from_dt')
+    to_dt = request.GET.get('to_dt')
+    if from_dt and to_dt:
+        from_dt = datetime.strptime(from_dt, '%y%m%d%H%M%S')
+        to_dt = datetime.strptime(to_dt, '%y%m%d%H%M%S')
+    else:
+        from_dt = datetime.now() - timedelta(hours=48)
+        to_dt = datetime.now()
+    try:
+        station = Station.objects.get(uuid=pk)
+        qs = Reading.objects.filter(station=station,
+                                    # reading__ph__gte=5,
+                                    reading__timestamp__gte=from_dt,
+                                    reading__timestamp__lte=to_dt,
+                                    )
+        if not qs:
+            message.append({'error': 'No records for the selected range'})
+        qs = qs.select_related('station')
+        qs = qs.values_list('reading', flat=True)
+        qs = dict(
+            name=station.name,
+            prefix=station.prefix,
+            status='success',
+            start=from_dt,
+            end=to_dt,
+            count=len(qs),
+            message=message,
+            readings=list(qs)
+        )
+        # df=pd.DataFrame(qs)
+        # print(df.to_json())
+        # serializer_class = ReadingSerializer(queryset)
+        return JsonResponse(qs, status=status.HTTP_200_OK)
+    except Station.DoesNotExist:
+        return HttpResponseBadRequest('Station missing')

@@ -50,14 +50,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class IndustrySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Industry
         exclude = ('uuid',)
 
 
 class StationSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Station
         exclude = ('uuid',)
@@ -109,3 +107,5 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+
+

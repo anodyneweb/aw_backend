@@ -17,9 +17,9 @@ from Crypto.Signature import PKCS1_v1_5 as PKCS1_v1_5_signature
 
 from api.GLOBAL import ISO_CODES, ZIP_DIR
 
-from api.models import StationParameter, Parameter
+from api.models import StationParameter, Parameter, Station
 
-log = logging.getLogger('aaxipro')
+log = logging.getLogger('vepolink')
 # MPPCB_REALTIME = 'http://esc.mp.gov.in/MPPCBServer/realtimeUpload'
 MPPCB_SVER_PEM = "-----BEGIN RSA PUBLIC KEY-----\nMEgCQQDfrM65tIZkhGRqoE5mGNIP+bWsIY26idnEftR1r2r4aSFPyUNIr84WuCjl\no09oyKXdtkDCNuzRDKaeP9zIoIvVAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"
 
@@ -33,7 +33,8 @@ class Handle:
             # pycrypto versions that have no "Random" module also do not
             # detect the missing atfork() call, so they do not raise.
             pass
-        self.site = kwargs.get('station')
+        self.basename = kwargs.get('basename')
+        self.site = Station.objects.get(prefix=kwargs.get('prefix'))
         self.kwargs = kwargs
         self.BLOCK_SIZE = 16
         self.KEY_SIZE = 16
@@ -180,7 +181,7 @@ class Handle:
 
                     if not ISO_CODES.get(param.upper()):
                         log.error('MPPCB ISO Code not found for:%s (%s)' %
-                                  (param, self.kwargs.get('filename')))
+                                  (param, self.basename))
                         continue
                     else:
                         iso_code = ISO_CODES.get(param.upper())
@@ -227,7 +228,7 @@ class Handle:
         )
 
         iso_file_content = string1 + string2.format(cnt=cnt) + string3
-        log.info('MPPCB format for %s:\n%s' % (self.kwargs.get('filename'),
+        log.info('MPPCB format for %s:\n%s' % (self.basename,
                                                iso_file_content))
         return iso_file_content, zip_name
 
@@ -264,6 +265,7 @@ class Handle:
 
     def upload(self):
         # TO upload we need to format station file as per ISO-7168
+        log.info('%s: Initiating upload' % self.basename)
         format_data2iso, zip_name = self._iso_format()
         headers = self.get_headers()
         log.info('MPPCB Headers:\n%s\nISO_Format:%s\n'
@@ -287,9 +289,10 @@ class Handle:
             return response
         except json.decoder.JSONDecodeError:
             log.error('Failed to MPPCB upload: %s' % response)
-            response = {'status': 'failed',
-                        'statusMessage': 'Failed to upload: %s' % self.kwargs.get(
-                            'stn_filename'),
-                        'url': self.site.realtime_url
+            response = {'to_pcb': {'status': 'failed',
+                                   'message': 'Failed to upload: %s' % self.kwargs.get(
+                                       'stn_filename'),
+                                   'url': self.site.realtime_url
+                                   }
                         }
         return response

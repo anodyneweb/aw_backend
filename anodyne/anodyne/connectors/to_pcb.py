@@ -1,12 +1,17 @@
+import os
+
 from api.models import Station
-from anodyne import PCBS
+from anodyne.PCBS import MPPCB
 
 
 class ToPCB:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
+        self.basename = kwargs.get('basename')
 
     def upload(self):
+        # TODO: send station details in response to know update status in
+        #  StationInfo
         response = {
             'success': False,
             'msg': ''
@@ -18,14 +23,15 @@ class ToPCB:
             status = False
             message = ''
             # Process to PCBs
-            station = Station.objects.get(uuid=self.kwargs.get('station'))
-            pcb = station.pcb
-            pcb_obj = getattr(PCBS, pcb, None)
-            # from anodyne.PCBS import mppcb
-            # mppcb.Handle()
-            if pcb_obj:
-                message = '%s not yet configured.'
+            station = Station.objects.get(prefix=self.kwargs.get('prefix'))
+            pcb = station.pcb.name
+            if pcb == 'MPPCB':
+                pcb_obj = MPPCB
             else:
+                pcb_obj = None
+                message = '%s: PCB %s not configured' % (self.basename, pcb)
+
+            if pcb_obj:
                 Handle = getattr(pcb_obj, 'Handle')
                 handle = Handle(**self.kwargs)
                 status, message = handle.upload()

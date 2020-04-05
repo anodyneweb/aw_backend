@@ -21,7 +21,7 @@ INDUSTRIES_CACHE = os.path.join(CSV_FROM_DB, 'industries.csv')
 # Temp folder
 TEMP_DIR = os.path.join(FILES_REPO, 'TEMP_DIR')
 # pass all directories which needs to be created
-AAXIPRO_DIRS = [FILES_BASE_LOCATION, ZIP_DIR, CSV_FROM_DB, TEMP_DIR]
+VEPOLINK_DIRS = [FILES_BASE_LOCATION, ZIP_DIR, CSV_FROM_DB, TEMP_DIR]
 
 ###################################Madhya Pradesh##############################
 MPPCB_REALTIME = 'http://esc.mp.gov.in/MPPCBServer/realtimeUpload'

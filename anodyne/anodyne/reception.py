@@ -63,7 +63,9 @@ def process(f):
     """
     try:
         logging.debug('Received: %s' % basename(f))
-        print(connector.ReadCSV(f).to_list)
+        start = connector.ReadCSV(f)
+        details = start.process()
+        logging.info('%s:%s' % (basename(f), details))
     except Exception as error:
         if type(error).__name__ == 'ConnectionError':
             logging.debug('%s: Server not responding...', basename(f))

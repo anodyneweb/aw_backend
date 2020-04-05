@@ -1,9 +1,11 @@
 import logging
+import os
 
-from api.models import Reading, StationParameter, Parameter, Station
-import pandas as pd
+from django.db import IntegrityError
 
-log = logging.getLogger('anodyne')
+from api.models import Reading, Station
+
+log = logging.getLogger('vepolink')
 
 
 class ToDatabase:
@@ -11,40 +13,29 @@ class ToDatabase:
         self.kwargs = kwargs
 
     def insert(self):
+        basename = self.kwargs.get('basename')
         response = {
             'success': False,
             'msg': ''
         }
-        to_db_info = {
-            'to_db': response
+        db_status = {
+            'db': response
         }
-        # Check for parameters, add if it doesnt exists
-        df = pd.DataFrame(self.kwargs.get('reading'))
-        parameters = list(df.parameter)
-        log.info('Parameters found in %s\n%s' % (
-            self.kwargs.get('filename'), parameters)
-                 )
-        for a in df.index:
-            parameter = df.parameter[a]
-            value = df.value[a]
-            timestamp = df.timestamp[a]
-            filename = df.filename[a]
-            try:
-                reading = Reading.objects.create(
-                    station__uuid=self.kwargs.get('station'),
-                    parameter__name=parameter,
-                    value=value,
-                    filename=filename,
-                    timestamp=timestamp
-                )
-                reading.save()
-                response['success'] = True
-            except Exception as err:
-                response['add_reading_%s_msg' % parameter] = err
-                continue
-        if response.get('success'):
-            response[
-                'add_reading_msg'] = "Successfully added %s readings to" \
-                                     " database" % self.kwargs.get(
-                'filename')
-        return to_db_info
+        try:
+            station = Station.objects.get(prefix=self.kwargs.get('prefix'))
+            Reading.objects.create(
+                station=station,
+                reading=self.kwargs.get('readings')
+            )
+            response['success'] = True
+            response['msg'] = "%s: Added Readings" % basename
+        except IntegrityError:
+            response['msg'] = "%s: Reading exists." % basename
+            return db_status
+        except Exception as err:
+            response['success'] = False
+            response['msg'] = "%s: Failed to readings to databse %s" % (
+                basename, err
+            )
+
+        return db_status

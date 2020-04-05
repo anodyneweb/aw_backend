@@ -13,51 +13,35 @@ from anodyne.connectors.to_pcb import ToPCB
 from api.models import Station, StationParameter, Parameter
 import os
 
-log = logging.getLogger('anodyne')
+log = logging.getLogger('vepolink')
 
 
 # custom __format__() method
 class ReadCSV:
 
-    def __init__(self, file_rcvd):
-        self.file_rcvd = file_rcvd
+    def __init__(self, filename):
+        self.filename = filename
+        self.basename = os.path.basename(filename)
 
-    @property
-    def to_list(self):
-        with open(self.file_rcvd, encoding='utf-8') as f:
+    def get_reading(self):
+        with open(self.filename, encoding='utf-8') as f:
             reader = list(csv.reader(f))
-            alist = []
-            fname = os.path.basename(self.file_rcvd)
+            readings = {}
             for idx, row in enumerate(reader):
                 if row[0].startswith('@'):
                     param = row[0]
-                    # LOWERING THE PARAMETER TO KEEP IT UNIQUE
-                    param = str(param).lower()
                     if '_' in param:
-                        param = param.split('_')[-1]
+                        param = str(param.split('_')[-1]).lower()
                     tstamp, value = reader[idx + 2]
+                    readings[param] = value
                     try:
-                        alist.append(
-                            {
-                                # column_name : #value
-                                'parameter': param,
-                                'value': value,
-                                'timestamp': tstamp,
-                                'filename': fname
-                            }
-                        )
-                    except IndexError:
-                        continue
-        return alist
-
-    @property
-    def to_df(self):
-        try:
-            df = pd.DataFrame(self.to_list)
-            return df
-        except:
-            print('Failed to convert to dataframe.')
-            pass
+                        tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
+                    except:
+                        tstamp = tstamp
+            readings['timestamp'] = tstamp
+        return readings
+        # df = pd.DataFrame([readings])
+        # print(df)
 
     def process(self):
         """
@@ -66,13 +50,13 @@ class ReadCSV:
         - to PCB
         :return:
         """
-
         # prefix_timestamp.csv
-        prefix = os.path.basename(self.file_rcvd).split('_')[0]
+        prefix = os.path.basename(self.filename).split('_')[0]
         details = {
             # 'readings': self.to_list,
             'prefix': prefix,
-            'filename': self.file_rcvd,
+            'filename': self.filename,
+            'basename': self.basename,
             'received_on': datetime.now().strftime('%Y%m%d%H%M%S'),
             'processed': False,
             'msg': None,
@@ -80,25 +64,27 @@ class ReadCSV:
         }
         try:
             station = Station.objects.get(prefix=prefix)
-            details['readings'] = self.to_list
-            details['station'] = station.uuid
-            to_db = ToDatabase(**details)
-            to_db_status = to_db.insert()
-            to_pcb = ToPCB(**details)
-            """
-            ...
-            ...
-            ...
-            """
+            details['readings'] = self.get_reading()
+            # TODO: each process is different we can use celerytasks for each
+            # TODO: Adding Reading to Database is complete
+            # task 1: Add Reading to database
+            db = ToDatabase(**details)
+            db_status = db.insert()
+            details.update(db_status)
+            log.info('%s: %s' % (self.basename, db_status))
+            # task 2: Upload file to PCB if required.
+            # TODO: PCB Upload is pending
+            if station.active:
+                # Upload status should be updated on Station Info
+                pcb = ToPCB(**details)
+                pcb_status = pcb.upload()
+                details.update(pcb_status)
+            else:
+                details['msg'] = '%s: PCB Upload is blocked.'
+                details['status'] = False
         except Station.DoesNotExist:
             message = 'Station with prefix: %s does not exist.'
             log.error(message)
+            details['status'] = False
             details['msg'] = message
-            return details
-
-    def get_parameter_obj(self, parameter):
-        obj, created = Parameter.objects.get_or_create(name=parameter)
-        if created:
-            print('New Parameter Added: %s' % parameter)
-            return created
-        return obj
+        return details

@@ -13,7 +13,8 @@ from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES, \
     UNIT
 from django.contrib.postgres.fields import CICharField
 
-log = logging.getLogger('anodyne')
+log = logging.getLogger('vepolink')
+from django.contrib.postgres.fields import HStoreField
 
 
 class State(models.Model):
@@ -397,18 +398,18 @@ class Station(models.Model):
                                       self.pcb, self.state)
 
     def save(self, *args, **kwargs):
-        if self.pcb not in [Station.KSPCB, Station.MPCB, Station.RSPCB,
+        if self.pcb.name not in [Station.KSPCB, Station.MPCB, Station.RSPCB,
                             Station.OSPCB,
                             Station.MPPCB]:
             self.key = self.pub_key = None
 
-        elif self.pcb == Station.MPCB:  # needs only key
+        elif self.pcb.name == Station.MPCB:  # needs only key
             self.pub_key = None
 
-        elif self.pcb == Station.RSPCB:  # this needs site id
+        elif self.pcb.name == Station.RSPCB:  # this needs site id
             self.key = self.pub_key = None
 
-        elif self.pcb == Station.OSPCB:  # this needs token to connect
+        elif self.pcb.name == Station.OSPCB:  # this needs token to connect
             self.pub_key = None
 
         super(Station, self).save(*args, **kwargs)
@@ -537,24 +538,15 @@ class StationParameter(models.Model):
 
 
 class Reading(models.Model):
-    station = models.ForeignKey(
-        Station,
-        on_delete=models.CASCADE
-    )
-    parameter = models.ForeignKey(
-        Parameter,
-        on_delete=models.CASCADE,
-    )
-    value = models.FloatField()
-    timestamp = models.DateTimeField(
-        db_index=True
-    )
-    filename = models.CharField(
-        max_length=120, null=True
-    )
+    station = models.ForeignKey(Station, null=True, to_field='prefix',
+                             on_delete=models.DO_NOTHING, db_index=True)
+    reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:
-        unique_together = (('timestamp', 'filename'),)
+        unique_together = (('reading', 'station'),)
+
+    def __str__(self):
+        return "%s: %s" % (self.station, self.reading)
 
 
 class Registration(models.Model):
