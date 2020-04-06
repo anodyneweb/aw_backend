@@ -1,4 +1,5 @@
 # Serializers define the API representation.
+
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
@@ -50,15 +51,19 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class IndustrySerializer(serializers.ModelSerializer):
+    uuid = serializers.UUIDField(required=False)
+
     class Meta:
         model = Industry
-        exclude = ('uuid',)
+        fields = '__all__'
 
 
 class StationSerializer(serializers.ModelSerializer):
+    uuid = serializers.UUIDField(required=False)
+
     class Meta:
         model = Station
-        exclude = ('uuid',)
+        fields = '__all__'
 
 
 class StationInfoSerializer(serializers.ModelSerializer):
@@ -107,5 +112,3 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
-
-

@@ -54,9 +54,9 @@ class PCB(models.Model):
     var1 = models.CharField(max_length=256)
     var2 = models.CharField(max_length=256)
     var3 = models.TextField(default=None)
-    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+    state = models.ForeignKey(State, on_delete=models.CASCADE,
                               to_field='name', null=True)
-    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
 
     def __str__(self):
@@ -132,9 +132,9 @@ class User(AbstractBaseUser):
                             default='ADMIN')
     address = models.TextField(default=None, null=True)
     zipcode = models.IntegerField(default=None, null=True)
-    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+    state = models.ForeignKey(State, on_delete=models.CASCADE,
                               to_field='name', null=True)
-    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     # USER DETAILS ENDS
 
@@ -219,7 +219,7 @@ class Industry(models.Model):
     )
     type = models.ForeignKey(
         Category,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         to_field='name',
         null=True
     )
@@ -240,13 +240,13 @@ class Industry(models.Model):
     )
     state = models.ForeignKey(
         State,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         to_field='name',
         null=True
     )
     city = models.ForeignKey(
         City,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         null=True,
     )
     country = models.CharField(
@@ -321,7 +321,7 @@ class Station(models.Model):
     pvt_key = models.TextField(max_length=1000, null=True, default=None,
                                verbose_name='Private Key', blank=True)
     # NOT FOR ALL PCBs Ends #
-    pcb = models.ForeignKey(PCB, on_delete=models.DO_NOTHING,
+    pcb = models.ForeignKey(PCB, on_delete=models.CASCADE,
                             to_field='name', null=True)
     realtime_url = models.CharField(verbose_name='Realtime URL',
                                     default=None, null=True,
@@ -346,9 +346,9 @@ class Station(models.Model):
                                     blank=True)
     latitude = models.DecimalField(decimal_places=15, max_digits=20, null=True,
                                    blank=True)
-    state = models.ForeignKey(State, on_delete=models.DO_NOTHING,
+    state = models.ForeignKey(State, on_delete=models.CASCADE,
                               to_field='name', null=True)
-    city = models.ForeignKey(City, on_delete=models.DO_NOTHING, null=True)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False,
                                blank=True)
     # emails/phone of customer
@@ -539,7 +539,7 @@ class StationParameter(models.Model):
 
 class Reading(models.Model):
     station = models.ForeignKey(Station, null=True, to_field='prefix',
-                             on_delete=models.DO_NOTHING, db_index=True)
+                             on_delete=models.CASCADE, db_index=True)
     reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:
