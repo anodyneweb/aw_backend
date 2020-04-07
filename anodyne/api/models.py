@@ -9,8 +9,7 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.db.models.signals import post_save
 
-from api.GLOBAL import STATES, CITIES, USER_CHOICES, CATEGORIES, PCB_CHOICES, \
-    UNIT
+from api.GLOBAL import USER_CHOICES, UNIT
 from django.contrib.postgres.fields import CICharField
 
 log = logging.getLogger('vepolink')
@@ -36,10 +35,10 @@ class City(models.Model):
 
 
 class Unit(models.Model):
-    unit = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
-        return self.unit
+        return self.name
 
 
 class Category(models.Model):
@@ -102,8 +101,7 @@ class UserManager(BaseUserManager):
         user.staff = True
         user.admin = True
         user.name = name
-        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN',
-                                     'STAFF'] else 'ADMIN'
+        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN', 'STAFF'] else 'ADMIN'
         user.save(using=self._db)
         return user
 
@@ -452,8 +450,7 @@ class Parameter(models.Model):
     else migration will fail
     """
     name = CICharField(max_length=80, default=None, unique=True)
-    unit = models.CharField(max_length=50, default=None, choices=UNIT,
-                            null=True)
+    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True)
     alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
     # hex code or color name
     color_code = models.CharField(max_length=50, null=True, default=None,

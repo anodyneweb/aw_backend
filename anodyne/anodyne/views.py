@@ -7,8 +7,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import F
+
+from api.GLOBAL import UNIT
 from api.models import State, City, Registration, Category, Reading, \
-    Station
+    Station, Parameter, Unit
 from api.serializers import RegistrationSerializer
 import pandas as pd
 from datetime import datetime, timedelta

@@ -4,11 +4,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.models import User, Industry, Station, StationInfo, State, City, \
-    PCB, StationParameter, Reading, Registration, Category
+    PCB, StationParameter, Reading, Registration, Category, Parameter, Unit
 from api.serializers import UserSerializer, IndustrySerializer, \
     StationSerializer, StationInfoSerializer, StateSerializer, \
     CitySerializer, PCBSerializer, StationParameterSerializer, \
-    ReadingSerializer, RegistrationSerializer, CategorySerializer
+    ReadingSerializer, RegistrationSerializer, CategorySerializer, \
+    ParameterSerializer, UnitSerializer
 from django_filters import rest_framework as filters
 
 
@@ -164,3 +165,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+
+class ParameterViewSet(viewsets.ModelViewSet):
+    queryset = Parameter.objects.all()
+    serializer_class = ParameterSerializer
+
+
+class UnitViewSet(viewsets.ModelViewSet):
+    queryset = Unit.objects.all()
+    serializer_class = UnitSerializer

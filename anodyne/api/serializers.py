@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from anodyne import settings
 from .models import User, Station, Industry, StationInfo, City, State, PCB, \
-    StationParameter, Reading, Registration, Category
+    StationParameter, Reading, Registration, Category, Parameter, Unit
 from .utils import send_mail
 
 
@@ -111,4 +111,16 @@ class RegistrationSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
+        fields = '__all__'
+
+
+class ParameterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Parameter
+        fields = '__all__'
+
+
+class UnitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Unit
         fields = '__all__'

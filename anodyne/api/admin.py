@@ -41,5 +41,6 @@ admin.site.register(City)
 admin.site.register(StationParameter)
 admin.site.register(Parameter)
 admin.site.register(Registration)
+admin.site.register(Unit)
 # Remove Group Model from admin. We're not using it.
 admin.site.unregister(Group)

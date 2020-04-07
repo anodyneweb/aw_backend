@@ -5,7 +5,7 @@ from rest_framework import routers, serializers, viewsets
 from api.views import UserViewSet, IndustryViewSet, StationViewSet, \
     StationInfoViewSet, StateViewSet, CityViewSet, PCBViewSet, \
     StationParameterViewSet, ReadingViewSet, RegistrationViewSet, \
-    CategoryViewSet
+    CategoryViewSet, ParameterViewSet, UnitViewSet
 
 router = routers.DefaultRouter()
 
@@ -16,11 +16,14 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'state', StateViewSet, basename='state')
 router.register(r'city', CityViewSet, basename='city')
 router.register(r'pcb', PCBViewSet, basename='pcb')
+router.register(r'unit', RegistrationViewSet, basename='unit')
+router.register(r'parameters', ParameterViewSet, basename='parameters')
 router.register(r'category', CategoryViewSet, basename='category')
-router.register(r'station-parameter', StationParameterViewSet,
-                basename='station-parameter')
 router.register(r'reading', ReadingViewSet, basename='reading')
 router.register(r'registrations', RegistrationViewSet, basename='register')
+router.register(r'station-parameter', StationParameterViewSet,
+                basename='station-parameter')
+
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
