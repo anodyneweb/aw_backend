@@ -201,13 +201,6 @@ class Industry(models.Model):
         unique=True,
         verbose_name='Industry Name'
     )
-    dir = models.CharField(
-        max_length=50,
-        null=False,
-        blank=False,
-        editable=False,
-        verbose_name='Data File Directory Name'
-    )
     industry_code = models.CharField(max_length=160,
                                      verbose_name='Industry Code (as per CPCB)')
     status = models.CharField(

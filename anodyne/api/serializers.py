@@ -52,21 +52,26 @@ class UserSerializer(serializers.ModelSerializer):
 
 class IndustrySerializer(serializers.ModelSerializer):
     uuid = serializers.UUIDField(required=False)
+    city = serializers.ReadOnlyField(source='city.name')
 
     class Meta:
         model = Industry
-        fields = '__all__'
+        # fields = '__all__'
+        exclude = ('industry_code', 'country', 'address',)
 
 
 class StationSerializer(serializers.ModelSerializer):
     uuid = serializers.UUIDField(required=False)
+    city = serializers.ReadOnlyField(source='city.name')
 
     class Meta:
         model = Station
-        fields = '__all__'
+        # fields = '__all__'
+        exclude = ('key', 'public_key', 'pvt_key','country', 'address')
 
 
 class StationInfoSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = StationInfo
         fields = '__all__'
