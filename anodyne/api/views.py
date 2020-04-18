@@ -1,6 +1,9 @@
 # ViewSets define the view behavior.
+from django.http import JsonResponse
+from geopy import Nominatim
 from rest_framework import viewsets, generics, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes, api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from api.models import User, Industry, Station, StationInfo, State, City, \
@@ -153,6 +156,7 @@ class StationParameterViewSet(viewsets.ModelViewSet):
 
 
 class ReadingViewSet(viewsets.ModelViewSet):
+    # TODO: a response method is also written def get_station_reading
     queryset = Reading.objects.all()
     serializer_class = ReadingSerializer
 

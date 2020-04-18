@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
@@ -38,7 +37,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api',
+    'dashboard',
     'django_filters',
+    'crispy_forms',
     'django.contrib.postgres',
 ]
 
@@ -69,11 +70,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'anodyne.urls'
 
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_LOCATION, 'templates')],
+        'DIRS': [os.path.join(BASE_LOCATION, 'api', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,9 +133,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 STATIC_ROOT = os.path.join(BASE_LOCATION, 'api', 'static')
 STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
+
+# STATIC_ROOT = os.path.join(BASE_LOCATION, 'static')
+# STATIC_URL = '/static/'
+# STATICFILES_DIRS = (
+#     os.path.join(BASE_DIR, 'static'),
+# )
 # ValidationError at /api/ if below commented
 # specifying the User model to be used for authentication
 AUTH_USER_MODEL = 'api.User'
@@ -269,3 +272,5 @@ LOGGING = {
         },
     }
 }
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'

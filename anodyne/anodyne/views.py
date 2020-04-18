@@ -1,19 +1,30 @@
+import colorsys
+import json
 import logging
+from datetime import datetime, timedelta
+from random import uniform
+import random
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect
+from django.urls import reverse
+from markupsafe import Markup
+from plotly.offline import plot
 from rest_framework import viewsets, status
-from rest_framework.decorators import permission_classes, api_view
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import F
-
-from api.GLOBAL import UNIT
-from api.models import State, City, Registration, Category, Reading, \
-    Station, Parameter, Unit
-from api.serializers import RegistrationSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 import pandas as pd
-from datetime import datetime, timedelta
+from api.models import State, City, Registration, Category, User, Industry, \
+    Station, PCB, StationParameter, Reading
+from api.serializers import RegistrationSerializer, LoginSerializer
+from scripts.generate_dummy_data import randm_state, randm_str, randm_zip, \
+    CLOSURE_CHOICES
 
 log = logging.getLogger('vepolink')
 
@@ -534,8 +545,108 @@ def add_category():
     print('done...')
 
 
+from rest_framework.renderers import JSONRenderer
+
+
+class UserJSONRenderer(JSONRenderer):
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        # If we receive a `token` key as part of the response, it will be a
+        # byte object. Byte objects don't serialize well, so we need to
+        # decode it before rendering the User object.
+        token = data.get('token', None)
+
+        if token is not None and isinstance(token, bytes):
+            # Also as mentioned above, we will decode `token` if it is of type
+            # bytes.
+            data['token'] = token.decode('utf-8')
+
+        # Finally, we can render our data under the "user" namespace.
+        return json.dumps({
+            'user': data
+        })
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    @classmethod
+    def get_token(cls, user):
+        token = super(MyTokenObtainPairSerializer, cls).get_token(user)
+
+        # Add custom claims
+        token['fav_color'] = user.fav_color
+        return token
+
+
+class AuthenticateView(APIView):
+    permission_classes = (AllowAny,)
+    renderer_classes = (UserJSONRenderer,)
+    serializer_class = LoginSerializer
+
+    # serializer_class = TokenObtainPairSerializer
+
+    def post(self, request):
+        user = {
+            'email': request.data.get('email'),
+            'password': request.data.get('password')
+        }
+        # Notice here that we do not call `serializer.save()` like we did for
+        # the registration endpoint. This is because we don't  have
+        # anything to save. Instead, the `validate` method on our serializer
+        # handles everything we need.
+        serializer = self.serializer_class(data=user)
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AuthenticateView2(APIView):
+    permission_classes = ()
+
+    def post(self, request):
+        """Handles POSTed credentials for login."""
+        email = request.POST['email']
+        password = request.POST['password']
+        user = authenticate(request, email=email, password=password)
+        # user = User.objects.get(email=request.POST['email'])#, password=request.POST['password'])
+        print(user)
+        next_url = '/api'
+        if user is not None:
+            if user.is_active:
+                login(request, user)
+                next_url = '/dashboard'
+                if 'next' in request.POST and request.POST['next']:
+                    next_url = request.POST['next']
+                return redirect(next_url)
+            else:
+                # Notification, if blocked user is trying to log in
+                text = "This user is blocked. Please contact admin."
+                messages.error(request, text, extra_tags='alert alert-warning')
+                print(text)
+        else:
+            text = "Sorry, Email or Password combination is not valid."
+            print(text)
+            messages.error(request, text, extra_tags='alert alert-danger')
+            return redirect(reverse('login'))
+
+        return redirect(next_url)
+
+
+class LoginView(APIView):
+    permission_classes = ()
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = 'login.html'
+
+    def get(self, request):
+        content = {'message': 'Hello, %s!' % request.user}
+        return Response(content)
+
+
 class HelloView(APIView):
     permission_classes = (IsAuthenticated,)
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = 'dashboard.html'
 
     def get(self, request):
         content = {'message': 'Hello, %s!' % request.user}
@@ -550,6 +661,7 @@ class HelloView(APIView):
         return Response(content)
 
 
+
 class RegistrationViewSet(viewsets.GenericViewSet):
     # settings permission_classes empty will open this API
     permission_classes = []
@@ -557,42 +669,7 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     serializer_class = RegistrationSerializer
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_station_reading(request):
-    # User /api/reading to POST
-    message = []
-    pk = request.GET.get('pk')
-    # date format 200213122657 => strptime '%y%m%d%H%M%S'
-    from_dt = request.GET.get('from_dt')
-    to_dt = request.GET.get('to_dt')
-    if from_dt and to_dt:
-        from_dt = datetime.strptime(from_dt, '%y%m%d%H%M%S')
-        to_dt = datetime.strptime(to_dt, '%y%m%d%H%M%S')
-    else:
-        from_dt = datetime.now() - timedelta(hours=48)
-        to_dt = datetime.now()
-    try:
-        station = Station.objects.get(uuid=pk)
-        qs = Reading.objects.filter(station=station,
-                                    # reading__ph__gte=5,
-                                    reading__timestamp__gte=from_dt,
-                                    reading__timestamp__lte=to_dt,
-                                    )
-        if not qs:
-            message.append({'error': 'No records for the selected range'})
-        qs = qs.select_related('station')
-        qs = qs.values_list('reading', flat=True)
-        qs = dict(
-            name=station.name,
-            prefix=station.prefix,
-            status='success',
-            start=from_dt,
-            end=to_dt,
-            count=len(qs),
-            message=message,
-            readings=list(qs)
-        )
-        return JsonResponse(qs, status=status.HTTP_200_OK)
-    except Station.DoesNotExist:
-        return HttpResponseBadRequest('Station missing')
+def get_rgb():
+    h, s, l = random.random(), 0.5 + random.random() / 2.0, 0.4 + random.random() / 5.0
+    r, g, b = [int(256 * i) for i in colorsys.hls_to_rgb(h, l, s)]
+    return 'rgb(%d,%d,%d)' % (r, g, b)

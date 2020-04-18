@@ -303,7 +303,7 @@ class Station(models.Model):
 
     # NOT FOR ALL PCBs #
     site_id = models.CharField(max_length=80,
-                               verbose_name='StationID/StationID',
+                               verbose_name='Site ID or Station ID',
                                default=None, null=True)
     key = models.TextField(max_length=1000, default=None, null=True,
                            verbose_name='Key or Token', blank=True)
@@ -323,12 +323,10 @@ class Station(models.Model):
                                   max_length=1024,
                                   blank=True)
     prefix = models.CharField(max_length=64, unique=True,
-                              verbose_name='File Prefix', db_index=True)
-
-    version = models.CharField(max_length=10, default='ver_1.0',
-                               verbose_name='PCB Software Version',
-                               blank=True)
-
+                              verbose_name='File Prefix',
+                              help_text='unique name used in file, from '
+                                        'station',
+                              db_index=True)
     # Address details of the Station
     address = models.TextField(default=None, null=True, blank=True)
     zipcode = models.IntegerField(default=None, null=True, blank=True)
@@ -345,20 +343,22 @@ class Station(models.Model):
     # emails/phone of customer
     user_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='Customer Alert Email',
+                                  help_text='for multiple emails user semi-colon(;)',
                                   blank=True)
     user_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='Customer Alert Contact',
+                               help_text='for multiple emails user semi-colon(;)',
                                blank=True)
     is_cpcb = models.BooleanField(default=False, verbose_name='Is CPCB',
+                                  help_text='send data to cpcb also',
                                   blank=True)
-    # emails/phone to CPCB only if notify_cpcb is enabled
-    notify_cpcb = models.BooleanField(default=True, verbose_name='Notify CPCB',
-                                      blank=True)
     cpcb_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='CPCB Alert Email',
+                                  help_text='for multiple emails user semi-colon(;)',
                                   blank=True)
     cpcb_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='CPCB Alert Contacts',
+                               help_text='for multiple emails user semi-colon(;)',
                                blank=True)
     closure_status = models.CharField(max_length=20, choices=CLOSURE_CHOICES,
                                       default=None,
@@ -381,29 +381,30 @@ class Station(models.Model):
                                default=None, verbose_name='AMC')
     cmc = models.DateTimeField(blank=True, null=True,
                                default=None, verbose_name='CMC')
-    active = models.BooleanField(default=True, verbose_name='Active/Blocked')
+    active = models.BooleanField(default=True, verbose_name='Enable Upload',
+                                 help_text='uncheck to disable data upload')
     created = models.DateTimeField(auto_now_add=True, blank=True)
 
     def __str__(self):
         return "%s | %s | %s | %s" % (self.name, self.industry.name,
                                       self.pcb, self.state)
 
-    def save(self, *args, **kwargs):
-        if self.pcb.name not in [Station.KSPCB, Station.MPCB, Station.RSPCB,
-                            Station.OSPCB,
-                            Station.MPPCB]:
-            self.key = self.pub_key = None
-
-        elif self.pcb.name == Station.MPCB:  # needs only key
-            self.pub_key = None
-
-        elif self.pcb.name == Station.RSPCB:  # this needs site id
-            self.key = self.pub_key = None
-
-        elif self.pcb.name == Station.OSPCB:  # this needs token to connect
-            self.pub_key = None
-
-        super(Station, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.pcb.name not in [Station.KSPCB, Station.MPCB, Station.RSPCB,
+    #                         Station.OSPCB,
+    #                         Station.MPPCB]:
+    #         self.key = self.pub_key = None
+    #
+    #     elif self.pcb.name == Station.MPCB:  # needs only key
+    #         self.pub_key = None
+    #
+    #     elif self.pcb.name == Station.RSPCB:  # this needs site id
+    #         self.key = self.pub_key = None
+    #
+    #     elif self.pcb.name == Station.OSPCB:  # this needs token to connect
+    #         self.pub_key = None
+    #
+    #     super(Station, self).save(*args, **kwargs)
 
 
 class StationInfo(models.Model):

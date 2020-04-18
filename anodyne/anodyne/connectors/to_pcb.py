@@ -1,7 +1,5 @@
-import os
-
-from api.models import Station
 from anodyne.PCBS import MPPCB
+from api.models import Station
 
 
 class ToPCB:

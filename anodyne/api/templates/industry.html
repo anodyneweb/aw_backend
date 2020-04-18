@@ -1,0 +1,81 @@
+{% extends "layout.html" %} {% load static %} {% load crispy_forms_tags %}
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+
+
+
+    <h1 class="h3 mb-4 text-gray-800">Industry Page</h1>
+    <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Indutries List</h6>
+        <a class="dropdown-toggle" href="#" role="button"
+               id="dropdownMenuLink" data-toggle="dropdown"
+               aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+              <div class="dropdown-header">Dropdown Header:</div>
+<!--              <a class="dropdown-item" href="#">Action</a>-->
+            <a data-placement="left" data-original-title="Industry"
+                       data-target="#industry-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Add</a>
+              <a class="dropdown-item" href="#">Another action</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">Something else here</a>
+            </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        {{ tabular|safe }}
+      </div>
+    </div>
+    </div>
+    <div class="modal fade" id="industry-form">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class='modal-title'>
+                    <b>Add Industry</b>
+                </h3>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                  <form action="{% url 'dashboard:industries' %}" method="post" >
+                      {% csrf_token %}
+                      <div class="row">
+                          <div class="col-6">
+                              {{ form.name|as_crispy_field }}
+                              {{ form.industry_code|as_crispy_field }}
+                              {{ form.type|as_crispy_field }}
+                              {{ form.industry_id|as_crispy_field }}
+                              {{ form.address|as_crispy_field }}
+                          </div>
+                          <div class="col-6">
+                              {{ form.user|as_crispy_field }}
+                              {{ form.status|as_crispy_field }}
+                              {{ form.state|as_crispy_field }}
+                              {{ form.city|as_crispy_field }}
+                              {{ form.zipcode|as_crispy_field }}
+                          </div>
+                      </div>
+                      <button type="submit" class="btn btn-success">Save Industry</button>
+                  </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<!-- /.container-fluid -->
+{% endblock %}
+{% block scripts %}
+  <!-- Page level plugins -->
+  <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+  <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+
+  <!-- Page level custom scripts -->
+  <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<!-- Bootstrap core Table View JavaScript Ends-->
+
+{% endblock %}

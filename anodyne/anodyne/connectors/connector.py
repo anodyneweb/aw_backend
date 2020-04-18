@@ -1,17 +1,12 @@
 """This file will be called by gatekeeper"""
 import csv
-import json
 import logging
 import os
-import re
-from datetime import datetime, timedelta
-from os.path import basename
-import pandas as pd
+from datetime import datetime
 
 from anodyne.connectors.to_database import ToDatabase
 from anodyne.connectors.to_pcb import ToPCB
-from api.models import Station, StationParameter, Parameter
-import os
+from api.models import Station
 
 log = logging.getLogger('vepolink')
 
