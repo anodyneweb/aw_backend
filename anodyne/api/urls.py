@@ -2,7 +2,7 @@ from django.conf.urls import url, include
 from rest_framework import routers
 
 # Routers provide an easy way of automatically determining the URL conf.
-from api.utils import logoutview, long_lat_zip, get_station_reading
+from api.utils import long_lat_zip, get_station_reading, cities
 from api.views import UserViewSet, IndustryViewSet, StationViewSet, \
     StateViewSet, CityViewSet, PCBViewSet, \
     StationParameterViewSet, RegistrationViewSet, \
@@ -24,16 +24,21 @@ router.register(r'category', CategoryViewSet, basename='category')
 router.register(r'registrations', RegistrationViewSet, basename='register')
 router.register(r'station-parameter', StationParameterViewSet,
                 basename='station-parameter')
-
-app_name = 'api'
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
+
+
+app_name = 'api'  # this hides login option in api comment this to see it
 urlpatterns = [
     url(r'^', include(router.urls)),
     # Below is required to show login/logout option
-    url(r'^logout/$', logoutview, name='logout'),
-    url(r'get_long_lat_zip', long_lat_zip),
+
+
     url(r'readings', get_station_reading),
+
+    # Ajax
+    url(r'^GetCities', cities),
+    url(r'GetLongLat', long_lat_zip),
 
     url(r'^api-auth/', include('rest_framework.urls',
                                namespace='rest_framework'))

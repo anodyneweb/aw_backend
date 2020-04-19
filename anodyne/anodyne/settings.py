@@ -68,6 +68,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 ROOT_URLCONF = 'anodyne.urls'
 
 TEMPLATES = [
@@ -274,3 +275,6 @@ LOGGING = {
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+# The value can be a hardcoded URL or a URL name. (login_required)
+# The default value for LOGIN_REDIRECT_URL is /accounts/profile/.
+LOGIN_REDIRECT_URL = 'login/'

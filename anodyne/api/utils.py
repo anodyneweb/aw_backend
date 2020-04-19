@@ -14,7 +14,7 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from api.models import Station, Reading
+from api.models import Station, Reading, City
 import pandas as pd
 
 
@@ -57,16 +57,36 @@ def send_mail(subject, message, from_email,
 @permission_classes([IsAuthenticated])
 def long_lat_zip(request):
     geolocator = Nominatim()
-    state, city = request.GET.get('state') or '', request.GET.get('city') or ''
+    city = request.GET.get('city', '')
+    city = City.objects.get(id=city)
+
     lat = zipcode = lng = ''
-    location = geolocator.geocode("%s, %s" % (state, city))
+    location = geolocator.geocode("%s, %s" % (city.state, city))
     if location:
         lat, lng = location.latitude, location.longitude
     try:
-        zipcode = int(location.raw['display_name'].split(',')[-2].strip())
+        zipcode = location.raw.get('display_name')
+        if zipcode:
+            zipcode = zipcode.split(',')[-2].strip()
     except (ValueError, AttributeError):
         pass
     return JsonResponse(dict(longitude=lng, latitude=lat, zipcode=zipcode))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cities(request):
+    state = request.GET.get('state') or None
+    if state:
+        try:
+            state = int(state)
+            cities = City.objects.filter(state__id=state)
+        except ValueError:
+            cities = City.objects.filter(state__name=state)
+        cities = cities.values_list('id', 'name')
+    else:
+        cities = City.objects.all().values_list('id', 'name')
+    return JsonResponse(dict(cities=sorted(cities, key=lambda x: x[1])))
 
 
 @api_view(['GET'])
@@ -87,7 +107,7 @@ def get_station_reading(request):
         from_dt = datetime.now() - timedelta(hours=48)
         to_dt = datetime.now()
     try:
-        station = Station.objects.get(uuid=pk)
+        station = Station.objects.get(pk=pk)
         qs = Reading.objects.filter(station=station,
                                     # reading__ph__gte=5,
                                     reading__timestamp__gte=from_dt,
@@ -112,23 +132,6 @@ def get_station_reading(request):
         return HttpResponseBadRequest('Station missing')
 
 
-def logoutview(request):
-    """Show the login page.
-
-    If 'next' is a URL parameter, add its value to the context.  (We're
-    mimicking the standard behavior of the django login auth view.)
-    """
-    from django.contrib.auth import logout
-    logout(request)
-    context = {
-        'next': request.GET.get('next', '/dashboard'),
-    }
-    context.update(csrf(request))
-    template = get_template("login.html")
-    html = template.render(context, request)
-    return HttpResponse(html)
-
-
 def buttonsview(request):
     """Show the login page.
 
@@ -136,7 +139,6 @@ def buttonsview(request):
     mimicking the standard behavior of the django login auth view.)
     """
     context = {}
-    print(request.GET)
     template = get_template('buttons.html')
     html = template.render(context, request)
     return HttpResponse(html)
@@ -149,7 +151,6 @@ def cardsview(request):
     mimicking the standard behavior of the django login auth view.)
     """
     context = {}
-    print(request.GET)
     template = get_template('cards.html')
     html = template.render(context, request)
     return HttpResponse(html)

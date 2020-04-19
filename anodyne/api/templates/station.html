@@ -15,9 +15,8 @@
             <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
         </a>
         <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">Dropdown Header:</div>
-<!--              <a class="dropdown-item" href="#">Action</a>-->
-            <a data-placement="left" data-original-title="Station"
+              <div class="dropdown-header">Actions:</div>
+            <a href="#" data-placement="left" data-original-title="Station"
                        data-target="#station-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Add</a>
               <a class="dropdown-item" href="#">Another action</a>
@@ -31,6 +30,9 @@
       </div>
     </div>
     </div>
+
+
+
     <div class="modal fade" id="station-form">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -49,8 +51,9 @@
                             {{ form.industry|as_crispy_field }}
                             {{ form.site_id|as_crispy_field }}
                             {{ form.state|as_crispy_field }}
-                            {{ form.monitoring_type|as_crispy_field }}
-                            {{ form.process_attached|as_crispy_field }}
+                            {{ form.city|as_crispy_field }}
+                            {{ form.longitude|as_crispy_field }}
+                            {{ form.latitude|as_crispy_field }}
                             {{ form.amc|as_crispy_field }}
                             {{ form.prefix|as_crispy_field }}
                         </div>
@@ -58,7 +61,8 @@
                             {{ form.name|as_crispy_field }}
                             {{ form.pcb|as_crispy_field }}
                             {{ form.closure_status|as_crispy_field }}
-                            {{ form.city|as_crispy_field }}
+                            {{ form.monitoring_type|as_crispy_field }}
+                            {{ form.process_attached|as_crispy_field }}
                             {{ form.zipcode|as_crispy_field }}
                             {{ form.cmc|as_crispy_field }}
                             {{ form.approval_date|as_crispy_field }}
@@ -73,14 +77,20 @@
                                     {{ form.active|as_crispy_field }}
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    {{ form.user_email|as_crispy_field }}
+                                    {{ form.user_ph|as_crispy_field }}
+                                </div>
+                                <div class="col-6">
+                                    {{ form.cpcb_email|as_crispy_field }}
+                                    {{ form.cpcb_ph|as_crispy_field }}
+                                </div>
+                            </div>
                             {{ form.address|as_crispy_field }}
                             {{ form.key|as_crispy_field }}
                             {{ form.pub_key|as_crispy_field }}
                             {{ form.pvt_key|as_crispy_field }}
-                            {{ form.user_email|as_crispy_field }}
-                            {{ form.user_ph|as_crispy_field }}
-                            {{ form.cpcb_email|as_crispy_field }}
-                            {{ form.cpcb_ph|as_crispy_field }}
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success">Save Station</button>
@@ -100,5 +110,47 @@
   <!-- Page level custom scripts -->
   <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
 <!-- Bootstrap core Table View JavaScript Ends-->
+<script>
+function GetCities(state) {
+        var $citylist = $("#industry_city");
+        if (state.id.indexOf("site") >= 0)
+        {
+            $citylist = $("#site_city");
+        }
+        $.ajax({
+            url: "/dashboard/GetCities?state=" + state.value
+        }).done(function(cities) {
+             $citylist.empty(); // remove old options
+             $.each(cities.cities, function(key, value) {
+              $citylist.append($("<option></option>").attr("value", value[0]).text(value[1]));
+            });
+            $("#id_longitude").val(cities.lng);
+            $("#id_latitude").val(cities.lat);
+        });
+    }
 
+function GetLongLat(city) {
+
+        if (city.id.indexOf("industry") >= 0) {
+            var $zipcode = $("#industry_zipcode");
+            var city = $("#industry_city").val();
+            var state = $("#industry_state").val();
+        }
+        else{
+            var $zipcode = $("#site_zipcode");
+            var city = $("#site_city").val();
+            var state = $("#site_state").val();
+            $("#id_longitude").addClass('loadinggif');
+            $("#id_latitude").addClass('loadinggif');
+        }
+        $zipcode.addClass('loadinggif');
+        $.ajax({
+            url: "/dashboard/GetLongLat?city=" + city +  '&state='+ state,
+        }).done(function(long) {
+            $("#id_longitude").removeClass('loadinggif').val(long.long);
+            $("#id_latitude").removeClass('loadinggif').val(long.lat);
+            $zipcode.removeClass('loadinggif').val(long.zipcode);
+        });
+    }
+</script>
 {% endblock %}

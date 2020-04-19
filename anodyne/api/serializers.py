@@ -69,7 +69,17 @@ class StationSerializer(serializers.ModelSerializer):
         model = Station
         # fields = '__all__'
         exclude = ('key', 'pub_key', 'pvt_key', 'country', 'address')
+        widgets = {
+            'address': serializers.CharField(),
+            'key': serializers.CharField(),
+            'pub_key': serializers.CharField(),
+            'pvt_key': serializers.CharField(),
+            'user_email': serializers.CharField(),
+            'user_ph': serializers.CharField(),
+            'cpcb_email': serializers.CharField(),
+            'cpcb_ph': serializers.CharField(),
 
+        }
 
 class StationInfoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -196,6 +206,6 @@ class LoginSerializer(serializers.Serializer):
         # that we will see later on.
         return {
             'email': user.email,
-            'username': user.username,
+            # 'username': user.username,
             'token': user.token
         }

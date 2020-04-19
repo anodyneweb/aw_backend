@@ -1,30 +1,25 @@
 import colorsys
 import json
 import logging
-from datetime import datetime, timedelta
-from random import uniform
 import random
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout
+from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.template.context_processors import csrf
+from django.template.loader import get_template
 from django.urls import reverse
-from markupsafe import Markup
-from plotly.offline import plot
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
-import pandas as pd
-from api.models import State, City, Registration, Category, User, Industry, \
-    Station, PCB, StationParameter, Reading
-from api.serializers import RegistrationSerializer, LoginSerializer
-from scripts.generate_dummy_data import randm_state, randm_str, randm_zip, \
-    CLOSURE_CHOICES
+
+from api.models import State, City, Registration, Category
+from api.serializers import RegistrationSerializer
 
 log = logging.getLogger('vepolink')
 
@@ -545,96 +540,53 @@ def add_category():
     print('done...')
 
 
-from rest_framework.renderers import JSONRenderer
+def logoutview(request):
+    """Show the login page.
+
+    If 'next' is a URL parameter, add its value to the context.  (We're
+    mimicking the standard behavior of the django login auth view.)
+    """
+    logout(request)
+    context = {
+        'next': request.GET.get('next', ''),
+    }
+    context.update(csrf(request))
+    template = get_template("login.html")
+    html = template.render(context, request)
+    return HttpResponse(html)
 
 
-class UserJSONRenderer(JSONRenderer):
-    charset = 'utf-8'
-
-    def render(self, data, media_type=None, renderer_context=None):
-        # If we receive a `token` key as part of the response, it will be a
-        # byte object. Byte objects don't serialize well, so we need to
-        # decode it before rendering the User object.
-        token = data.get('token', None)
-
-        if token is not None and isinstance(token, bytes):
-            # Also as mentioned above, we will decode `token` if it is of type
-            # bytes.
-            data['token'] = token.decode('utf-8')
-
-        # Finally, we can render our data under the "user" namespace.
-        return json.dumps({
-            'user': data
-        })
-
-
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-
-    @classmethod
-    def get_token(cls, user):
-        token = super(MyTokenObtainPairSerializer, cls).get_token(user)
-
-        # Add custom claims
-        token['fav_color'] = user.fav_color
-        return token
-
-
-class AuthenticateView(APIView):
-    permission_classes = (AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
-    serializer_class = LoginSerializer
-
-    # serializer_class = TokenObtainPairSerializer
-
-    def post(self, request):
-        user = {
-            'email': request.data.get('email'),
-            'password': request.data.get('password')
-        }
-        # Notice here that we do not call `serializer.save()` like we did for
-        # the registration endpoint. This is because we don't  have
-        # anything to save. Instead, the `validate` method on our serializer
-        # handles everything we need.
-        serializer = self.serializer_class(data=user)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class AuthenticateView2(APIView):
-    permission_classes = ()
-
-    def post(self, request):
-        """Handles POSTed credentials for login."""
-        email = request.POST['email']
-        password = request.POST['password']
-        user = authenticate(request, email=email, password=password)
-        # user = User.objects.get(email=request.POST['email'])#, password=request.POST['password'])
-        print(user)
-        next_url = '/api'
-        if user is not None:
-            if user.is_active:
-                login(request, user)
-                next_url = '/dashboard'
-                if 'next' in request.POST and request.POST['next']:
-                    next_url = request.POST['next']
-                return redirect(next_url)
-            else:
-                # Notification, if blocked user is trying to log in
-                text = "This user is blocked. Please contact admin."
-                messages.error(request, text, extra_tags='alert alert-warning')
-                print(text)
+def auth_and_login(request):
+    email = request.POST.get('email')
+    password = request.POST.get('password')
+    # The `authenticate` method is provided by Django and handles checking
+    # for a user that matches this email/password combination. Notice how
+    # we pass `email` as the `username` value since in our User
+    # model we set `USERNAME_FIELD` as `email`.
+    user = authenticate(username=email, password=password)
+    next_url = '/dashboard'
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            if 'next' in request.POST:
+                next_url = request.POST['next']
+            return redirect(next_url)
         else:
-            text = "Sorry, Email or Password combination is not valid."
+            # Notification, if blocked user is trying to log in
+            text = "This user is blocked. Please contact admin."
+            messages.error(request, text, extra_tags='alert alert-warning')
             print(text)
-            messages.error(request, text, extra_tags='alert alert-danger')
-            return redirect(reverse('login'))
+    else:
+        text = "Sorry, Email or Password combination is not valid."
+        print(text)
+        messages.error(request, text, extra_tags='alert alert-danger')
+        return redirect(reverse('login'))
 
-        return redirect(next_url)
+    return redirect(next_url)
 
 
 class LoginView(APIView):
-    permission_classes = ()
+    permission_classes = (AllowAny,)
     renderer_classes = [TemplateHTMLRenderer]
     template_name = 'login.html'
 
@@ -659,7 +611,6 @@ class HelloView(APIView):
         # print(x)
 
         return Response(content)
-
 
 
 class RegistrationViewSet(viewsets.GenericViewSet):

@@ -3,10 +3,10 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>
+        <h1 class="h3 mb-4 text-gray-800">{{ parameter.name }}</h1>
     <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">{{ industry.name }}</h6>
+      <h6 class="m-0 font-weight-bold text-primary">{{ parameter.name }}</h6>
         <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -14,8 +14,8 @@
         </a>
         <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
               <div class="dropdown-header">Actions:</div>
-            <a href="#" data-placement="left" data-original-title="Station"
-                       data-target="#industry-form" data-toggle="modal"
+            <a href="#" data-placement="left" data-original-title="Parameter"
+                       data-target="#parameter-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Edit</a>
               <a class="dropdown-item" href="#">Another action</a>
               <div class="dropdown-divider"></div>
@@ -26,41 +26,24 @@
       <div class="table-responsive">
         {{ tabular|safe }}
       </div>
-    </div>
-    </div>
+    </div></div>
 
 
-
-    <div class="modal fade" id="industry-form">
+    <div class="modal fade" id="parameter-form">
         <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class='modal-title'>
-                    <b>Add Industry</b>
+                    <b>Add Parameter</b>
                 </h3>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
 
             <div class="modal-body">
-                <form action="{% url 'dashboard:industry-info' industry.uuid %}" method="post" >
+                <form action="{% url 'dashboard:parameter-info' parameter.id %}" method="post" >
                     {% csrf_token %}
-                    <div class="row">
-                          <div class="col-6">
-                              {{ form.name|as_crispy_field }}
-                              {{ form.industry_code|as_crispy_field }}
-                              {{ form.type|as_crispy_field }}
-                              {{ form.industry_id|as_crispy_field }}
-                              {{ form.address|as_crispy_field }}
-                          </div>
-                          <div class="col-6">
-                              {{ form.user|as_crispy_field }}
-                              {{ form.status|as_crispy_field }}
-                              {{ form.state|as_crispy_field }}
-                              {{ form.city|as_crispy_field }}
-                              {{ form.zipcode|as_crispy_field }}
-                          </div>
-                      </div>
-                    <button type="submit" class="btn btn-warning">Update Industry</button>
+                    {{ form|crispy }}
+                    <button type="submit" class="btn btn-warning">Update Parameter</button>
                   </form>
             </div>
         </div>

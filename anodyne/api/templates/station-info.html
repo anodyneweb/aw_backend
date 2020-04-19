@@ -5,91 +5,29 @@
 
           <!-- Page Heading -->
     <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>
-
-    <div class='content graphContent'>
-    <div class="row">
-        <div class="col-sm-12">
-            <h3 class="fa-pull-right" style="color:lightgrey">
-                <a href="#">
-                    {{ details.industry }}
-                </a>
-                {% if details.industry_type %}
-                <br><small>{{ details.industry_type }}</small>
-                {% endif %}
-            </h3>
-            <div class="notice notice-{{details.status.0}} notice-sm col-6">
-                <h4>
-                    {{details.name}} -
-                    <b>{{ details.status.1 }}</b>
-                    {% if details.cam_url %}
-                    <i data-placement="left" data-original-title="Camera"
-                       data-target="#cam-form" data-toggle="modal"
-                       class="fa fa-pull-right fa fa-camera" aria-hidden="true"></i>
-                    {% endif %}
-                </h4>
+    <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">{{ station.name }}</h6>
+        <a class="dropdown-toggle" href="#" role="button"
+               id="dropdownMenuLink" data-toggle="dropdown"
+               aria-haspopup="true" aria-expanded="false">
+            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+              <div class="dropdown-header">Actions:</div>
+            <a href="#" data-placement="left" data-original-title="Station"
+                       data-target="#station-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Edit</a>
+              <a class="dropdown-item" href="#">Another action</a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">Something else here</a>
             </div>
-
-            <span id="loader" style="visibility: hidden;">
-                <img src="/static/img/loader.gif" class="loader" height="20" width="20">
-            </span>
-            <!--Item Rows Starts -->
-            <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group mr-2" role="group" aria-label="Row Item 2">
-                    <button class="btn-secondary btn-sm btn" type="button" >
-                        <a id="reportrange">
-                            <i class="fa fa-calendar"></i>&nbsp;
-                            <span></span> <i class="fa fa-caret-down"></i>
-                        </a>
-                    </button>
-                    <button type="button" title="Update Chart" id="updateChart"
-                            onclick="redraw('{{details.uuid}}');" class="btn btn-primary btn-sm">
-                        Update
-                    </button>
-                </div>
-                <div class="btn-group mr-2" role="group" aria-label="Row Item 3">
-                    <button type="button" class="btn-primary btn-sm btn" data-placement="left"
-                            data-original-title="Edit"
-                            data-target="#table-form"
-                            data-toggle="modal">
-                        Table
-                    </button>
-                </div>
-                <div class="btn-group mr-2" role="group" aria-label="Row Item 3">
-                    <button type="button" class="btn-primary btn-sm btn" data-toggle="collapse"
-                            data-target="#chartRow">
-                        Cards
-                    </button>
-                </div>
-
-            </div>
-            <!--Item Rows Ends -->
-            <hr>
-            <div id="chartRow" class="graphicalData collapse show">
-                <div class="row" id="cardsview">
-                    {{ cards|safe }}
-                </div>
-            </div>
-            <!--Plot Chart Starts -->
-
-            <div id="chart_graphDiv">
-                {{ chart }}
-            </div>
-            <!--Chart Plot Ends-->
-        </div>
     </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
+    <div class="card-body">
+      <div class="table-responsive">
+        {{ tabular|safe }}
+      </div>
+    </div></div>
 
     <div class="modal fade" id="station-form">
     <div class="modal-dialog">
@@ -104,7 +42,53 @@
             <div class="modal-body">
                 <form action="{% url 'dashboard:station-info' station.uuid %}" method="post" >
                     {% csrf_token %}
-                    {{ form|crispy }}
+                    <div class="row">
+                        <div class="col-6">
+                            {{ form.industry|as_crispy_field }}
+                            {{ form.site_id|as_crispy_field }}
+                            {{ form.state|as_crispy_field }}
+                            {{ form.city|as_crispy_field }}
+                            {{ form.longitude|as_crispy_field }}
+                            {{ form.latitude|as_crispy_field }}
+                            {{ form.amc|as_crispy_field }}
+                            {{ form.prefix|as_crispy_field }}
+                        </div>
+                        <div class="col-6">
+                            {{ form.name|as_crispy_field }}
+                            {{ form.pcb|as_crispy_field }}
+                            {{ form.closure_status|as_crispy_field }}
+                            {{ form.monitoring_type|as_crispy_field }}
+                            {{ form.process_attached|as_crispy_field }}
+                            {{ form.zipcode|as_crispy_field }}
+                            {{ form.cmc|as_crispy_field }}
+                            {{ form.approval_date|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-6">
+                                    {{ form.is_cpcb|as_crispy_field }}
+                                    {{ form.ganga|as_crispy_field }}
+                                </div>
+                                <div class="col-6">
+                                    {{ form.active|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    {{ form.user_email|as_crispy_field }}
+                                    {{ form.user_ph|as_crispy_field }}
+                                </div>
+                                <div class="col-6">
+                                    {{ form.cpcb_email|as_crispy_field }}
+                                    {{ form.cpcb_ph|as_crispy_field }}
+                                </div>
+                            </div>
+                            {{ form.address|as_crispy_field }}
+                            {{ form.key|as_crispy_field }}
+                            {{ form.pub_key|as_crispy_field }}
+                            {{ form.pvt_key|as_crispy_field }}
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-warning">Update Station</button>
                   </form>
             </div>
@@ -115,20 +99,8 @@
 <!-- /.container-fluid -->
 {% endblock %}
 {% block scripts %}
-<script type="text/javascript" src="/static/js/jquery.validate.min.js"></script>
-<script type="text/javascript" src="/static/js/moment.min.js"></script>
-<script type="text/javascript" src='/static/js/chart.min.js'></script>
-<script type="text/javascript" src='/static/js/daterangepicker.min.js'></script>
-<script type="text/javascript" src="/static/js/chartjs-plugin-zoom.min.js"></script>
-<script type="text/javascript" src="/static/js/dropdown.min.js"></script>
-<script type="text/javascript" src="/static/js/transition.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
-<link rel="stylesheet" type="text/css" href="/static/css/daterangepicker.css">
-<link rel="stylesheet" type="text/css" href="/static/css/dropdown.min.css">
-<link rel="stylesheet" type="text/css" href="/static/css/transition.css">
-<script type="text/javascript" src="/static/js/jquery.csv-0.71.min.js"></script>
-<script type="text/javascript">
-    function GetCities(state) {
+<script>
+function GetCities(state) {
         var $citylist = $("#industry_city");
         if (state.id.indexOf("site") >= 0)
         {
@@ -169,228 +141,5 @@ function GetLongLat(city) {
             $zipcode.removeClass('loadinggif').val(long.zipcode);
         });
     }
-
-
-var fromDate = null;
-var toDate = null;
-var sessionObject;
-
-// Date Range Picker script start \\
-$(function() {
-var start = moment().subtract(24, 'hour');
-var end = moment();
-
-function cb(start, end) {
-    $('#reportrange span').html(start.format('DD/MM/YYYY hh:mm A') + ' - ' + end.format('DD/MM/YYYY hh:mm A'));
-
-    fromDate = start.format('MM/DD/YYYY hh:mm A');
-    toDate = end.format('MM/DD/YYYY hh:mm A');
-
-    }
-    $('#reportrange').daterangepicker({
-        timePicker: true,
-        startDate:start,
-        endDate: end,
-        maxDate: moment(),
-        ranges: {
-           'Today': [moment().startOf('day'), moment()],
-           'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
-           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
-           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
-           'This Month': [moment().startOf('month').startOf('day'), moment().endOf('month')],
-           'Last Month': [moment().subtract(1, 'month').startOf('month').startOf('day'), moment().subtract(1, 'month').endOf('month')],
-        },
-    }, cb);
-    cb(start, end);
-});
-// Date Range Picker script end \\
-
-function redraw(site_id){
-    var siteGraph = document.getElementById('chart_graphDiv');
-    var loader = document.getElementById('loader');
-    var tabular = document.getElementById('tabular');
-    var cards = document.getElementById('cardsview');
-    loader.style.visibility = "visible";
-    var threshold = 'false';
-    if(($('input[name="threshold"]').is(':checked'))){
-        threshold = 'true';
-    }
-    var URL = '/api/graphdata?site='+site_id+'&from_date='+fromDate+'&to_date='+toDate+'&threshold='+threshold;
-    $.ajax({
-            url: URL,
-            type: 'GET',
-            success: function(response) {
-                    // Chart View
-                    tabular.innerHTML = '';
-                    tabular.innerHTML = response.tabular;
-                    console.log('Update Table')
-                    // FIX REQ: Plotly undefined comes when graph is never been created on page
-                    Plotly.react(siteGraph, response.data, response.layout);
-                    //siteGraph.data[0].opacity = 0.8;
-                    // tabular view
-                    loader.style.visibility = "hidden";
-                    // Updating Cards
-                    console.log('Update Cards')
-                    cards.innerHTML = '';
-                    cards.innerHTML = response.cards;
-            },
-            error: function(response) {
-                }
-    });
-}
-
-// Download CSV
-function downloadCSV(csv, filename) {
-    var csvFile;
-    var downloadLink;
-
-    // CSV file
-    csvFile = new Blob([csv], {type: "text/csv"});
-
-    // Download link
-    downloadLink = document.createElement("a");
-
-    // File name
-    downloadLink.download = filename;
-
-    // Create a link to the file
-    downloadLink.href = window.URL.createObjectURL(csvFile);
-
-    // Hide download link
-    downloadLink.style.display = "none";
-
-    // Add the link to DOM
-    document.body.appendChild(downloadLink);
-
-    // Click download link
-    downloadLink.click();
-}
-
-function exportTableToCSV(filename) {
-    var csv = [];
-    var rows = document.querySelectorAll("table tr");
-
-    for (var i = 0; i < rows.length; i++) {
-        var row = [], cols = rows[i].querySelectorAll("td, th");
-
-        for (var j = 0; j < cols.length; j++)
-            row.push(cols[j].innerText);
-        csv.push(row.join(","));
-    }
-
-    // Download CSV file
-    downloadCSV(csv.join("\n"), filename);
-}
-
-
-function FormUpdate() {
-        var pcb = decodeURIComponent($('#id_pcb').val());
-        console.log(pcb)
-        $.ajax({
-            url: '/dashboard/industry/site/' + pcb,
-            type: 'GET',
-            success: function(response) {
-                // Show all first
-                for (i = 0, l = response.unhide_fields.length; i < l; i++) {
-                    field = response.unhide_fields[i];
-                    // Do work with the current element
-                    $('label[for=' + 'id_' + field + '], input#id_' + field).show();
-                    $('#id_' + field).show();
-                    $('#id_' + field).removeAttr("disabled");
-                    //$('#id_'+field).removeAttr("readonly");
-                }
-                // Hide not required fields
-                for (i = 0, l = response.hide_fields.length; i < l; i++) {
-                    field = response.hide_fields[i];
-                    // Do work with the current element
-                    $('label[for=' + 'id_' + field + '], input#id_' + field).hide();
-                    $('#id_' + field).hide();
-                    $('#id_' + field).attr("disabled", "disabled");
-                    //$('#id_'+field).val('');
-                    //$('#id_'+field).attr('readonly', 'readonly');
-                }
-            },
-        });
-
-    }
-// Site Form Handling Ends
-
-    $(document).ready(function() {
-        FormUpdate();
-        // $('input[name="pdc"]').hide();
-        //$("#id-Form :input").prop("disabled", true);
-        $('label[class="uploadlogo"]').hide();
-        $("#ppk_file").prop('required', false);
-        $("#pem_file").prop('required', false);
-        $('#id_pdc_edit_btn').hide();
-        $('#site').on('change', function() {
-            if (this.value == 'KSPCB') {
-                $("#pem_ppk").show();
-                $("#ppk_file").prop('required', true);
-                $("#pem_file").prop('required', true);
-            } else {
-                $("#pem_ppk").hide();
-                $("#ppk_file").prop('required', false);
-                $("#pem_file").prop('required', false);
-            }
-        });
-
-        // The event listener for the file upload
-        $('input#id_pdc').change(function() {
-            upload();
-        });
-
-        if ($('select[name="pcb"]').val() == 'MPCB' || $('select[name="pcb"]').val() == 'KSPCB') {
-            // $('input[name="pdc"]').show();
-            $('label[class="uploadlogo"]').show();
-        };
-
-        FormUpdate();
-
-    });
-
-    // Method that checks that the browser supports the HTML5 File API
-    function browserSupportFileUpload() {
-        var isCompatible = false;
-        if (window.File && window.FileReader && window.FileList && window.Blob) {
-            isCompatible = true;
-        }
-        return isCompatible;
-    }
-
-    // Method that reads and processes the selected file
-    function upload(evt) {
-        if (!browserSupportFileUpload()) {
-            alert('The File APIs are not fully supported in this browser!');
-        } else {
-            $("#upload-csv").click();
-            var data = null;
-            var file = document.getElementById('id_pdc').files[0];
-            var reader = new FileReader();
-            reader.readAsText(file);
-            reader.onload = function(event) {
-                var csvData = event.target.result;
-                data = $.csv.toArrays(csvData);
-                if (data && data.length > 0) {
-
-                    addFields(data);
-                } else {
-                    alert('No data to import!');
-                }
-            };
-            reader.onerror = function() {
-                alert('Unable to read ' + file.fileName);
-            };
-        }
-    }
-    function PCBDetails(pcb) {
-        $.ajax({
-            url: "/dashboard/PCBDetails?pcb=" + pcb.value,
-        }).done(function(url) {
-            $("#id_realtime_url").val(url.url);
-            $("#id_delayed_url").val(url.durl);
-        });
-    }
 </script>
-
 {% endblock %}

@@ -3,10 +3,10 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">User Page</h1>
+    <h1 class="h3 mb-4 text-gray-800">{{ user.name }}</h1>
     <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">Users List</h6>
+      <h6 class="m-0 font-weight-bold text-primary">{{ user.name }}</h6>
         <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -15,8 +15,8 @@
         <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
               <div class="dropdown-header">Actions:</div>
               <a href="#" data-placement="left" data-original-title="Station"
-                       data-target="#users-form" data-toggle="modal"
-                       class="dropdown-item" aria-hidden="true">Add</a>
+                       data-target="#user-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Edit</a>
               <a class="dropdown-item" href="#">Another action</a>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="#">Something else here</a>
@@ -30,8 +30,8 @@
     </div>
 
 
-    <div class="modal fade" id="users-form">
-    <div class="modal-dialog">
+    <div class="modal fade" id="user-form">
+        <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class='modal-title'>
@@ -41,7 +41,7 @@
             </div>
 
             <div class="modal-body">
-                <form action="{% url 'dashboard:users' %}" method="post" >
+                <form action="{% url 'dashboard:user-info' user.id %}" method="post" >
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-6">
@@ -60,21 +60,14 @@
                             {{ form.city|as_crispy_field }}
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success">Add User</button>
+                    <button type="submit" class="btn btn-warning">Update User</button>
                   </form>
             </div>
         </div>
     </div>
-</div>
+    </div>
 </div>
 <!-- /.container-fluid -->
 {% endblock %}
 {% block scripts %}
-  <!-- Page level plugins -->
-  <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
-  <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
-  <!-- Page level custom scripts -->
-  <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
-<!-- Bootstrap core Table View JavaScript Ends-->
-
 {% endblock %}
