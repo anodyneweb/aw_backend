@@ -62,6 +62,7 @@ class DashboardView(ProtectedView):
             'industry__uuid',
             Station=F('name'),
             Industry=F('industry__name'),
+            Status=F('status'),
             PCB=F('pcb'),
             Industry_code=F('industry__industry_code'),
             Ganga=F('ganga'),
@@ -77,13 +78,22 @@ class DashboardView(ProtectedView):
                         df['uuid'].astype(str) + "'>" + df[
                             'Station'].astype(str) + "</a>"
         df['Industry'] = "<a href='/dashboard/industry-info/" + \
-                         df['industry__uuid'].astype(str) + "'>" + df['Industry'].astype(
+                         df['industry__uuid'].astype(str) + "'>" + df[
+                             'Industry'].astype(
             str) + "</a>"
         df = df.drop(columns=['uuid', 'industry__uuid'])
+        details = {
+            'total': df.shape[0],
+            'live': df[df['Status'] == 'Live'].shape[0],
+            'delay': df[df['Status'] == 'Delay'].shape[0],
+            'offline': df[df['Status'] == 'Offline'].shape[0],
+
+        }
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
                                   justify='center', escape=False),
+            'details': details
         }
         html = info_template.render(content, request)
         return HttpResponse(html)
@@ -294,8 +304,8 @@ class UserView(ProtectedView):
         )
         df = pd.DataFrame(stations)
         df['Name'] = "<a href='/dashboard/user-info/" + \
-                         df['id'].astype(str) + "'>" + df[
-                             'Name'].astype(
+                     df['id'].astype(str) + "'>" + df[
+                         'Name'].astype(
             str) + "</a>"
         df = df.drop(columns=['id'])
         content = {
@@ -472,15 +482,17 @@ class ParameterView(ProtectedView):
         return redirect(url)
 
 
+class CameraView(ProtectedView):
 
-
-class GeographicalView(ProtectedView):
     def get(self, request):
-        # Setup detailed view for each site
-        industries = ['Select Industry']
-        industries.extend(Industry.objects.all())
-        context = dict(industries=industries)
-        info_template = get_template('geographical.html')
+        # records = Industry.objects.filter(station__camera__isnull=False).values(
+        records = Industry.objects.all().values(
+            'name', 'station__name', 'station__camera')
+        df = pd.DataFrame(list(records))
+        df['site_n_cam'] = list(zip(df.station__name, df.station__camera))
+        data_dict = df.groupby('name').site_n_cam.apply(list).to_dict()
+        context = dict(industries=data_dict)
+        info_template = get_template('camera.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
 

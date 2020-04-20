@@ -138,7 +138,7 @@ class User(AbstractBaseUser):
     country = models.CharField(max_length=80, default='India', editable=False)
     # USER DETAILS ENDS
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name',]
+    REQUIRED_FIELDS = ['name', ]
 
     def get_full_name(self):
         # The user is identified by their email address
@@ -283,25 +283,14 @@ class Industry(models.Model):
 
 
 class Station(models.Model):
-    MPCB = 'MPCB'
-    MPPCB = 'MPPCB'
-    KSPCB = 'KSPCB'
-    OSPCB = 'OSPCB'
-    CPCB = 'CPCB'
-    RSPCB = 'RSPCB'
-    HSPCB = 'HSPCB'
-    WBPCB = 'WBPCB'
     PPCB = 'PPCB'
-    DJB = 'DJB'
-    UKPCB = 'UKPCB'
+    MPPCB = 'MPPCB'
+    TSPCB = 'TSPCB'
+    HSPCB = 'HSPCB'
+    UPPCB = 'UPPCB'
     DPCC = 'DPCC'
     JSPCB = 'JSPCB'
-    BSPCB = 'BSPCB'
 
-    ATTACHED_CHOICES = (
-        ('Inlet', 'Inlet'),
-        ('Outlet', 'Outlet'),
-    )
     CLOSURE_CHOICES = (
         (None, 'None'),
         ('Seasonal', 'Seasonal'),
@@ -414,6 +403,9 @@ class Station(models.Model):
     active = models.BooleanField(default=True, verbose_name='Enable Upload',
                                  help_text='uncheck to disable data upload')
     created = models.DateTimeField(auto_now_add=True, blank=True)
+    camera = models.URLField(max_length=200, blank=True,
+                             help_text='Camera IP or URL',
+                             verbose_name='Camera URL/IP')
 
     @property
     def parameters(self):
@@ -434,7 +426,6 @@ class Station(models.Model):
     def __str__(self):
         return "%s | %s | %s | %s" % (self.name, self.industry.name,
                                       self.pcb, self.state)
-
 
 
 class StationInfo(models.Model):
@@ -575,6 +566,18 @@ class Reading(models.Model):
         return "%s: %s" % (self.station, self.reading)
 
 
+class Broadcast(models.Model):
+    message = models.TextField()
+    timestamp = models.DateTimeField(
+            db_index=True,
+            auto_now_add=True,
+            blank=True
+        )
+
+    def __str__(self):
+        return self.message
+
+
 class Registration(models.Model):
     email = models.EmailField(
         verbose_name='email address',
@@ -601,32 +604,7 @@ class Registration(models.Model):
         blank=True
     )
 
-
-# class ReadingJSON(models.Model):
-#     station = models.ForeignKey(
-#         Station,
-#         on_delete=models.CASCADE
-#     )
-#     # {'param1': 'val1', 'param2': 'val2'...}
-#     reading = JSONField(
-#         max_length=9999,
-#         blank=True
-#     )
-#     timestamp = models.DateTimeField(
-#         db_index=True,
-#         auto_now_add=True,
-#         blank=True
-#     )
-#     filename = models.CharField(
-#         max_length=80
-#     )
-#
-#     class Meta:
-#         unique_together = (('timestamp', 'filename'),)
-#
-#     def __str__(self):
-#         return "%s: \n %s" % (self.station.name, self.reading)
-
 ##############################################################################
 # SIGNALS
 post_save.connect(Parameter.check4new, sender=StationParameter)
+

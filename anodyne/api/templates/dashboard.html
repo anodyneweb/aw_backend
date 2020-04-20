@@ -6,15 +6,15 @@
   <div class="row">
 
     <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-primary shadow h-100 py-2">
+      <div class="card border-left-info shadow h-100 py-2">
         <div class="card-body">
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Stations</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">40</div>
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Stations</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.total }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+              <i class="fas fa-industry fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
@@ -26,41 +26,11 @@
         <div class="card-body">
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Live Stations</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">25</div>
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Live</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.live }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-      <div class="card border-left-info shadow h-100 py-2">
-        <div class="card-body">
-          <div class="row no-gutters align-items-center">
-            <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Delayed Stations</div>
-              <div class="row no-gutters align-items-center">
-                <div class="col-auto">
-                  <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">15</div>
-                </div>
-                <div class="col">
-                  <div class="progress progress-sm mr-2">
-
-                    <div class="progress-bar bg-info" role="progressbar"
-                         style="width: 50%" aria-valuenow="0" aria-valuemin="0"
-                         aria-valuemax="100">
-
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-auto">
-              <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+              <i class="fas fa-broadcast-tower fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
@@ -72,11 +42,31 @@
         <div class="card-body">
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
-              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Offline Stations</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">5</div>
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Delayed</div>
+              <div class="row no-gutters align-items-center">
+                <div class="col-auto">
+                  <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ details.delay }}</div>
+                </div>
+              </div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-comments fa-2x text-gray-300"></i>
+              <i class="fas fa-signal fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-danger shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Offline</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.offline }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-power-off fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
@@ -87,11 +77,12 @@
   <div class="row">
     <div class="card shadow mb-4">
       <div class="card-header py-3">
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div class="d-sm-flex align-items-center justify-content-between">
           <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-          <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-            <i class="fas fa-download fa-sm text-white-50"></i> Download Report
-          </a>
+          <a href="javascript:exportTableToCSV('report.csv');"
+           class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-download fa-sm text-white-50"></i>
+        </a>
         </div>
     </div>
     <div class="card-body">

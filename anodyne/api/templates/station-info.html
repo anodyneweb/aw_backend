@@ -18,7 +18,12 @@
             <a href="#" data-placement="left" data-original-title="Station"
                        data-target="#station-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Edit</a>
-              <a class="dropdown-item" href="#">Another action</a>
+            {#% if station.camera %#}
+            <a class="dropdown-item" href="#"
+               data-placement="left" data-original-title="Station"
+               data-target="#cam-form" data-toggle="modal"
+               class="dropdown-item" aria-hidden="true">View Camera</a>
+            {#% endif %#}
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="#">Something else here</a>
             </div>
@@ -67,10 +72,11 @@
                             <div class="row">
                                 <div class="col-6">
                                     {{ form.is_cpcb|as_crispy_field }}
+                                    {{ form.active|as_crispy_field }}
                                     {{ form.ganga|as_crispy_field }}
                                 </div>
                                 <div class="col-6">
-                                    {{ form.active|as_crispy_field }}
+                                    {{ form.camera|as_crispy_field }}
                                 </div>
                             </div>
                             <div class="row">
@@ -91,6 +97,26 @@
                     </div>
                     <button type="submit" class="btn btn-warning">Update Station</button>
                   </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="modal fade" id="cam-form">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class='modal-title'>
+                    <b>{{station.name}}</b>
+                    <br>
+                    <small>{{station.industry}}</small>
+                </h3>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="camera" class="img-responsive"
+                     src="{{details.cam_url}}"
+                     alt="&nbsp; No Feed Check Connection...">
             </div>
         </div>
     </div>

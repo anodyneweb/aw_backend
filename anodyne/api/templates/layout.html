@@ -20,6 +20,9 @@
   <!-- Custom styles for this page -->
   <link href="{% static 'vendor/datatables/dataTables.bootstrap4.min.css' %}" rel="stylesheet">
 <style>
+.marquee {
+font-size: 15px;
+}
 .page-loader {
     position: fixed;
     top: 0;
@@ -29,8 +32,8 @@
     background-color: #fff;
     opacity: 90%;
     z-index: 99;
-    background: url(/static/img/loader_pizza.gif) no-repeat center center aliceblue;
-   /*  background: url(/static/img/loader.gif) no-repeat center center aliceblue; */
+    /* background: url(/static/img/loader_pizza.gif) no-repeat center center aliceblue; */
+     background: url(/static/img/loader.gif) no-repeat center center aliceblue;
     background-size: 100px 100px;
     }
 .alert{
@@ -71,19 +74,7 @@
         <a class="nav-link" href="{% url 'dashboard:dashboard' %}">
           <i class="fas fa-fw fa-tachometer-alt"></i>
           <span>Dashboard</span></a>
-      </li>
-
-      <!-- Divider -->
-      <hr class="sidebar-divider">
-
-      <!-- Heading -->
-      <div class="sidebar-heading">
-        Interface
-      </div>
-
-
-      <!-- Nav Item - Pages Collapse Menu -->
-      <li class="nav-item">
+        <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true" aria-controls="collapsePages">
           <i class="fas fa-fw fa-folder"></i>
           <span>Pages</span>
@@ -95,50 +86,9 @@
             <a class="collapse-item" href="{% url 'dashboard:stations' %}">Stations</a>
             <a class="collapse-item" href="{% url 'dashboard:users' %}">Users</a>
             <a class="collapse-item" href="{% url 'dashboard:parameters' %}">Parameters</a>
-            <a class="collapse-item" href="login.html">Login</a>
-            <a class="collapse-item" href="register.html">Register</a>
-            <a class="collapse-item" href="forgot-password.html">Forgot Password</a>
-            <div class="collapse-divider"></div>
-            <h6 class="collapse-header">Other Pages:</h6>
-            <a class="collapse-item" href="404.html">404 Page</a>
-            <a class="collapse-item" href="{% url 'dashboard:blank' %}">Blank Page</a>
           </div>
         </div>
       </li>
-
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'dashboard:geographical' %}">
-          <i class="fas fa-fw fa-map"></i>
-          <span>Geographical</span></a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'dashboard:tables' %}">
-          <i class="fas fa-fw fa-book"></i>
-          <span>Reporting</span></a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'dashboard:tables' %}">
-          <i class="fas fa-fw fa-table"></i>
-          <span>Tables</span></a>
-      </li>
-      <!-- Nav Item - Pages Collapse Menu -->
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-          <i class="fas fa-fw fa-cog"></i>
-          <span>Components</span>
-        </a>
-        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-          <div class="bg-white py-2 collapse-inner rounded">
-            <h6 class="collapse-header">Custom Components:</h6>
-            <a class="collapse-item" href="{% url 'dashboard:buttons' %}">Buttons</a>
-            <a class="collapse-item" href="{% url 'dashboard:cards' %}">Cards</a>
-            <h6 class="collapse-header">Custom Utilities:</h6>
-            <a class="collapse-item" href="{% url 'dashboard:utilities-color' %}">Colors</a>
-            <a class="collapse-item" href="{% url 'dashboard:utilities-border' %}">Borders</a>
-            <a class="collapse-item" href="{% url 'dashboard:utilities-animation' %}">Animations</a>
-            <a class="collapse-item" href="{% url 'dashboard:utilities-other' %}">Other</a>
-          </div>
-        </div>
       </li>
 
       <!-- Divider -->
@@ -146,24 +96,63 @@
 
       <!-- Heading -->
       <div class="sidebar-heading">
-        Addons
+        Interface
       </div>
+
+
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard:cameras' %}">
+          <i class="fas fa-fw fa-camera"></i>
+          <span>Cameras</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard:tables' %}">
+          <i class="fas fa-fw fa-file"></i>
+          <span>Reports</span></a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard:blank' %}">
+          <i class="fas fa-fw fa-ruler"></i>
+          <span>Remote Calibration</span></a>
+      </li>
+<!--      <li class="nav-item">-->
+<!--        <a class="nav-link" href="{% url 'dashboard:tables' %}">-->
+<!--          <i class="fas fa-fw fa-table"></i>-->
+<!--          <span>Tables</span></a>-->
+<!--      </li>-->
+<!--      <li class="nav-item">-->
+<!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">-->
+<!--          <i class="fas fa-fw fa-cog"></i>-->
+<!--          <span>Components</span>-->
+<!--        </a>-->
+<!--        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">-->
+<!--          <div class="bg-white py-2 collapse-inner rounded">-->
+<!--            <h6 class="collapse-header">Custom Components:</h6>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:buttons' %}">Buttons</a>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:cards' %}">Cards</a>-->
+<!--            <h6 class="collapse-header">Custom Utilities:</h6>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-color' %}">Colors</a>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-border' %}">Borders</a>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-animation' %}">Animations</a>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-other' %}">Other</a>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </li>-->
+
+      <!-- Divider -->
+<!--      <hr class="sidebar-divider">-->
+<!--      <div class="sidebar-heading">-->
+<!--        Addons-->
+<!--      </div>-->
 
 
 
       <!-- Nav Item - Charts -->
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'dashboard:charts' %}">
-          <i class="fas fa-fw fa-chart-area"></i>
-          <span>Charts</span></a>
-      </li>
-
-      <!-- Nav Item - Tables -->
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'dashboard:tables' %}">
-          <i class="fas fa-fw fa-table"></i>
-          <span>Tables</span></a>
-      </li>
+<!--      <li class="nav-item">-->
+<!--        <a class="nav-link" href="{% url 'dashboard:charts' %}">-->
+<!--          <i class="fas fa-fw fa-chart-area"></i>-->
+<!--          <span>Charts</span></a>-->
+<!--      </li>-->
 
       <!-- Divider -->
       <hr class="sidebar-divider d-none d-md-block">
@@ -191,6 +180,9 @@
           </button>
 
           <!-- Topbar Search -->
+          <marquee  class="marquee" behavior="scroll" direction="left">
+              Information:&nbsp;&nbsp;All the data represented on VepoLink is as per CPCB.
+            </marquee>
           <div class="message">
             {% for message in messages %}
             <div class='alert alert-primary message'>
@@ -213,7 +205,9 @@
                     <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2">
                     <div class="input-group-append">
                       <button class="btn btn-primary" type="button">
-                        <i class="fas fa-search fa-sm"></i>
+                        <i class="fas fa-search fa-sm">
+
+                        </i>
                       </button>
                     </div>
                   </div>
@@ -256,6 +250,7 @@
         <!-- Begin Page Content -->
 <!--        <div class="container-fluid">-->
 
+
           {% block content %}
           {% endblock %}
 <!--        </div>-->
@@ -268,7 +263,10 @@
       <footer class="sticky-footer bg-white">
         <div class="container my-auto">
           <div class="copyright text-center my-auto">
-            <span>Copyright &copy; Your Website 2019</span>
+            <marquee  class="marquee" behavior="scroll" direction="left">
+              Information:&nbsp;&nbsp;All the data represented on VepoLink is as per CPCB.
+            </marquee>
+            <span><b>VepoLink</b> by <sub><a href="https://anodyne.in/">Anodyne Water Engineering Co. Pvt. Ltd</a> </sub></span>
           </div>
         </div>
       </footer>
@@ -354,6 +352,48 @@ function GetLongLat(city) {
         $("#id_latitude").val(lat);
         $zipcode.val(ltz.zipcode);
     });
+}
+
+function downloadCSV(csv, filename) {
+    var csvFile;
+    var downloadLink;
+
+    // CSV file
+    csvFile = new Blob([csv], {type: "text/csv"});
+
+    // Download link
+    downloadLink = document.createElement("a");
+
+    // File name
+    downloadLink.download = filename;
+
+    // Create a link to the file
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+
+    // Hide download link
+    downloadLink.style.display = "none";
+
+    // Add the link to DOM
+    document.body.appendChild(downloadLink);
+
+    // Click download link
+    downloadLink.click();
+}
+
+function exportTableToCSV(filename) {
+    var csv = [];
+    var rows = document.querySelectorAll("table tr");
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll("td, th");
+
+        for (var j = 0; j < cols.length; j++)
+            row.push(cols[j].innerText);
+        csv.push(row.join(","));
+    }
+
+    // Download CSV file
+    downloadCSV(csv.join("\n"), filename);
 }
 </script>
 

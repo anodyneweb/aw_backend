@@ -1,3 +1,5 @@
+import logging
+import time
 from datetime import datetime, timedelta
 
 from django.contrib.auth import authenticate, login
@@ -16,6 +18,30 @@ from rest_framework.response import Response
 
 from api.models import Station, Reading, City
 import pandas as pd
+log = logging.getLogger('vepolink')
+
+
+def epoch_timestamp(ts, tformat="%Y-%m-%d %H:%M:%S"):
+    try:
+        return int(time.mktime(datetime.strptime(
+            ts, tformat).timetuple()))
+    except ValueError:
+        log.info('Warning: Incorrect time format, trying other')
+    # try other formats if above fails
+    try:
+        # 2019.08.26 17:04:00
+        tformat = "%Y.%m.%d %H:%M:%S"
+        return int(time.mktime(datetime.strptime(
+            ts, tformat).timetuple()))
+    except ValueError:
+        pass
+    try:
+        # 20191231606290
+        tformat = "%Y%m%d%H%M%S"
+        return int(time.mktime(datetime.strptime(
+            ts, tformat).timetuple()))
+    except ValueError:
+        raise
 
 
 def send_mail(subject, message, from_email,
