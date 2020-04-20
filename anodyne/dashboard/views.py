@@ -106,18 +106,27 @@ class StationView(ProtectedView):
             return self._get_station(request, uuid)
 
         stations = Station.objects.all().values(
-            Industry=F('industry__name'),
+            'uuid',
+            'industry__uuid',
             Name=F('name'),
+            Industry=F('industry__name'),
             City=F('city__name'),
             PCB=F('pcb'),
             Ganga=F('ganga'),
             Address=F('address'),
         )
         df = pd.DataFrame(stations)
+        df['Name'] = "<a href='/dashboard/station-info/" + \
+                        df['uuid'].astype(str) + "'>" + df[
+                            'Name'].astype(str) + "</a>"
+        df['Industry'] = "<a href='/dashboard/industry-info/" + \
+                         df['industry__uuid'].astype(str) + "'>" + df[
+                             'Industry'].astype(str) + "</a>"
+        df = df.drop(columns=['uuid', 'industry__uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center'),
+                                  justify='center', escape=False),
             'form': StationForm()
         }
         info_template = get_template('station.html')
@@ -204,17 +213,22 @@ class IndustryView(ProtectedView):
             return self._get_industry(request, uuid)
 
         industries = Industry.objects.all().values(
+            'uuid',
             Name=F('name'),
             Status=F('status'),
             Type=F('type'),
             State=F('state'),
             Address=F('address')
         )
+
         df = pd.DataFrame(industries)
+        df['Name'] = "<a href='/dashboard/industry-info/" + \
+                         df['uuid'].astype(str) + "'>" + df['Name'].astype(str) + "</a>"
+        df = df.drop(columns=['uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center'),
+                                  justify='center', escape=False),
             'form': IndustryForm()
         }
 
