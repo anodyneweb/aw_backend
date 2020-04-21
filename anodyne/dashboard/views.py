@@ -60,15 +60,6 @@ def make_clickable(key, name):
 class DashboardView(AuthorizedView):
 
     def get(self, request):
-        # dir_list = os.listdir('z-dust')
-        # print(dir_list)
-        import os
-        for idx, f in enumerate(os.listdir('z-dust')):
-            # print(f)
-            fname = os.path.join('z-dust', f)
-            start = connector.ReadCSV(fname)
-            start.process()
-
         info_template = get_template('dashboard.html')
         # MyModel.objects.annotate(renamed_value=F('cryptic_value_name')).values('renamed_value')
         stations = Station.objects.filter().select_related(
