@@ -1,4 +1,4 @@
-from anodyne.PCBS import MPPCB
+from anodyne.PCBS import MPPCB, HSPCB
 from api.models import Station
 
 
@@ -25,6 +25,8 @@ class ToPCB:
             pcb = station.pcb.name
             if pcb == 'MPPCB':
                 pcb_obj = MPPCB
+            elif pcb == 'HSPCB':
+                pcb_obj = HSPCB
             else:
                 pcb_obj = None
                 message = '%s: PCB %s not configured' % (self.basename, pcb)

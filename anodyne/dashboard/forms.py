@@ -12,14 +12,17 @@ class StationForm(ModelForm):
     """
     This is related to Staff users only
     """
-    state = forms.ModelChoiceField(queryset=State.objects.all().order_by('name'),
-                                   widget=forms.Select(
-                                       attrs={'onchange': "GetCities(this)", })
-                                   )
-    city = forms.ModelChoiceField(queryset=City.objects.none(),
-                                  widget=forms.Select(
-                                      attrs={'onchange': "GetLongLat(this)", })
-                                  )
+    state = forms.ModelChoiceField(
+        queryset=State.objects.all().order_by('name'),
+        to_field_name='name',
+        widget=forms.Select(
+            attrs={'onchange': "GetCities(this)", })
+    )
+    city_qst = City.objects.all().select_related('state')
+    city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
+                                 attrs={'onchange': "GetLongLat(this)", })
+                             )
+
 
     class Meta:
         model = Station
@@ -43,14 +46,16 @@ class IndustryForm(ModelForm):
     """
     This is related to Staff users only
     """
-    state = forms.ModelChoiceField(queryset=State.objects.all().order_by('name'),
-                                   widget=forms.Select(
-                                       attrs={'onchange': "GetCities(this)", })
-                                   )
-    city = forms.ModelChoiceField(queryset=City.objects.none(),
-                                  widget=forms.Select(
-                                      attrs={'onchange': "GetLongLat(this)", })
-                                  )
+    state = forms.ModelChoiceField(
+        queryset=State.objects.all().order_by('name'),
+        to_field_name='name',
+        widget=forms.Select(
+            attrs={'onchange': "GetCities(this)", })
+    )
+    city_qst = City.objects.all().select_related('state')
+    city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
+                                 attrs={'onchange': "GetLongLat(this)", })
+                             )
 
     class Meta:
         model = Industry
@@ -66,16 +71,19 @@ class UserForm(ModelForm):
     This is related to Staff users only
     """
     password = forms.CharField(min_length=6, max_length=16,
-                               widget=forms.PasswordInput())
+                               widget=forms.PasswordInput(), required=False)
     confirm_password = forms.CharField(min_length=6, max_length=16,
-                                       widget=forms.PasswordInput())
-    state = forms.ModelChoiceField(queryset=State.objects.all().order_by('name'),
-                                   widget=forms.Select(
-                                       attrs={'onchange': "GetCities(this)", })
-                                   )
-    city = forms.ModelChoiceField(queryset=City.objects.none(),
-                                  widget=forms.Select(
-                                      attrs={'onchange': "GetLongLat(this)", })
+                                       widget=forms.PasswordInput(),
+                                       required=False)
+    state = forms.ModelChoiceField(
+        queryset=State.objects.all().order_by('name'),
+        to_field_name='name',
+        widget=forms.Select(
+            attrs={'onchange': "GetCities(this)", })
+    )
+    city_qst = City.objects.all().select_related('state')
+    city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
+        attrs={'onchange': "GetLongLat(this)", })
                                   )
 
     class Meta:
@@ -83,12 +91,8 @@ class UserForm(ModelForm):
         fields = '__all__'
         exclude = ('id', 'password', 'staff', 'last_login')
         widgets = {
-            'address': forms.Textarea(attrs={'rows': 1}),
+            'address': forms.Textarea(attrs={'rows': 2}),
         }
-
-    def save(self, commit=True):
-        # TODO: Check passowrds here and other validation
-        return super(UserForm, self).save(commit=commit)
 
 
 class ParameterForm(ModelForm):

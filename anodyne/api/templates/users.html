@@ -3,10 +3,10 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">User Page</h1>
+<!--    <h1 class="h3 mb-4 text-gray-800">User Page</h1>-->
     <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">Users List</h6>
+      <h5 class="m-0 font-weight-bold text-primary">Users</h5>
         <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -48,16 +48,18 @@
                             {{ form.name|as_crispy_field }}
                             {{ form.email|as_crispy_field }}
                             {{ form.phone|as_crispy_field }}
-                            {{ form.state|as_crispy_field }}
-                        </div>
-                        <div class="col-6">
-                            {{ form.zipcode|as_crispy_field }}
-                            {{ form.address|as_crispy_field }}
                             {{ form.admin|as_crispy_field }}
                             {{ form.active|as_crispy_field }}
                         </div>
                         <div class="col-6">
+                            {{ form.zipcode|as_crispy_field }}
+                            {{ form.address|as_crispy_field }}
+                            {{ form.state|as_crispy_field }}
                             {{ form.city|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.password|as_crispy_field }}
+                            {{ form.confirm_password|as_crispy_field }}
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success">Add User</button>

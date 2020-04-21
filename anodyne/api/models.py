@@ -242,7 +242,7 @@ class Industry(models.Model):
     industry_id = models.CharField(
         max_length=160,
         default='',
-        verbose_name='Industry Id',
+        verbose_name='Industry Code/Id',
         null=True
     )
     # Address details of the Industry
@@ -469,7 +469,8 @@ class Parameter(models.Model):
     # CREATE EXTENSION IF NOT EXISTS citext;
     else migration will fail
     """
-    name = CICharField(max_length=80, default=None, unique=True)
+    name = CICharField(max_length=80, default=None, unique=True,
+                       db_index=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True)
     alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
     # hex code or color name
@@ -513,7 +514,8 @@ class StationParameter(models.Model):
     """
     station = models.ForeignKey(
         Station,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        db_index=True
     )
     parameter = models.ForeignKey(
         Parameter,
@@ -542,6 +544,18 @@ class StationParameter(models.Model):
         null=True,
         verbose_name='Monitoring'
     )
+    monitoring_id = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+        verbose_name='Monitoring ID'
+    )
+    analyser_id = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+        verbose_name='Monitoring'
+    )
     allowed = models.BooleanField(
         default=True,
         verbose_name='Is Active'
@@ -556,7 +570,8 @@ class StationParameter(models.Model):
 
 class Reading(models.Model):
     station = models.ForeignKey(Station, null=True, to_field='prefix',
-                                on_delete=models.CASCADE, db_index=True)
+                                on_delete=models.CASCADE,
+                                db_index=True)
     reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:
@@ -564,18 +579,6 @@ class Reading(models.Model):
 
     def __str__(self):
         return "%s: %s" % (self.station, self.reading)
-
-
-class Broadcast(models.Model):
-    message = models.TextField()
-    timestamp = models.DateTimeField(
-            db_index=True,
-            auto_now_add=True,
-            blank=True
-        )
-
-    def __str__(self):
-        return self.message
 
 
 class Registration(models.Model):
@@ -605,6 +608,4 @@ class Registration(models.Model):
     )
 
 ##############################################################################
-# SIGNALS
-post_save.connect(Parameter.check4new, sender=StationParameter)
 

@@ -3,64 +3,169 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>
     <div class="card shadow mb-4">
-    <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">{{ industry.name }}</h6>
-        <a class="dropdown-toggle" href="#" role="button"
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary">{{ industry.name }}</h5>
+            <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">Actions:</div>
-            <a href="#" data-placement="left" data-original-title="Station"
-                       data-target="#industry-form" data-toggle="modal"
-                       class="dropdown-item" aria-hidden="true">Edit</a>
-              <a class="dropdown-item" href="#">Another action</a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">Something else here</a>
+                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                <div class="dropdown-header">Actions:</div>
+                <a href="#" data-placement="left" data-original-title="Industry"
+                   data-target="#industry-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">Edit</a>
+                <a href="#" data-placement="left" data-original-title="Industry"
+                   data-target="#delete-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">Delete</a>
+                <div class="dropdown-divider"></div>
+                <a href="#" data-placement="left" data-original-title="Station"
+                       data-target="#station-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Add Station</a>
             </div>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        {{ tabular|safe }}
-      </div>
-    </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                {{ tabular|safe }}
+                <br>
+                {% if tabular_stations %}
+                <h6 class="m-0 font-weight-bold text-primary">Stations</h6>
+                {{ tabular_stations|safe }}
+                {% endif %}
+            </div>
+        </div>
     </div>
 
+    <div class="modal fade" id="delete-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Delete Industry</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
 
+                <div class='modal-body'>
+                    {% if industry.station_set.all %}
+                    <h4>Stations listed below will be deleted as well, do you confirm?</h4>
+                    <br>
+                    {% for station in industry.station_set.all %}
+                        <li class="nav-item"> {{ station.name }}</li>
+                    {% endfor %}
+                    {% else %}
+                    <h4>Are you sure?</h4>
+                    {% endif %}
+                </div>
+                <div class='modal-footer'>
+                    <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel</button>
+                    <button class='btn btn-primary' type='button'
+                            id="delete-confirm">Confirm</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="industry-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Add Industry</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <form action="{% url 'dashboard:industry-info' industry.uuid %}" method="post" >
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-6">
+                                {{ form.name|as_crispy_field }}
+                                {{ form.industry_code|as_crispy_field }}
+                                {{ form.type|as_crispy_field }}
+                                {{ form.industry_id|as_crispy_field }}
+                                {{ form.address|as_crispy_field }}
+                            </div>
+                            <div class="col-6">
+                                {{ form.user|as_crispy_field }}
+                                {{ form.status|as_crispy_field }}
+                                {{ form.state|as_crispy_field }}
+                                {{ form.city|as_crispy_field }}
+                                {{ form.zipcode|as_crispy_field }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning">Update Industry</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="station-form">
         <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class='modal-title'>
-                    <b>Add Industry</b>
+                    <b>Add Station</b>
                 </h3>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
             </div>
 
             <div class="modal-body">
-                <form action="{% url 'dashboard:industry-info' industry.uuid %}" method="post" >
+                <form action="{% url 'dashboard:stations' %}" method="post" >
                     {% csrf_token %}
                     <div class="row">
-                          <div class="col-6">
-                              {{ form.name|as_crispy_field }}
-                              {{ form.industry_code|as_crispy_field }}
-                              {{ form.type|as_crispy_field }}
-                              {{ form.industry_id|as_crispy_field }}
-                              {{ form.address|as_crispy_field }}
-                          </div>
-                          <div class="col-6">
-                              {{ form.user|as_crispy_field }}
-                              {{ form.status|as_crispy_field }}
-                              {{ form.state|as_crispy_field }}
-                              {{ form.city|as_crispy_field }}
-                              {{ form.zipcode|as_crispy_field }}
-                          </div>
-                      </div>
-                    <button type="submit" class="btn btn-warning">Update Industry</button>
+                        <div class="col-6">
+                            {{ stationform.industry|as_crispy_field }}
+                            {{ stationform.site_id|as_crispy_field }}
+                            {{ stationform.state|as_crispy_field }}
+                            {{ stationform.city|as_crispy_field }}
+                            {{ stationform.longitude|as_crispy_field }}
+                            {{ stationform.latitude|as_crispy_field }}
+                            {{ stationform.amc|as_crispy_field }}
+                            {{ stationform.prefix|as_crispy_field }}
+                        </div>
+                        <div class="col-6">
+                            {{ stationform.name|as_crispy_field }}
+                            {{ stationform.pcb|as_crispy_field }}
+                            {{ stationform.closure_status|as_crispy_field }}
+                            {{ stationform.monitoring_type|as_crispy_field }}
+                            {{ stationform.process_attached|as_crispy_field }}
+                            {{ stationform.zipcode|as_crispy_field }}
+                            {{ stationform.cmc|as_crispy_field }}
+                            {{ stationform.approval_date|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-6">
+                                    {{ stationform.is_cpcb|as_crispy_field }}
+                                    {{ stationform.ganga|as_crispy_field }}
+                                </div>
+                                <div class="col-6">
+                                    {{ stationform.active|as_crispy_field }}
+                                    {{ stationform.camera|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    {{ stationform.user_email|as_crispy_field }}
+                                    {{ stationform.user_ph|as_crispy_field }}
+                                </div>
+                                <div class="col-6">
+                                    {{ stationform.cpcb_email|as_crispy_field }}
+                                    {{ stationform.cpcb_ph|as_crispy_field }}
+                                </div>
+                            </div>
+                            {{ stationform.address|as_crispy_field }}
+                            {{ stationform.key|as_crispy_field }}
+                            {{ stationform.pub_key|as_crispy_field }}
+                            {{ stationform.pvt_key|as_crispy_field }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save Station</button>
                   </form>
             </div>
         </div>
@@ -70,4 +175,23 @@
 <!-- /.container-fluid -->
 {% endblock %}
 {% block scripts %}
+<script>
+
+$('#delete-confirm').click(function () {
+// Sending as Delete request
+    $('#delete-form').modal('hide');
+    console.log('DELETING....');
+    $.ajax({
+        url: "/dashboard/industry-info/{{ industry.uuid }}",
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            window.location = "/dashboard/industries/";
+        }
+});
+});
+
+</script>
 {% endblock %}

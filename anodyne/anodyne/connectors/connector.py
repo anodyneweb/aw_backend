@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 
+from anodyne.connectors import prequisite
 from anodyne.connectors.to_database import ToDatabase
 from anodyne.connectors.to_pcb import ToPCB
 from api.models import Station
@@ -61,14 +62,17 @@ class ReadCSV:
             station = Station.objects.get(prefix=prefix)
             details['readings'] = self.get_reading()
             # TODO: each process is different we can use celerytasks for each
+
             # TODO: Adding Reading to Database is complete
-            # task 1: Add Reading to database
+            # task 1: Check Parameters if they exists or else create
+            prequisite.check_station_parameters(**details)
+            # task 2: Add Reading to database
             db = ToDatabase(**details)
             db_status = db.insert()
             details.update(db_status)
             log.info('%s: %s' % (self.basename, db_status))
-            # task 2: Upload file to PCB if required.
-            # TODO: PCB Upload is pending
+
+            # task 3: Upload file to PCB if required.
             if station.active:
                 # Upload status should be updated on Station Info
                 pcb = ToPCB(**details)

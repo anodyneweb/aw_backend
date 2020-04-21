@@ -3,10 +3,10 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">{{ user.name }}</h1>
+<!--    <h1 class="h3 mb-4 text-gray-800">{{ user.name }}</h1>-->
     <div class="card shadow mb-4">
     <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">{{ user.name }}</h6>
+      <h5 class="m-0 font-weight-bold text-primary">{{ user.name }}</h5>
         <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -17,7 +17,9 @@
               <a href="#" data-placement="left" data-original-title="Station"
                        data-target="#user-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Edit</a>
-              <a class="dropdown-item" href="#">Another action</a>
+              <a href="#" data-placement="left" data-original-title="Station"
+                       data-target="#delete-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Delete</a>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" href="#">Something else here</a>
             </div>
@@ -26,6 +28,30 @@
       <div class="table-responsive">
         {{ tabular|safe }}
       </div>
+    </div>
+    </div>
+
+<div class="modal fade" id="delete-form">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class='modal-title'>
+                    <b>Delete User</b>
+                </h3>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+                <div class='modal-body'>
+                    <h4>Are you sure you want to delete?</h4>
+                </div>
+                <div class='modal-footer'>
+                    <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel
+                        </button>
+                    <button class='btn btn-primary' type='button'
+                            id="delete-confirm">Confirm</button>
+                </div>
+
+        </div>
     </div>
     </div>
 
@@ -63,6 +89,7 @@
                     <button type="submit" class="btn btn-warning">Update User</button>
                   </form>
             </div>
+
         </div>
     </div>
     </div>
@@ -70,4 +97,23 @@
 <!-- /.container-fluid -->
 {% endblock %}
 {% block scripts %}
+<script>
+
+$('#delete-confirm').click(function () {
+// Sending as Delete request
+    $('#delete-form').modal('hide');
+    console.log('DELETING....');
+    $.ajax({
+        url: "/dashboard/user-info/{{ user.id }}",
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            window.location = "/dashboard/users/";
+        }
+});
+});
+
+</script>
 {% endblock %}

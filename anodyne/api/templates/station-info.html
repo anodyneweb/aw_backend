@@ -2,125 +2,151 @@
 {% block content %}
 <!-- Begin Page Content -->
 <div class="container-fluid">
-
-          <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>
+    <!-- Page Heading -->
+<!--    <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>-->
     <div class="card shadow mb-4">
-    <div class="card-header py-3">
-      <h6 class="m-0 font-weight-bold text-primary">{{ station.name }}</h6>
-        <a class="dropdown-toggle" href="#" role="button"
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{{ station.name }}</h6>
+            <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-              <div class="dropdown-header">Actions:</div>
-            <a href="#" data-placement="left" data-original-title="Station"
-                       data-target="#station-form" data-toggle="modal"
-                       class="dropdown-item" aria-hidden="true">Edit</a>
-            {#% if station.camera %#}
-            <a class="dropdown-item" href="#"
-               data-placement="left" data-original-title="Station"
-               data-target="#cam-form" data-toggle="modal"
-               class="dropdown-item" aria-hidden="true">View Camera</a>
-            {#% endif %#}
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">Something else here</a>
+                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                <div class="dropdown-header">Actions:</div>
+                <a href="#" data-placement="left" data-original-title="Station"
+                   data-target="#station-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">Edit</a>
+                {% if station.camera %}
+                <a class="dropdown-item" href="#"
+                   data-placement="left" data-original-title="Station"
+                   data-target="#cam-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">View Camera</a>
+                {% endif %}
+                <div class="dropdown-divider"></div>
+                <a href="#" data-placement="left" data-original-title="Stations"
+                   data-target="#delete-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">Delete</a>
             </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                {{ tabular|safe }}
+            </div>
+        </div></div>
+
+    <div class="modal fade" id="delete-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Delete Station</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+             </div>
+
+                <div class='modal-body'>
+                    <h4>Are you sure you want to delete?</h4>
+                </div>
+                <div class='modal-footer'>
+                    <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel
+                    </button>
+                    <button class='btn btn-primary' type='button'
+                            id="delete-confirm">Confirm</button>
+                 </div>
+
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        {{ tabular|safe }}
-      </div>
-    </div></div>
 
     <div class="modal fade" id="station-form">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class='modal-title'>
-                    <b>Add Station</b>
-                </h3>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-            </div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Add Station</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+             </div>
 
-            <div class="modal-body">
-                <form action="{% url 'dashboard:station-info' station.uuid %}" method="post" >
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-6">
-                            {{ form.industry|as_crispy_field }}
-                            {{ form.site_id|as_crispy_field }}
-                            {{ form.state|as_crispy_field }}
-                            {{ form.city|as_crispy_field }}
-                            {{ form.longitude|as_crispy_field }}
-                            {{ form.latitude|as_crispy_field }}
-                            {{ form.amc|as_crispy_field }}
-                            {{ form.prefix|as_crispy_field }}
-                        </div>
-                        <div class="col-6">
-                            {{ form.name|as_crispy_field }}
-                            {{ form.pcb|as_crispy_field }}
-                            {{ form.closure_status|as_crispy_field }}
-                            {{ form.monitoring_type|as_crispy_field }}
-                            {{ form.process_attached|as_crispy_field }}
-                            {{ form.zipcode|as_crispy_field }}
-                            {{ form.cmc|as_crispy_field }}
-                            {{ form.approval_date|as_crispy_field }}
-                        </div>
-                        <div class="col-12">
-                            <div class="row">
-                                <div class="col-6">
-                                    {{ form.is_cpcb|as_crispy_field }}
-                                    {{ form.active|as_crispy_field }}
-                                    {{ form.ganga|as_crispy_field }}
-                                </div>
-                                <div class="col-6">
-                                    {{ form.camera|as_crispy_field }}
-                                </div>
+                <div class="modal-body">
+                    <form action="{% url 'dashboard:station-info' station.uuid %}" method="post" >
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-6">
+                                {{ form.industry|as_crispy_field }}
+                                {{ form.site_id|as_crispy_field }}
+                                {{ form.state|as_crispy_field }}
+                                {{ form.city|as_crispy_field }}
+                                {{ form.longitude|as_crispy_field }}
+                                {{ form.latitude|as_crispy_field }}
+                                {{ form.amc|as_crispy_field }}
+                                {{ form.prefix|as_crispy_field }}
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    {{ form.user_email|as_crispy_field }}
-                                    {{ form.user_ph|as_crispy_field }}
-                                </div>
-                                <div class="col-6">
-                                    {{ form.cpcb_email|as_crispy_field }}
-                                    {{ form.cpcb_ph|as_crispy_field }}
-                                </div>
+                            <div class="col-6">
+                                {{ form.name|as_crispy_field }}
+                                {{ form.pcb|as_crispy_field }}
+                                {{ form.closure_status|as_crispy_field }}
+                                {{ form.monitoring_type|as_crispy_field }}
+                                {{ form.process_attached|as_crispy_field }}
+                                {{ form.zipcode|as_crispy_field }}
+                                {{ form.cmc|as_crispy_field }}
+                                {{ form.approval_date|as_crispy_field }}
                             </div>
-                            {{ form.address|as_crispy_field }}
-                            {{ form.key|as_crispy_field }}
-                            {{ form.pub_key|as_crispy_field }}
-                            {{ form.pvt_key|as_crispy_field }}
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        {{ form.is_cpcb|as_crispy_field }}
+                                        {{ form.active|as_crispy_field }}
+                                        {{ form.ganga|as_crispy_field }}
+                                    </div>
+                                    <div class="col-6">
+                                        {{ form.camera|as_crispy_field }}
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        {{ form.user_email|as_crispy_field }}
+                                        {{ form.user_ph|as_crispy_field }}
+                                    </div>
+                                    <div class="col-6">
+                                        {{ form.cpcb_email|as_crispy_field }}
+                                        {{ form.cpcb_ph|as_crispy_field }}
+                                    </div>
+                                </div>
+                                {{ form.address|as_crispy_field }}
+                                {{ form.key|as_crispy_field }}
+                                {{ form.pub_key|as_crispy_field }}
+                                {{ form.pvt_key|as_crispy_field }}
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" class="btn btn-warning">Update Station</button>
-                  </form>
+                        <button type="submit" class="btn btn-warning">Update Station</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <div class="modal fade" id="cam-form">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class='modal-title'>
-                    <b>{{station.name}}</b>
-                    <br>
-                    <small>{{station.industry}}</small>
-                </h3>
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>{{station.name}}</b>
+                        <br>
+                        <small>{{station.industry}}</small>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <img id="camera" class="img-responsive"
+                         src="{{details.cam_url}}"
+                         alt="&nbsp; No Feed Check Connection...">
+                </div>
             </div>
-            <div class="modal-body">
-                <img id="camera" class="img-responsive"
-                     src="{{details.cam_url}}"
-                     alt="&nbsp; No Feed Check Connection...">
-            </div>
-        </div>
-    </div>
-</div>
+     </div>
+ </div>
+
 </div>
 <!-- /.container-fluid -->
 {% endblock %}
@@ -167,5 +193,21 @@ function GetLongLat(city) {
             $zipcode.removeClass('loadinggif').val(long.zipcode);
         });
     }
+
+$('#delete-confirm').click(function () {
+// Sending as Delete request
+    $('#delete-form').modal('hide');
+    console.log('DELETING....');
+    $.ajax({
+        url: "/dashboard/station-info/{{ station.uuid }}",
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            window.location = "/dashboard/stations/";
+        }
+});
+});
 </script>
 {% endblock %}

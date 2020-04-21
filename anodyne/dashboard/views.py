@@ -5,38 +5,44 @@ from datetime import datetime, timedelta
 import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.core import serializers
 from django.db.models import F
-from django.http import Http404, HttpResponse, HttpResponseForbidden, \
-    JsonResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, JsonResponse, \
+    HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.template.loader import get_template
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
-from geopy import Nominatim
 from markupsafe import Markup
 from plotly.offline import plot
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.renderers import TemplateHTMLRenderer
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from anodyne.connectors import connector
+from anodyne.settings import DATE_FMT
 from anodyne.views import get_rgb
 from api.GLOBAL import UNIT
+from api.models import Station, Industry, User, Parameter, StationParameter
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm
-from api.models import Station, Industry, User, Parameter, StationParameter, \
-    City
-from api.serializers import StationSerializer, IndustrySerializer, \
-    UserSerializer
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
 
 
-class ProtectedView(View):
+def get_error(err):
+    err = json.loads(err.as_json())
+    message = []
+    for field, msg in err.items():
+
+        if msg:
+            msg = msg[0].get('message', 'code')
+        else:
+            msg = 'incorrect input'
+        message.append('%s: %s' % (field, msg))
+    return message
+
+
+class AuthorizedView(View):
     template_name = 'login.html'
 
     """ A class-based view that requires a login. """
@@ -44,16 +50,25 @@ class ProtectedView(View):
     @method_decorator(
         login_required(redirect_field_name='next', login_url='login'))
     def dispatch(self, request, *args, **kwargs):
-        return super(ProtectedView, self).dispatch(request, *args, **kwargs)
+        return super(AuthorizedView, self).dispatch(request, *args, **kwargs)
 
 
 def make_clickable(key, name):
     return '<a href="/dashboard/station/{}">{}</a>'.format(key, name)
 
 
-class DashboardView(ProtectedView):
+class DashboardView(AuthorizedView):
 
     def get(self, request):
+        # dir_list = os.listdir('z-dust')
+        # print(dir_list)
+        import os
+        for idx, f in enumerate(os.listdir('z-dust')):
+            # print(f)
+            fname = os.path.join('z-dust', f)
+            start = connector.ReadCSV(fname)
+            start.process()
+
         info_template = get_template('dashboard.html')
         # MyModel.objects.annotate(renamed_value=F('cryptic_value_name')).values('renamed_value')
         stations = Station.objects.filter().select_related(
@@ -63,9 +78,7 @@ class DashboardView(ProtectedView):
             Station=F('name'),
             Industry=F('industry__name'),
             Status=F('status'),
-            PCB=F('pcb'),
-            Industry_code=F('industry__industry_code'),
-            Ganga=F('ganga'),
+            Industry_Code=F('industry__industry_code'),
             CPCB=F('is_cpcb'),
             Active=F('active'),
             City=F('city__name'),
@@ -99,7 +112,7 @@ class DashboardView(ProtectedView):
         return HttpResponse(html)
 
 
-class StationView(ProtectedView):
+class StationView(AuthorizedView):
 
     def get(self, request, uuid=None):
         if uuid:
@@ -117,8 +130,8 @@ class StationView(ProtectedView):
         )
         df = pd.DataFrame(stations)
         df['Name'] = "<a href='/dashboard/station-info/" + \
-                        df['uuid'].astype(str) + "'>" + df[
-                            'Name'].astype(str) + "</a>"
+                     df['uuid'].astype(str) + "'>" + df[
+                         'Name'].astype(str) + "</a>"
         df['Industry'] = "<a href='/dashboard/industry-info/" + \
                          df['industry__uuid'].astype(str) + "'>" + df[
                              'Industry'].astype(str) + "</a>"
@@ -138,14 +151,15 @@ class StationView(ProtectedView):
         if uuid:
             return self._update_station(request, uuid)
 
-        serializer = StationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            message, status = 'Added Successfully', 'success'
+        form = StationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Added Successfully',
+                             extra_tags='success')
         else:
-            message, status = serializer.error_messages, 'danger'
-        messages.success(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
         return redirect(reverse('dashboard:stations'))
 
     def _get_object(self, uuid):
@@ -183,30 +197,84 @@ class StationView(ProtectedView):
 
     def _update_station(self, request, uuid):
         station = self._get_object(uuid)
-        form = StationForm(request.POST, request.FILES, instance=station)
+        form = StationForm(request.POST, instance=station)
         if form.is_valid():
             form.save()
-            message = 'Successfully Updated'
-            status = 'success'
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
         else:
-            message = 'Failed to update due to %s' % form.errors
-            status = 'danger'
-        messages.warning(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         url = reverse('dashboard:station-info', kwargs={'uuid': uuid})
         return redirect(url)
 
     def delete(self, request, uuid, format=None):
-        station = self._get_object(uuid)
-        station.delete()
-        message = 'Successfully Deleted'
-        messages.success(request, message,
-                         extra_tags="alert alert-danger")
-        url = reverse('stations')
-        return redirect(url)
+        if request.user.is_admin:
+            station = self._get_object(uuid)
+            station.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
+        else:
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)
 
 
-class IndustryView(ProtectedView):
+class IndustryView(AuthorizedView):
+    def _get_object(self, uuid):
+        try:
+            return Industry.objects.get(uuid=uuid)
+        except Industry.DoesNotExist:
+            raise Http404
+
+    def _get_industry(self, request, uuid):
+        content = {}
+        industry = self._get_object(uuid)
+        stations = industry.station_set.all()
+        stations = stations.values('uuid',
+                                   'industry__uuid',
+                                   Name=F('name'),
+                                   Status=F('status'),
+                                   PCB=F('pcb'),
+                                   Ganga=F('ganga'),
+                                   City=F('city__name'),
+                                   Address=F('address'),
+                                   )
+        if stations:
+            df_station = pd.DataFrame(stations)
+            df_station['Name'] = "<a href='/dashboard/station-info/" + \
+                                 df_station['uuid'].astype(str) + "'>" + \
+                                 df_station['Name'].astype(str) + "</a>"
+            df_station = df_station.drop(columns=['uuid', 'industry__uuid'])
+            content.update({
+                'tabular_stations': df_station.to_html(
+                    classes="table table-bordered",
+                    table_id="dataTable", index=False,
+                    justify='center', escape=False),
+            })
+        industry_row = [dict(
+            Name=industry.name,
+            Code=industry.industry_id,
+            Status=industry.status,
+            Type=industry.type,
+            City=industry.city,
+            Address=industry.address
+        )]
+        df = pd.DataFrame(industry_row)
+        content.update({
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='center'),
+
+            'industry': industry,
+            'form': IndustryForm(instance=industry),
+            'stationform': StationForm()
+        })
+        info_template = get_template('industry-info.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)
 
     def get(self, request, uuid=None):
         if uuid:
@@ -223,7 +291,8 @@ class IndustryView(ProtectedView):
 
         df = pd.DataFrame(industries)
         df['Name'] = "<a href='/dashboard/industry-info/" + \
-                         df['uuid'].astype(str) + "'>" + df['Name'].astype(str) + "</a>"
+                     df['uuid'].astype(str) + "'>" + df['Name'].astype(
+            str) + "</a>"
         df = df.drop(columns=['uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -240,117 +309,51 @@ class IndustryView(ProtectedView):
         if uuid:
             return self._update_industry(request, uuid)
 
-        form = IndustryForm(data=request.data)
+        form = IndustryForm(request.POST)
         if form.is_valid():
             form.save()
-            message, status = 'Added Successfully', 'success'
+            messages.info(request, 'Added Successfully', extra_tags='success')
         else:
-            message, status = form.error_messages, 'danger'
-        messages.success(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         return redirect(reverse('dashboard:industries'))
 
-    def _get_object(self, uuid):
-        try:
-            return Industry.objects.get(pk=uuid)
-        except Industry.DoesNotExist:
-            raise Http404
-
-    def _get_industry(self, request, uuid):
-        industry = self._get_object(uuid)
-        industry_row = [dict(
-            Name=industry.name,
-            Status=industry.status,
-            Type=industry.type,
-            City=industry.city,
-            Address=industry.address
-        )]
-        df = pd.DataFrame(industry_row)
-        content = {
-            'tabular': df.to_html(classes="table table-bordered",
-                                  table_id="dataTable", index=False,
-                                  justify='center'),
-            'industry': industry,
-            'form': IndustryForm(instance=industry)
-        }
-        info_template = get_template('industry-info.html')
-        # TODO: this render guy takes time
-        html = info_template.render(content, request)
-        return HttpResponse(html)
 
     def _update_industry(self, request, uuid):
         industry = self._get_object(uuid)
-        form = IndustryForm(request.POST, request.FILES, instance=industry)
+        form = IndustryForm(request.POST, instance=industry)
         if form.is_valid():
             form.save()
-            message = 'Successfully Updated'
-            status = 'success'
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
         else:
-            message = 'Failed to update due to %s' % form.errors
-            status = 'danger'
-        messages.warning(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         url = reverse('dashboard:industry-info', kwargs={'uuid': uuid})
         return redirect(url)
 
     def delete(self, request, uuid, format=None):
-        industry = self._get_object(uuid)
-        industry.delete()
-        message = 'Successfully Deleted'
-        messages.success(request, message,
-                         extra_tags="alert alert-danger")
-        url = reverse('industries')
-        return redirect(url)
-
-
-class UserView(ProtectedView):
-
-    def get(self, request, uuid=None):
-        if uuid:
-            return self._get_user(request, uuid)
-
-        stations = User.objects.all().values(
-            'id',
-            Name=F('name'),
-            City=F('city__name'),
-            Email=F('email'),
-            Login=F('last_login')
-        )
-        df = pd.DataFrame(stations)
-        df['Name'] = "<a href='/dashboard/user-info/" + \
-                     df['id'].astype(str) + "'>" + df[
-                         'Name'].astype(
-            str) + "</a>"
-        df = df.drop(columns=['id'])
-        content = {
-            'tabular': df.to_html(classes="table table-bordered",
-                                  table_id="dataTable", index=False,
-                                  justify='center', escape=False),
-            'form': UserForm(),
-
-        }
-        info_template = get_template('users.html')
-        html = info_template.render(content, request)
-        return HttpResponse(html)
-
-    def post(self, request, uuid=None):
-        if uuid:
-            return self._update_user(request, uuid)
-
-        form = UserForm(request.POST)
-        if form.is_valid():
-            form.save()
-            message, status = 'Added Successfully', 'success'
+        if request.user.is_admin:
+            industry = self._get_object(uuid)
+            industry.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
         else:
-            message, status = form.error_messages, 'danger'
-        messages.success(request, message,
-                         extra_tags="alert alert-%s" % status)
-        return redirect(reverse('dashboard:users'))
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)
+
+
+class UserView(AuthorizedView):
 
     def _get_object(self, uuid):
         try:
             return User.objects.get(id=uuid)
-        except Industry.DoesNotExist:
+        except User.DoesNotExist:
             raise Http404
 
     def _get_user(self, request, uuid):
@@ -361,7 +364,7 @@ class UserView(ProtectedView):
             Email=user.email,
             Admin=user.admin,
             Active=user.active,
-            Last_Login=user.last_login or 'Never',
+            Last_Login=user.last_login.strftime(DATE_FMT),
             Phone=user.phone or '-',
             City=user.city or '-',
             State=user.state or '-',
@@ -381,37 +384,87 @@ class UserView(ProtectedView):
         html = info_template.render(content, request)
         return HttpResponse(html)
 
+    def get(self, request, uuid=None):
+        if uuid:
+            return self._get_user(request, uuid)
+
+        users = User.objects.extra(select={
+            'last_login': "YYYY-MM-DD hh:mi AM)"}).values(
+            'id',
+            Name=F('name'),
+            City=F('city__name'),
+            Email=F('email'),
+            Login=F('last_login')
+        )
+        df = pd.DataFrame(users)
+        df['Name'] = "<a href='/dashboard/user-info/" + \
+                     df['id'].astype(str) + "'>" + df[
+                         'Name'].astype(
+            str) + "</a>"
+        df = df.drop(columns=['id'])
+        content = {
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='center', escape=False),
+            'form': UserForm(),
+
+        }
+        info_template = get_template('users.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def post(self, request, uuid=None):
+        if uuid:
+            return self._update_user(request, uuid)
+        form = UserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.info(request, 'Added Successfully', extra_tags='success')
+        else:
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
+        return redirect(reverse('dashboard:users'))
+
     def _update_user(self, request, uuid):
         station = self._get_object(uuid)
         form = UserForm(request.POST, request.FILES, instance=station)
         if form.is_valid():
             form.save()
-            message = 'Successfully Updated'
-            status = 'success'
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
         else:
-            message = 'Failed to update due to %s' % form.errors
-            status = 'danger'
-        messages.warning(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         url = reverse('dashboard:user-info', kwargs={'uuid': uuid})
         return redirect(url)
 
     def delete(self, request, uuid, format=None):
         user = self._get_object(uuid)
-        user.delete()
-        message = 'Successfully Deleted'
-        messages.success(request, message,
-                         extra_tags="alert alert-danger")
-        url = reverse('users')
-        return redirect(url)
+        if str(user.email).lower().strip() == str(
+                request.user).lower().strip():
+            message = 'Cannot delete own account, ask other admin.'
+            messages.info(request, message, extra_tags="warning")
+        elif not request.user.is_admin and user.is_admin:
+            message = 'Only admins can delete an admin(s) account.'
+            messages.info(request, message, extra_tags="warning")
+        else:
+            message = 'Successfully Deleted'
+            user.delete()
+            messages.success(request, message, extra_tags="success")
+
+        return HttpResponse(request, message)
 
 
-class ParameterView(ProtectedView):
+class ParameterView(AuthorizedView):
 
     def _get_object(self, pk):
         try:
             return Parameter.objects.get(name=pk)
-        except Industry.DoesNotExist:
+        except Parameter.DoesNotExist:
             raise Http404
 
     def _get_parameter(self, request, pk):
@@ -464,11 +517,13 @@ class ParameterView(ProtectedView):
         form = ParameterForm(request.POST)
         if form.is_valid():
             form.save()
-            message, status = 'Added Successfully', 'success'
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
         else:
-            message, status = form.error_messages, 'danger'
-        messages.success(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         return redirect(reverse('dashboard:users'))
 
     def _update_parameter(self, request, pk):
@@ -476,27 +531,29 @@ class ParameterView(ProtectedView):
         form = ParameterForm(request.POST, instance=parameter)
         if form.is_valid():
             form.save()
-            message = 'Successfully Updated'
-            status = 'success'
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
         else:
-            message = 'Failed to update due to %s' % form.errors
-            status = 'danger'
-        messages.warning(request, message,
-                         extra_tags="alert alert-%s" % status)
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
         url = reverse('dashboard:parameter-info', kwargs={'name': pk})
         return redirect(url)
 
     def delete(self, request, pk, format=None):
-        parameter = self._get_object(pk)
-        parameter.delete()
-        message = 'Successfully Deleted'
-        messages.success(request, message,
-                         extra_tags="alert alert-danger")
-        url = reverse('parameters')
-        return redirect(url)
+        if request.user.is_admin:
+            parameter = self._get_object(id)
+            parameter.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
+        else:
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)
 
 
-class CameraView(ProtectedView):
+class CameraView(AuthorizedView):
 
     def get(self, request):
         # records = Industry.objects.filter(station__camera__isnull=False).values(
@@ -600,8 +657,8 @@ def render_chart2(request, **kwargs):
         'industry_status': site.industry.status,
         # 'last_seen': site,
         # 'cam_url': site.cam_url,
-        'from': from_date.strftime("%m/%d/%Y %H:%M %p"),
-        'to': to_date.strftime("%m/%d/%Y %H:%M %p"),
+        'from': from_date.strftime(DATE_FMT),
+        'to': to_date.strftime(DATE_FMT),
     }
     archival_date = datetime(2020, 4, 7)  # 07/03/2020 till archived
     q = {
