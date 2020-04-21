@@ -45,6 +45,7 @@ urlpatterns = [
     path('parameter-info/<slug:pk>', ParameterView.as_view(), name='parameter-info'),
 
     url(r'^cameras/$', CameraView.as_view(), name='cameras'),
+    url(r'^management/$', CameraView.as_view(), name='management'),
 
     # get industry sites
     url(r'^GetSites/', industry_sites),

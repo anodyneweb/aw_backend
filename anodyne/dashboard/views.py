@@ -16,12 +16,13 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from markupsafe import Markup
 from plotly.offline import plot
-
+import numpy as np
 from anodyne.connectors import connector
 from anodyne.settings import DATE_FMT
 from anodyne.views import get_rgb
 from api.GLOBAL import UNIT
-from api.models import Station, Industry, User, Parameter, StationParameter
+from api.models import Station, Industry, User, Parameter, StationParameter, \
+    Reading
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm
 
 pd.set_option('display.max_rows', 500)
@@ -53,13 +54,24 @@ class AuthorizedView(View):
         return super(AuthorizedView, self).dispatch(request, *args, **kwargs)
 
 
-def make_clickable(key, name):
-    return '<a href="/dashboard/station/{}">{}</a>'.format(key, name)
+def make_clickable(html, **kwargs):
+    return html.format(**kwargs)
+
+
+apply_func = np.vectorize(make_clickable)
 
 
 class DashboardView(AuthorizedView):
 
     def get(self, request):
+        # # dir_list = os.listdir('z-dust')
+        # # print(dir_list)
+        # import os
+        # for idx, f in enumerate(os.listdir('z-dust')):
+        # fname = os.path.join('z-dust', f)
+        # start = connector.ReadCSV(fname)
+        # start.process()
+
         info_template = get_template('dashboard.html')
         # MyModel.objects.annotate(renamed_value=F('cryptic_value_name')).values('renamed_value')
         stations = Station.objects.filter().select_related(
@@ -74,17 +86,19 @@ class DashboardView(AuthorizedView):
             Active=F('active'),
             City=F('city__name'),
             Address=F('address'),
+            Camera=F('camera'),
         )
         df = pd.DataFrame(stations)
         # BUG: can't format here have to concatenate only
         # generating hyperlinks
-        df['Station'] = "<a href='/dashboard/station-info/" + \
-                        df['uuid'].astype(str) + "'>" + df[
-                            'Station'].astype(str) + "</a>"
-        df['Industry'] = "<a href='/dashboard/industry-info/" + \
-                         df['industry__uuid'].astype(str) + "'>" + df[
-                             'Industry'].astype(
-            str) + "</a>"
+
+        station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
+        industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
+        df['Station'] = apply_func(station_href, uuid=df['uuid'],
+                                   station=df['Station'])
+        df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
+                                    industry=df['Industry'])
+
         df = df.drop(columns=['uuid', 'industry__uuid'])
         details = {
             'total': df.shape[0],
@@ -120,12 +134,12 @@ class StationView(AuthorizedView):
             Address=F('address'),
         )
         df = pd.DataFrame(stations)
-        df['Name'] = "<a href='/dashboard/station-info/" + \
-                     df['uuid'].astype(str) + "'>" + df[
-                         'Name'].astype(str) + "</a>"
-        df['Industry'] = "<a href='/dashboard/industry-info/" + \
-                         df['industry__uuid'].astype(str) + "'>" + df[
-                             'Industry'].astype(str) + "</a>"
+        station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
+        industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
+        df['Name'] = apply_func(station_href, uuid=df['uuid'],
+                                   station=df['Name'])
+        df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
+                                    industry=df['Industry'])
         df = df.drop(columns=['uuid', 'industry__uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -235,9 +249,9 @@ class IndustryView(AuthorizedView):
                                    )
         if stations:
             df_station = pd.DataFrame(stations)
-            df_station['Name'] = "<a href='/dashboard/station-info/" + \
-                                 df_station['uuid'].astype(str) + "'>" + \
-                                 df_station['Name'].astype(str) + "</a>"
+            station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
+            df_station['Name'] = apply_func(station_href, uuid=df_station['uuid'],
+                                       station=df_station['Name'])
             df_station = df_station.drop(columns=['uuid', 'industry__uuid'])
             content.update({
                 'tabular_stations': df_station.to_html(
@@ -281,9 +295,9 @@ class IndustryView(AuthorizedView):
         )
 
         df = pd.DataFrame(industries)
-        df['Name'] = "<a href='/dashboard/industry-info/" + \
-                     df['uuid'].astype(str) + "'>" + df['Name'].astype(
-            str) + "</a>"
+        industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
+        df['Name'] = apply_func(industry_href, uuid=df['uuid'],
+                                    industry=df['Name'])
         df = df.drop(columns=['uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -310,7 +324,6 @@ class IndustryView(AuthorizedView):
                 messages.info(request, err, extra_tags='danger')
 
         return redirect(reverse('dashboard:industries'))
-
 
     def _update_industry(self, request, uuid):
         industry = self._get_object(uuid)
@@ -388,10 +401,9 @@ class UserView(AuthorizedView):
             Login=F('last_login')
         )
         df = pd.DataFrame(users)
-        df['Name'] = "<a href='/dashboard/user-info/" + \
-                     df['id'].astype(str) + "'>" + df[
-                         'Name'].astype(
-            str) + "</a>"
+        user_href = "<a href='/dashboard/user-info/{id}'>{name}</a>"
+        df['Name'] = apply_func(user_href, uuid=df['id'],
+                                   name=df['Name'])
         df = df.drop(columns=['id'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -454,7 +466,7 @@ class ParameterView(AuthorizedView):
 
     def _get_object(self, pk):
         try:
-            return Parameter.objects.get(name=pk)
+            return Parameter.objects.get(id=pk)
         except Parameter.DoesNotExist:
             raise Http404
 
@@ -467,6 +479,7 @@ class ParameterView(AuthorizedView):
             Alias=parameter.alias,
             Color_Code=parameter.color_code,
         )]
+
         df = pd.DataFrame(parameter_row)
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -485,25 +498,30 @@ class ParameterView(AuthorizedView):
             return self._get_parameter(request, pk)
 
         parameters = Parameter.objects.all().values(
+            'id',
             Name=F('name'),
             Unit=F('unit__name'),
             Alias=F('alias'),
             Color=F('color_code')
         )
         df = pd.DataFrame(parameters)
+        param_href = "<a href='/dashboard/station-info/{id}'>{name}</a>"
+        df['Name'] = apply_func(param_href, uuid=df['id'],
+                                   name=df['Name'])
+        df = df.drop(columns=['id'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center'),
+                                  justify='center', escape=False),
 
         }
         info_template = get_template('parameter.html')
         html = info_template.render(content, request)
         return HttpResponse(html)
 
-    def post(self, request, uuid=None):
-        if uuid:
-            return self._update_parameter(request, uuid)
+    def post(self, request, pk=None):
+        if pk:
+            return self._update_parameter(request, pk)
 
         form = ParameterForm(request.POST)
         if form.is_valid():
@@ -529,7 +547,7 @@ class ParameterView(AuthorizedView):
             for err in errors:
                 messages.info(request, err, extra_tags='danger')
 
-        url = reverse('dashboard:parameter-info', kwargs={'name': pk})
+        url = reverse('dashboard:parameter-info', kwargs={'slug': pk})
         return redirect(url)
 
     def delete(self, request, pk, format=None):
@@ -559,6 +577,14 @@ class CameraView(AuthorizedView):
         return HttpResponse(html)
 
 
+
+class ManagementView(AuthorizedView):
+
+    def get(self, request):
+        context = {''}
+        info_template = get_template('management.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
 ### GEO
 
 def industry_sites(request):

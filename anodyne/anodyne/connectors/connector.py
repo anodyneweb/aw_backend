@@ -27,7 +27,7 @@ class ReadCSV:
                 if row[0].startswith('@'):
                     param = row[0]
                     if '_' in param:
-                        param = str(param.split('_')[-1]).lower()
+                        param = str(param.split('_')[-1]) #.lower() citext is used
                     tstamp, value = reader[idx + 2]
                     readings[param] = value
                     try:

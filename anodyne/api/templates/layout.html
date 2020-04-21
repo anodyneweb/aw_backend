@@ -120,6 +120,27 @@ font-size: 15px;
 <!--          <i class="fas fa-fw fa-table"></i>-->
 <!--          <span>Tables</span></a>-->
 <!--      </li>-->
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+          <i class="fas fa-fw fa-cog"></i>
+          <span>Management</span>
+        </a>
+        <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+          <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">Custom:</h6>
+            <a class="collapse-item" href="{% url 'dashboard:management' %}">Staf</a>
+            <a class="collapse-item" href="{% url 'dashboard:management' %}">Customer</a>
+            <a class="collapse-item" href="{% url 'dashboard:management' %}">Notification</a>
+            <h6 class="collapse-header">Utilities:</h6>
+            <a class="collapse-item" href="{% url 'dashboard:management' %}">Generate Reports</a>
+            <a class="collapse-item" href="{% url 'dashboard:dashboard' %}">Maintenance</a>
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-animation' %}">Animations</a>-->
+<!--            <a class="collapse-item" href="{% url 'dashboard:utilities-other' %}">Other</a>-->
+          </div>
+        </div>
+      </li>
+
 <!--      <li class="nav-item">-->
 <!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">-->
 <!--          <i class="fas fa-fw fa-cog"></i>-->
@@ -178,19 +199,6 @@ font-size: 15px;
           <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
             <i class="fa fa-bars"></i>
           </button>
-
-          <!-- Topbar Search -->
-          <marquee  class="marquee" behavior="scroll" direction="left">
-              Information:&nbsp;&nbsp;All the data represented on VepoLink is as per CPCB.
-            </marquee>
-          <div class="message">
-            {% for message in messages %}
-            <div class='alert alert-primary message'>
-              {{ message }}
-            </div>
-            {% endfor %}
-          </div>
-
           <!-- Topbar Navbar -->
           <ul class="navbar-nav ml-auto">
             <!-- Nav Item - Search Dropdown (Visible Only XS) -->
@@ -243,21 +251,22 @@ font-size: 15px;
               </div>
             </li>
           </ul>
-
         </nav>
         <!-- End of Topbar -->
 
+        <div class="message container">
+          {% for message in messages %}
+          <div class='alert alert-{{ message.tags }} message'>
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
         <!-- Begin Page Content -->
-<!--        <div class="container-fluid">-->
-
-
-          {% block content %}
-          {% endblock %}
-<!--        </div>-->
-        <!-- /.container-fluid -->
-
+        {% block content %}
+        {% endblock %}
+        <!-- End of Main Content -->
       </div>
-      <!-- End of Main Content -->
+
 
       <!-- Footer -->
       <footer class="sticky-footer bg-white">
@@ -326,16 +335,16 @@ setTimeout(function(argument) {
 
 
 function GetCities(state) {
+        console.log('Fetching Cities');
         var $citylist = $("#id_city");
         $.ajax({
             url: "/api/GetCities?state=" + state.value
         }).done(function(cities) {
+            console.log(cities)
             $citylist.empty(); // remove old options
             $.each(cities.cities, function(key, value) {
                 $citylist.append($("<option></option>").attr("value", value[0]).text(value[1]));
             });
-            $("#id_longitude").val(cities.lng);
-            $("#id_latitude").val(cities.lat);
         });
     }
 

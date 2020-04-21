@@ -410,7 +410,7 @@ class Station(models.Model):
     @property
     def parameters(self):
         parameters = StationParameter.objects.filter(station=self).values_list(
-            'name',
+            'parameter__name',
             flat=True)
         if parameters:
             return parameters
