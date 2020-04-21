@@ -409,7 +409,13 @@ class Station(models.Model):
 
     @property
     def parameters(self):
-        return StationParameter.objects.filter(station=self)
+        parameters = StationParameter.objects.filter(station=self).values_list(
+            'name',
+            flat=True)
+        if parameters:
+            return parameters
+        else:
+            return list()
 
     # def update_status(self):
     #     status = 'Offline'
@@ -608,4 +614,3 @@ class Registration(models.Model):
     )
 
 ##############################################################################
-
