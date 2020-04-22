@@ -84,8 +84,9 @@ font-size: 15px;
             <h6 class="collapse-header">Screens:</h6>
             <a class="collapse-item" href="{% url 'dashboard:industries' %}">Industries</a>
             <a class="collapse-item" href="{% url 'dashboard:stations' %}">Stations</a>
-            <a class="collapse-item" href="{% url 'dashboard:users' %}">Users</a>
-            <a class="collapse-item" href="{% url 'dashboard:parameters' %}">Parameters</a>
+            <a class="collapse-item" href="{% url 'dashboard:geographical' %}">Geographical</a>
+
+
           </div>
         </div>
       </li>
@@ -129,7 +130,9 @@ font-size: 15px;
         <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
           <div class="bg-white py-2 collapse-inner rounded">
             <h6 class="collapse-header">Custom:</h6>
-            <a class="collapse-item" href="{% url 'dashboard:management' %}">Staf</a>
+            <a class="collapse-item" href="{% url 'dashboard:users' %}">Users</a>
+            <a class="collapse-item" href="{% url 'dashboard:parameters' %}">Parameters</a>
+            <a class="collapse-item" href="{% url 'dashboard:management' %}">Staff</a>
             <a class="collapse-item" href="{% url 'dashboard:management' %}">Customer</a>
             <a class="collapse-item" href="{% url 'dashboard:management' %}">Notification</a>
             <h6 class="collapse-header">Utilities:</h6>

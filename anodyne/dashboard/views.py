@@ -505,9 +505,8 @@ class ParameterView(AuthorizedView):
             Color=F('color_code')
         )
         df = pd.DataFrame(parameters)
-        param_href = "<a href='/dashboard/station-info/{id}'>{name}</a>"
-        df['Name'] = apply_func(param_href, uuid=df['id'],
-                                   name=df['Name'])
+        param_href = "<a href='/dashboard/parameter-info/{id}'>{name}</a>"
+        df['Name'] = apply_func(param_href, id=df['id'], name=df['Name'])
         df = df.drop(columns=['id'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -576,6 +575,15 @@ class CameraView(AuthorizedView):
         html = info_template.render(context, request)
         return HttpResponse(html)
 
+class GeographicalView(AuthorizedView):
+
+    def get(self, request):
+        # Setup detailed view for each site
+        industries = Industry.objects.all().select_related()
+        context = dict(industries=industries)
+        info_template = get_template('geographical.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
 
 
 class ManagementView(AuthorizedView):
@@ -617,6 +625,7 @@ def site_details(request=None, pk=None):
             'latitude',
             'state',
             'city',
+            'status'
         )
 
         site_info = json.loads(serializers.serialize('json', [site, ]))
