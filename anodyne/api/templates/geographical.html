@@ -19,9 +19,7 @@
     <h1 class="h3 mb-4 text-gray-800">Station Map View</h1>
     <div class="col-sm-6">
         <span id="view_name" hidden>Map View</span>
-    <h4>Select 'Developer' Industry to view</h4>
         <div class="col-12 geolocation-details">
-            <p>Select the industry</p>
             <div class="row p-15">
                 <select title="Industry" id="iList" class="form-control col-md-5 select" onchange="GetSites(this);">
                     {% for industry in industries %}

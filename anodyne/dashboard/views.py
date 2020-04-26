@@ -193,7 +193,8 @@ class StationView(AuthorizedView):
                                   table_id="dataTable", index=False,
                                   justify='center'),
         }
-
+        graph_details = render_chart2(site=station)
+        content.update(**graph_details)
         # content.update(**render_chart2(request, site=station))
         info_template = get_template('station-info.html')
         # TODO: this render guy takes time
@@ -402,7 +403,7 @@ class UserView(AuthorizedView):
         )
         df = pd.DataFrame(users)
         user_href = "<a href='/dashboard/user-info/{id}'>{name}</a>"
-        df['Name'] = apply_func(user_href, uuid=df['id'],
+        df['Name'] = apply_func(user_href, id=df['id'],
                                    name=df['Name'])
         df = df.drop(columns=['id'])
         content = {
@@ -653,19 +654,24 @@ def site_details(request=None, pk=None):
     return HttpResponseBadRequest()
 
 
-def render_chart2(request, **kwargs):
+def render_chart2(**kwargs):
     import plotly.graph_objects as go
     from api.models import Reading
     site = kwargs.get('site')
     from_date = kwargs.get('from_date')
     to_date = kwargs.get('to_date')
     if not (from_date and to_date):
-        from_date = datetime.now() - timedelta(days=13, hours=10)
         to_date = datetime.now()
+        try:
+            last_seen = Reading.objects.filter(
+            station=site).latest('reading__timestamp').reading.get('timestamp')
+            last_seen = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            from_date = last_seen - timedelta(hours=10)
+        except Reading.DoesNotExist:
+            from_date = datetime.now() - timedelta(days=13, hours=10)
     else:
         from_date = datetime.strptime(from_date, "%m/%d/%Y %H:%M %p")
         to_date = datetime.strptime(to_date, "%m/%d/%Y %H:%M %p")
-
     # status = site.site_status
     # if status.lower() == 'live':
     status = 'success', 'Live'
@@ -678,22 +684,18 @@ def render_chart2(request, **kwargs):
         'name': site.name.replace('_', ' ').title(),
         'status': status,
         'industry': site.industry.name.replace('_', ' ').title(),
-        'industry_type': site.industry.type,
-        'industry_uuid': site.industry.uuid,
-        'industry_status': site.industry.status,
         # 'last_seen': site,
         # 'cam_url': site.cam_url,
         'from': from_date.strftime(DATE_FMT),
         'to': to_date.strftime(DATE_FMT),
     }
-    archival_date = datetime(2020, 4, 7)  # 07/03/2020 till archived
     q = {
         'reading__timestamp__gte': from_date,
         'reading__timestamp__lte': to_date,
     }
-    # stations = Reading.objects.all().distinct('station')
-    readings = Reading.objects.filter(station__name='stations_0MSO',
-                                      **q).values_list('reading', flat=True)
+    readings = Reading.objects.filter(
+        station=site, **q).values_list(
+        'reading', flat=True).order_by('-reading__timestamp')
     # Join both database
     df = pd.DataFrame(readings)
     df = df.fillna(0)
@@ -790,6 +792,54 @@ def render_chart2(request, **kwargs):
         'data': traces,
         'tabular': tabl,
         # 'cards': cards,
-        # 'layout': js_layout
+        'layout': js_layout
     }
     return context
+
+
+def generate_html_cards(details):
+    html_tx = ''
+    for param, meta in details.items():
+        param_meta = dict(param=param.upper(),
+                          unit=meta.get('unit'),
+                          color=meta.get('color', 'orange'),
+                          min=meta.get('min'),
+                          max=meta.get('max'),
+                          avg=meta.get('avg'),
+                          last_received=meta.get('last_received'),
+                          last_value=str(meta.get('last_value'))[:5])
+        rec = """
+        <div class="col-lg-3 mb-3 small-size-card">
+        <div class="card bg-info text-white shadow">
+            <div class="card-body">
+                <div class="head">
+                    <b>{param}</b>
+                    <b class="fa-pull-right">{unit}</b>
+                    <br>
+                </div>
+                <hr style="border-top: 3px solid {color};">
+                <div class="col-12 col-xs-12">
+                    <div><h3><strong>Last Received:</strong></h3></div>
+                    <div><h3 style="font-size: 20px; color:black">{last_value}
+                    <a style="font-size: 18px;"> {unit}</a></h3></div>
+                    <div><h3 style="font-size: 17px;">{last_received}</h3></div>
+                </div>
+            </div>
+        </div>
+    </div>
+        """.format(**param_meta)
+        html_tx += '\n%s' % rec
+    return html_tx
+
+
+@login_required
+def plot_chart(request):
+    uuid = request.GET.get('site')
+    site = Station.objects.get(uuid=uuid)
+    kwargs = {
+        'from_date': request.GET.get('from_date'),
+        'to_date': request.GET.get('to_date'),
+        'site': site
+    }
+    context = render_chart2(**kwargs)
+    return JsonResponse(context)

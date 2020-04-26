@@ -3,7 +3,8 @@ from django.urls import path
 
 # Routers provide an easy way of automatically determining the URL conf.
 from dashboard.views import StationView, IndustryView, UserView, ParameterView, \
-    DashboardView, CameraView, industry_sites, site_details, GeographicalView
+    DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
+    plot_chart
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -47,6 +48,7 @@ urlpatterns = [
     url(r'^cameras/$', CameraView.as_view(), name='cameras'),
     url(r'^management/$', CameraView.as_view(), name='management'),
     url(r'^geographical/$', GeographicalView.as_view(), name='geographical'),
+    url(r'graphdata$', plot_chart),
 
     # get industry sites
     url(r'^GetSites/', industry_sites),
