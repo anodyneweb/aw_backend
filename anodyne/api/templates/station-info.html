@@ -300,12 +300,12 @@ function cb(start, end) {
         endDate: end,
         maxDate: moment(),
         ranges: {
+
+           'Last 15 Minutes': [moment().subtract(15, 'minutes'), moment()],
+           'Last 1 Hour': [moment().subtract(1, 'hours'), moment()],
            'Today': [moment().startOf('day'), moment()],
-           'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
-           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
            'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
            'This Month': [moment().startOf('month').startOf('day'), moment().endOf('month')],
-           'Last Month': [moment().subtract(1, 'month').startOf('month').startOf('day'), moment().subtract(1, 'month').endOf('month')],
         },
     }, cb);
     cb(start, end);
@@ -313,6 +313,7 @@ function cb(start, end) {
 // Date Range Picker script end \\
 
 function redraw(site_id){
+    console.log(fromDate);
     var siteGraph = document.getElementById('chart_graphDiv');
     var loader = document.getElementById('loader');
     var tabular = document.getElementById('tabular');
