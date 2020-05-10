@@ -6,7 +6,8 @@ import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core import serializers
-from django.db.models import F
+from django.db.models import F, Value, CharField
+from django.db.models.functions import Concat
 from django.http import Http404, HttpResponse, JsonResponse, \
     HttpResponseBadRequest
 from django.shortcuts import redirect
@@ -137,7 +138,7 @@ class StationView(AuthorizedView):
         station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
         industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
         df['Name'] = apply_func(station_href, uuid=df['uuid'],
-                                   station=df['Name'])
+                                station=df['Name'])
         df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
                                     industry=df['Industry'])
         df = df.drop(columns=['uuid', 'industry__uuid'])
@@ -251,8 +252,9 @@ class IndustryView(AuthorizedView):
         if stations:
             df_station = pd.DataFrame(stations)
             station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
-            df_station['Name'] = apply_func(station_href, uuid=df_station['uuid'],
-                                       station=df_station['Name'])
+            df_station['Name'] = apply_func(station_href,
+                                            uuid=df_station['uuid'],
+                                            station=df_station['Name'])
             df_station = df_station.drop(columns=['uuid', 'industry__uuid'])
             content.update({
                 'tabular_stations': df_station.to_html(
@@ -298,7 +300,7 @@ class IndustryView(AuthorizedView):
         df = pd.DataFrame(industries)
         industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
         df['Name'] = apply_func(industry_href, uuid=df['uuid'],
-                                    industry=df['Name'])
+                                industry=df['Name'])
         df = df.drop(columns=['uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -404,7 +406,7 @@ class UserView(AuthorizedView):
         df = pd.DataFrame(users)
         user_href = "<a href='/dashboard/user-info/{id}'>{name}</a>"
         df['Name'] = apply_func(user_href, id=df['id'],
-                                   name=df['Name'])
+                                name=df['Name'])
         df = df.drop(columns=['id'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -576,12 +578,32 @@ class CameraView(AuthorizedView):
         html = info_template.render(context, request)
         return HttpResponse(html)
 
+
 class GeographicalView(AuthorizedView):
 
     def get(self, request):
         # Setup detailed view for each site
         industries = Industry.objects.all().select_related()
+        industries_info = industries.values('name', 'type', 'uuid',
+                                            'industry_code', 'status',
+                                            'city', 'state'
+                                            )
         context = dict(industries=industries)
+        tmplt = '<div class="card bg-primary shadow">' \
+                '<div class="card-body">  ' \
+                '<h3 class="text-white">{name}&nbsp;<sup>({type})</sup> ' \
+                '</h3><hr style="border-top: 1px solid black;">' \
+                ' <h4>{industry_code}&nbsp; | {status}</h4> ' \
+                '<h5>{state}</h5></div> ' \
+                '</div><a target="_blank" href="/dashboard/industry/{uuid}/site/{uuid}">More info...</a>'
+        tmplt = """ %s """ % tmplt
+        details = {
+            industry.get('uuid'): tmplt.format(**industry) for industry in
+            industries_info
+        }
+        context.update({
+            'details': details
+        })
         info_template = get_template('geographical.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
@@ -594,6 +616,8 @@ class ManagementView(AuthorizedView):
         info_template = get_template('management.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
+
+
 ### GEO
 
 def industry_sites(request):
@@ -611,46 +635,30 @@ def site_details(request=None, pk=None):
     :param request:
     :return:
     """
+    details = dict()
     if pk:
         s_uuid = pk
     else:
         s_uuid = request.GET.get('site') or None
     if s_uuid:
-        site = Station.objects.get(pk=s_uuid)
-        details = dict()
-        to_show = (
-            'name',
-            'pcb',
-            'created',
-            'longitude',
-            'latitude',
-            'state',
-            'city',
-            'status'
+        site = Station.objects.filter(pk=s_uuid).values(
+            **{
+                'Uuid': F('uuid'),
+                'Name': F('name'),
+                'Pcb': F('pcb'),
+                'Created': F('created'),
+                'Longitude': F('longitude'),
+                'Latitude': F('latitude'),
+                'State_City': Concat(F('state'), Value(': '),
+                                     F('city__name'),
+                                     output_field=CharField()),
+                'Status': F('status'),
+                'Industry': F('industry__name'),
+                'Industry_code': F('industry__industry_code'),
+                'Type': F('industry__type')
+            }
         )
-
-        site_info = json.loads(serializers.serialize('json', [site, ]))
-
-        fields = dict()
-        if site_info:
-            fields = site_info[0].get('fields')
-        if fields:
-            # fields['last upload'] = l_upload[0] if l_upload else 'N/A'
-            for k, v in fields.items():
-                if k in to_show:
-                    if v is None:
-                        v = '-'
-                    if isinstance(v, bool):
-                        v = 'Yes' if v else 'No'
-                    # elif k == 'cylinder_certificate':
-                    #     v = "<a href='%s'>download</a>" % (v.file.url,)
-                    # key = Field Name, value
-                    field = str(k).replace('_', ' ')
-                    details[k.replace(' ', '_')] = field, v
-
-        if pk:
-            return details
-        return JsonResponse(details)
+        return JsonResponse(dict(site[0]), safe=False)
     return HttpResponseBadRequest()
 
 
@@ -664,7 +672,8 @@ def render_chart2(**kwargs):
         to_date = datetime.now()
         try:
             last_seen = Reading.objects.filter(
-            station=site).latest('reading__timestamp').reading.get('timestamp')
+                station=site).latest('reading__timestamp').reading.get(
+                'timestamp')
             last_seen = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
             from_date = last_seen - timedelta(hours=10)
         except Reading.DoesNotExist:
@@ -749,7 +758,8 @@ def render_chart2(**kwargs):
                 'last_received': df.timestamp.iloc[-1],
                 'last_value': df[param].iloc[-1]
             }
-            trace = dict(type='scatter', mode='lines', x=list(df.timestamp),
+            trace = dict(type='scatter', mode='markers+lines',
+                         x=list(df.timestamp),
                          y=list(df[param]), name=param.upper(),
                          text=list(df[param]),
                          textposition='bottom center', line_color=clr,

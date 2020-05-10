@@ -6,30 +6,27 @@ This file will run as independent entity.
 """
 import logging
 import os
+import sys
 import threading
 from multiprocessing import Process
 from os.path import basename
-
-# coding: utf-8
+import django
 import inotify.adapters
 from inotify.constants import *
-
-from anodyne.connectors import connector
-
 FTP_BASE = os.environ.get('FTP_PATH', '/var/www/ftp_home/')
-
-logging.basicConfig(filename='/var/log/anodyne/reception.log',
-                    level=logging.DEBUG)
-import os
-
-
 #  you have to set the correct path to you settings module
 # TODO: to enable this host django app properly on server
+PROJ_PATH = "/home/ubuntu/aw_backend/anodyne"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "anodyne.settings")
+sys.path.append(PROJ_PATH)
+django.setup()
 
-# os.environ.setdefault("DJANGO_SETTINGS_MODULE", "anodyne.settings")
-# PROJ_PATH = "/home/aw_backend/anodyne/anodyne"
-# sys.path.append(PROJ_PATH)
-# django.setup()
+
+logging.basicConfig(filename='/var/log/vepolink/reception.log',
+                    level=logging.DEBUG)
+
+import os
+from anodyne.connectors import connector
 
 
 def check4file():
@@ -52,15 +49,19 @@ def check4file():
             )
             if 'IN_CLOSE_WRITE' in type_names and filename.endswith('.csv'):
                 loc = os.path.join(FTP_BASE, filename)
-                thread = threading.Thread(target=process, args=(loc,))
-                thread.start()
-                thread.join(60)
+                logging.debug('Sending File to Process')
+                process(loc)
+                # thread = threading.Thread(target=process, args=(loc,))
+                # thread.start()
+                # thread.join(60)
 
 
 def process(f):
     """
     picks file from check4file queue and processes it further...
     """
+    logging.debug('Inside Process')
+    logging.debug('Type:%s' % type(f))
     try:
         logging.debug('Received: %s' % basename(f))
         start = connector.ReadCSV(f)

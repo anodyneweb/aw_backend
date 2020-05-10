@@ -17,6 +17,7 @@ class ReadCSV:
 
     def __init__(self, filename):
         self.filename = filename
+        log.info('Processing:%s' % self.filename)
         self.basename = os.path.basename(filename)
 
     def get_reading(self):
@@ -28,7 +29,7 @@ class ReadCSV:
                     param = row[0]
                     if '_' in param:
                         param = str(param.split('_')[-1]) #.lower() citext is used
-                    tstamp, value = reader[idx + 2]
+                    tstamp, value = reader[idx + 2][:2]
                     readings[param] = value
                     try:
                         tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
@@ -47,6 +48,7 @@ class ReadCSV:
         :return:
         """
         # prefix_timestamp.csv
+        log.info('Processing')
         prefix = os.path.basename(self.filename).split('_')[0]
         details = {
             # 'readings': self.to_list,
@@ -58,6 +60,7 @@ class ReadCSV:
             'msg': None,
             'err': None
         }
+        log.info(details)
         try:
             station = Station.objects.get(prefix=prefix)
             details['readings'] = self.get_reading()
@@ -79,10 +82,10 @@ class ReadCSV:
                 pcb_status = pcb.upload()
                 details.update(pcb_status)
             else:
-                details['msg'] = '%s: PCB Upload is blocked.'
+                details['msg'] = '%s: PCB Upload is blocked.' % station
                 details['status'] = False
         except Station.DoesNotExist:
-            message = 'Station with prefix: %s does not exist.'
+            message = 'Station with prefix: %s does not exist.' % prefix
             log.error(message)
             details['status'] = False
             details['msg'] = message

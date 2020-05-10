@@ -1,8 +1,9 @@
+import json
 import logging
 
 from django.db import IntegrityError
 
-from api.models import Reading, Station
+from api.models import Reading, Station, StationInfo
 
 log = logging.getLogger('vepolink')
 
@@ -21,11 +22,20 @@ class ToDatabase:
             'db': response
         }
         try:
+            readings = self.kwargs.get('readings')
             station = Station.objects.get(prefix=self.kwargs.get('prefix'))
             Reading.objects.create(
                 station=station,
-                reading=self.kwargs.get('readings')
+                reading=readings
             )
+            station.status = 'Live'
+            station.save()
+            sinfo, created = StationInfo.objects.get_or_create(station=station)
+            obj = sinfo if sinfo else created
+            obj.last_seen = readings.get('timestamp')
+            obj.last_upload_info = json.dumps(response)
+            obj.readings = json.dumps(readings)
+            obj.save()
             response['success'] = True
             response['msg'] = "%s: Added Readings" % basename
         except IntegrityError:

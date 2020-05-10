@@ -28,7 +28,7 @@ class StationForm(ModelForm):
         model = Station
         fields = '__all__'
         exclude = ('uuid', 'created', 'country', 'realtime_url',
-                   'delayed_url', 'version')
+                   'delayed_url')
         widgets = {
             'address': forms.Textarea(attrs={'rows': 1}),
             'key': forms.Textarea(attrs={'rows': 1}),
@@ -38,9 +38,7 @@ class StationForm(ModelForm):
             'user_ph': forms.Textarea(attrs={'rows': 1}),
             'cpcb_email': forms.Textarea(attrs={'rows': 1}),
             'cpcb_ph': forms.Textarea(attrs={'rows': 1}),
-
         }
-
 
 class IndustryForm(ModelForm):
     """

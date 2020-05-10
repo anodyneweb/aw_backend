@@ -9,8 +9,6 @@ from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.contrib.postgres.fields import CICharField
 from django.db import models
-from django.db.models.signals import post_save
-
 log = logging.getLogger('vepolink')
 from django.contrib.postgres.fields import HStoreField
 

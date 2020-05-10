@@ -20,8 +20,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from api.models import State, City, Registration, Category
 from api.serializers import RegistrationSerializer
+from django.template.defaulttags import register
 
 log = logging.getLogger('vepolink')
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, '')
 
 
 def add_state_city():
