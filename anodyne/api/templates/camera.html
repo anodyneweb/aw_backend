@@ -1,0 +1,118 @@
+{% extends "layout.html" %} {% load static %}
+{% block content %}
+<!-- Begin Page Content -->
+<style>
+.ScrollStyle
+{
+    max-height: 600px;
+    overflow-y: scroll;
+
+}
+</style>
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Cameras</h1>
+    <div class="row">
+        <div class="camera-list-column col-3">
+            <div class="card ScrollStyle">
+                <div class="card shadow mb-4 ScrollStyle">
+                    {% for industry, station in industries.items %}
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">{{ industry }}</h6>
+                    </div>
+                    {% for name, url in station %}
+                    <div class="card-body">
+                        <a class="station_name" title="{{ name }}" href="javascript:DispCam('{{industry}}', '{{name}}', '{{url}}');">{{name}}&nbsp;
+                            <i class="fas fa-camera" style="font-size:14px;color:lightseagreen"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                    <hr>{% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="camera-view-column card col-sm-8" id="camera_details" style="display:none">
+            <div class="card-title">
+                <h2 id="industry_name"></h2>
+                <hr>
+                <h3 id="station_name"></h3>
+            </div>
+            <div class="row">
+                <img id='id_camera' class="col-8 img-responsive"
+                     src="https://i.ytimg.com/vi/Xvb1ToqYTmg/maxresdefault.jpg"
+                     height="150px" width="150px" alt="&nbsp;
+                     No Feed Check Connection...">
+                <div class="row col-4">
+                    <table class="table-cam-btn">
+                        <tbody>
+                        <tr>
+                            <td colspan="3">
+                                <a title="Reset View" class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('4')">
+                                    <i class="fas fa-braille fa-home"></i>
+                                </a>&nbsp;&nbsp;
+                                <a title="Zoom In" class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('5')">
+                                    <i class="fa fa_icons fa-search-plus"></i>
+                                </a>&nbsp;&nbsp;
+                                <a title="Zoom Out" class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('6')">
+                                    <i class="fa fa_icons fa-search-minus"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr><td colspan="3"><br></td></tr>
+                        <tr>
+                            <td></td>
+                            <td title="Move Up"><a class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('2')"><i class="fa fa_icons fa-arrow-up"></i></a></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td title="Move Left"><a class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('0')"><i class="fa fa_icons fa-arrow-left"></i></a></td>
+                            <td></td>
+                            <td title="Move Right"><a class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('1')"><i class="fa fa_icons fa-arrow-right"></i></a></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td title="Move Down"><a class="btn btn-circle btn-icon-only btn-warning" onclick="moveCam('3')"><i class="fa fa_icons fa-arrow-down"></i></a></td>
+                            <td></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /.container-fluid -->
+{% endblock %}
+{% block scripts %}
+<script>
+
+function DispCam(industry, station, url) {
+    document.getElementById("camera_details").style.display = "none";
+    document.getElementById("industry_name").innerHTML = industry;
+    document.getElementById("station_name").innerHTML = station;
+    console.log('loading url...');
+    document.getElementById("camera_details").style.display = "block";
+    $('#id_camera').attr('src', url);
+    }
+
+function moveCam(pos){
+
+/* pos=0 --> Left
+/* pos=1 --> Right
+/* pos=2 --> Up
+/* pos=3 --> Down
+/* pos=4 --> Reset/Home
+/* pos=5 --> Zoom In
+/* pos=6 --> Zoom Out
+}*/
+    var camurl = $('#id_camera').prop('src');
+    console.log(movement_url);
+    $.ajax({
+        url: camurl + "/pos=" + pos,
+    }).done(function(v) {
+        /* do something here is success */
+    });
+}
+
+</script>
+{% endblock %}

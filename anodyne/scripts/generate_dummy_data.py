@@ -1,6 +1,8 @@
 import random, string
 from datetime import datetime
 
+from api.models import Industry, PCB, City, Station
+
 CATEGORIES = (
     ('Aluminium', 'Aluminium'),
     ('Beverages', 'Beverages'),
@@ -617,58 +619,52 @@ STATE_N_CITY = {
 from random import uniform
 
 
-def dummy_stations(session):
-    industries = [
-        "f441293d-c5fe-4117-a80d-15c241188b89",
-        "431aaefa-e27c-47eb-b8fb-4bd9e39f3ac6",
-        "2ecd8ca7-9872-4020-b5da-b0b55f82b563",
-        "1e51b336-4847-4e3c-bcbb-a3b7d8f347ee",
-        "0638ee7d-b3f7-4786-8cb2-c7dcc1a16863"]
+def dummy_stations():
+    industries = Industry.objects.all()
+    pcbs = PCB.objects.all()
     for inds in industries:
         for a in range(5):
+            city = City.objects.filter(state__name=randm_state())
+
+            cty = random.choice(city)
+            if not cty:
+                cty = random.choice(city)
+
             # state = randm_state()
             # city = random.choices(STATE_N_CITY.get(state))
             lng, lat = uniform(-180, 180), uniform(-90, 90)
-            resp = session.post(
-                url="%s/api/station/" % URL,
-                headers=get_header(),
-                data={
-                    "name": "stations_%s" % randm_str(4),
-                    "site_id": randm_str(5),
-                    "key": randm_str(40),
-                    "pub_key": randm_str(80),
-                    "pvt_key": randm_str(120),
-                    "realtime_url": "",
-                    "delayed_url": "",
-                    "prefix": randm_str(5),
-                    "version": "ver_1.0",
-                    "address": randm_str(20) + ' ' + randm_state(),
-                    "zipcode": randm_zip(),
-                    "longitude": "{0:.6f}".format(lng),
-                    "latitude": "{0:.6f}".format(lat),
-                    "user_email": randm_str(14) + '@gmail.com',
-                    "user_ph": randm_str(10),
-                    "is_cpcb": random.choices([True, False]),
-                    "notify_cpcb": random.choices([True, False]),
-                    "cpcb_email": randm_str(14) + '@gmail.com',
-                    "cpcb_ph": randm_str(10),
-                    "closure_status": random.choices(CLOSURE_CHOICES)[0],
-                    "monitoring_type": random.choices(
-                        ['Effluent', 'Emission', 'CAAQMS']),
-                    "process_attached": random.choices(['Inlet', 'Outlet']),
-                    "ganga": random.choices([True, False]),
-                    "approval_date": datetime.now().date(),
-                    "amc": datetime.now(),
-                    "cmc": datetime.now(),
-                    "active": random.choices([True, False]),
-                    "industry": inds,
-                    "pcb": "MPPCB",
-                    "state": randm_state(),
-                    "city": random.randrange(1, 100)
-                })
-            if resp.status_code != 201:
-                print(resp.text)
-
+            Station.objects.create(
+                name="stations_%s" % randm_str(4),
+                site_id=randm_str(5),
+                key=randm_str(20),
+                pub_key=randm_str(20),
+                pvt_key=randm_str(20),
+                realtime_url="",
+                delayed_url="",
+                prefix=randm_str(5),
+                version="ver_1.0",
+                address=randm_str(20),  #' ' + (cty.name or ''),
+                zipcode=randm_zip(),
+                longitude="{0:.6f}".format(lng)[:15],
+                latitude="{0:.6f}".format(lat)[:15],
+                user_email=randm_str(14) + '@gmail.com',
+                user_ph=randm_str(10),
+                is_cpcb=True,
+                cpcb_email=randm_str(14) + '@gmail.com',
+                cpcb_ph=randm_str(10),
+                closure_status=random.choices(CLOSURE_CHOICES)[0][0],
+                monitoring_type=random.choices(['Effluent', 'Emission', 'CAAQMS']),
+                process_attached=random.choices(['Inlet', 'Outlet']),
+                ganga=True,
+                approval_date=datetime.now().date(),
+                amc=datetime.now(),
+                cmc=datetime.now(),
+                active=True,
+                industry=inds,
+                pcb=random.choice(pcbs),
+                state=cty.state,
+                city=cty
+            )
 
 # dummy_industries(sess)
 # dummy_stations(sess)

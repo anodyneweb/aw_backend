@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
@@ -38,7 +37,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'api',
+    'dashboard',
     'django_filters',
+    'crispy_forms',
     'django.contrib.postgres',
 ]
 
@@ -67,13 +68,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'anodyne.urls'
 
+ROOT_URLCONF = 'anodyne.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_LOCATION, 'templates')],
+        'DIRS': [os.path.join(BASE_LOCATION, 'api', 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,9 +134,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 STATIC_ROOT = os.path.join(BASE_LOCATION, 'api', 'static')
 STATIC_URL = '/static/'
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
+
+# STATIC_ROOT = os.path.join(BASE_LOCATION, 'static')
+# STATIC_URL = '/static/'
+# STATICFILES_DIRS = (
+#     os.path.join(BASE_DIR, 'static'),
+# )
 # ValidationError at /api/ if below commented
 # specifying the User model to be used for authentication
 AUTH_USER_MODEL = 'api.User'
@@ -145,9 +149,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_USER = 'vepolink@anodyne.in'
+EMAIL_HOST_PASSWORD = 'awecdelhi340@'
 APP_NAME = 'VepoLink'
+
 
 # Logging Setup
 # can set environ LOGLEVEL=debug/info/error etc
@@ -269,3 +274,8 @@ LOGGING = {
         },
     }
 }
+DATE_FMT = '%Y-%m-%d %H:%M:%S'
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+# The value can be a hardcoded URL or a URL name. (login_required)
+# The default value for LOGIN_REDIRECT_URL is /accounts/profile/.
+LOGIN_REDIRECT_URL = 'login/'

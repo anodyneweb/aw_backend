@@ -16,12 +16,11 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5 as PKCS1_v1_5_signature
 
 from api.GLOBAL import ISO_CODES, ZIP_DIR
-
 from api.models import StationParameter, Parameter, Station
 
 log = logging.getLogger('vepolink')
 # MPPCB_REALTIME = 'http://esc.mp.gov.in/MPPCBServer/realtimeUpload'
-MPPCB_SVER_PEM = "-----BEGIN RSA PUBLIC KEY-----\nMEgCQQDfrM65tIZkhGRqoE5mGNIP+bWsIY26idnEftR1r2r4aSFPyUNIr84WuCjl\no09oyKXdtkDCNuzRDKaeP9zIoIvVAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"
+MPPCB_SVER_PEM = ""
 
 
 class Handle:
@@ -77,7 +76,6 @@ class Handle:
             '%Y-%m-%dT%H:%M:%SZ')  # time wen data was encrypted
         authz = '^'.join([self.site.site_id, 'ver1.0', data_enc_tstamp])
 
-        # MPPCB_SVER_PEM = "-----BEGIN RSA PUBLIC KEY-----\nMEgCQQDfrM65tIZkhGRqoE5mGNIP+bWsIY26idnEftR1r2r4aSFPyUNIr84WuCjl\no09oyKXdtkDCNuzRDKaeP9zIoIvVAgMBAAE=\n-----END RSA PUBLIC KEY-----\n"
         ################ HEADER ENCRYPTION ################
         # MPPCB_SVER_PEM = RSA.importKey(MPPCB_SVER_PEM)
         # cipher = PKCS1_v1_5.new(MPPCB_SVER_PEM)
@@ -242,14 +240,10 @@ class Handle:
             '%Y%m%d%H%M%S')
         fname = self.kwargs.get('filename')
         dtf = fname.replace(fname.split('_')[-1], file_tstamp + '.dat')
-        # log.info('MPPCB Plain Content %s:\n%s' % (fname, content))
         encrypted_file_content = self.encrypt(self.site.key, content)
         with open(dtf, 'w') as wfile:
-            # writing encrypted content to .dat file
             wfile.write(encrypted_file_content)
 
-        # log.info('MPPCB Encrypted Content %s:\n%s' % (dtf, encrypted_file_content))
-        # _fnm = '%s_%s_' % (self.site.site_id,
         file_name = os.path.join(ZIP_DIR, '%s_%s.zip' % (zip_name, file_tstamp)
                                  )
         with zipfile.ZipFile(file_name, mode='w',

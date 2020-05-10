@@ -1,21 +1,33 @@
+import colorsys
+import json
 import logging
+import random
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.contrib import messages
+from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout
+from django.http import HttpResponse
+from django.shortcuts import redirect
+from django.template.context_processors import csrf
+from django.template.loader import get_template
+from django.urls import reverse
 from rest_framework import viewsets, status
-from rest_framework.decorators import permission_classes, api_view
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import F
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from api.GLOBAL import UNIT
-from api.models import State, City, Registration, Category, Reading, \
-    Station, Parameter, Unit
+from api.models import State, City, Registration, Category
 from api.serializers import RegistrationSerializer
-import pandas as pd
-from datetime import datetime, timedelta
+from django.template.defaulttags import register
 
 log = logging.getLogger('vepolink')
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key, '')
 
 
 def add_state_city():
@@ -534,8 +546,65 @@ def add_category():
     print('done...')
 
 
+def logoutview(request):
+    """Show the login page.
+
+    If 'next' is a URL parameter, add its value to the context.  (We're
+    mimicking the standard behavior of the django login auth view.)
+    """
+    logout(request)
+    context = {
+        'next': request.GET.get('next', ''),
+    }
+    context.update(csrf(request))
+    template = get_template("login.html")
+    html = template.render(context, request)
+    return HttpResponse(html)
+
+
+def auth_and_login(request):
+    email = request.POST.get('email')
+    password = request.POST.get('password')
+    # The `authenticate` method is provided by Django and handles checking
+    # for a user that matches this email/password combination. Notice how
+    # we pass `email` as the `username` value since in our User
+    # model we set `USERNAME_FIELD` as `email`.
+    user = authenticate(username=email, password=password)
+    next_url = '/dashboard'
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            if 'next' in request.POST:
+                next_url = request.POST['next']
+            return redirect(next_url)
+        else:
+            # Notification, if blocked user is trying to log in
+            text = "This user is blocked. Please contact admin."
+            messages.error(request, text, extra_tags='alert alert-warning')
+            print(text)
+    else:
+        text = "Sorry, Email or Password combination is not valid."
+        print(text)
+        messages.error(request, text, extra_tags='alert alert-danger')
+        return redirect(reverse('login'))
+
+    return redirect(next_url)
+
+
+class LoginView(APIView):
+    permission_classes = (AllowAny,)
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = 'login.html'
+
+    def get(self, request):
+        content = {'message': 'Hello, %s!' % request.user}
+        return Response(content)
+
+
 class HelloView(APIView):
     permission_classes = (IsAuthenticated,)
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = 'dashboard.html'
 
     def get(self, request):
         content = {'message': 'Hello, %s!' % request.user}
@@ -557,42 +626,7 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     serializer_class = RegistrationSerializer
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_station_reading(request):
-    # User /api/reading to POST
-    message = []
-    pk = request.GET.get('pk')
-    # date format 200213122657 => strptime '%y%m%d%H%M%S'
-    from_dt = request.GET.get('from_dt')
-    to_dt = request.GET.get('to_dt')
-    if from_dt and to_dt:
-        from_dt = datetime.strptime(from_dt, '%y%m%d%H%M%S')
-        to_dt = datetime.strptime(to_dt, '%y%m%d%H%M%S')
-    else:
-        from_dt = datetime.now() - timedelta(hours=48)
-        to_dt = datetime.now()
-    try:
-        station = Station.objects.get(uuid=pk)
-        qs = Reading.objects.filter(station=station,
-                                    # reading__ph__gte=5,
-                                    reading__timestamp__gte=from_dt,
-                                    reading__timestamp__lte=to_dt,
-                                    )
-        if not qs:
-            message.append({'error': 'No records for the selected range'})
-        qs = qs.select_related('station')
-        qs = qs.values_list('reading', flat=True)
-        qs = dict(
-            name=station.name,
-            prefix=station.prefix,
-            status='success',
-            start=from_dt,
-            end=to_dt,
-            count=len(qs),
-            message=message,
-            readings=list(qs)
-        )
-        return JsonResponse(qs, status=status.HTTP_200_OK)
-    except Station.DoesNotExist:
-        return HttpResponseBadRequest('Station missing')
+def get_rgb():
+    h, s, l = random.random(), 0.5 + random.random() / 2.0, 0.4 + random.random() / 5.0
+    r, g, b = [int(256 * i) for i in colorsys.hls_to_rgb(h, l, s)]
+    return 'rgb(%d,%d,%d)' % (r, g, b)

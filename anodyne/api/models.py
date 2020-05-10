@@ -1,17 +1,14 @@
 # Create your models here.
-import json
 import logging
 import uuid as uuid
+from datetime import datetime, timedelta
 
 import django.utils.timezone
+import jwt
+from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
-from django.db import models
-from django.contrib.postgres.fields import JSONField
-from django.db.models.signals import post_save
-
-from api.GLOBAL import USER_CHOICES, UNIT
 from django.contrib.postgres.fields import CICharField
-
+from django.db import models
 log = logging.getLogger('vepolink')
 from django.contrib.postgres.fields import HStoreField
 
@@ -101,7 +98,8 @@ class UserManager(BaseUserManager):
         user.staff = True
         user.admin = True
         user.name = name
-        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN', 'STAFF'] else 'ADMIN'
+        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN',
+                                     'STAFF'] else 'ADMIN'
         user.save(using=self._db)
         return user
 
@@ -114,20 +112,22 @@ class User(AbstractBaseUser):
         max_length=255,
         unique=True,
     )
-    active = models.BooleanField(default=True)
-    staff = models.BooleanField(default=False)  # a staff;
-    admin = models.BooleanField(default=False)  # a admin
+    active = models.BooleanField(default=True,
+                                 help_text='uncheck to block user (inactivate)',
+                                 )
+    staff = models.BooleanField(default=True)  # a staff not using it for now;
+    admin = models.BooleanField(default=False,
+                                help_text='admin user can add/edit/delete details')
     created = models.DateTimeField(default=django.utils.timezone.now,
                                    blank=True, editable=False,
                                    verbose_name='Joined On')
     # notice the absence of a "Password field", that's built in.
-
     # USER DETAILS STARTS
-    name = models.CharField(max_length=60, null=False, verbose_name='Name',
+    name = models.CharField(max_length=60, null=False,
+                            verbose_name='Full Name',
                             default='')
-    phone = models.CharField(max_length=10, null=True)
-    type = models.CharField(max_length=20, null=False, choices=USER_CHOICES,
-                            default='ADMIN')
+    phone = models.CharField(max_length=120, null=True,
+                             help_text="use semi-colon(;) for multiple numbers")
     address = models.TextField(default=None, null=True)
     zipcode = models.IntegerField(default=None, null=True)
     state = models.ForeignKey(State, on_delete=models.CASCADE,
@@ -135,13 +135,12 @@ class User(AbstractBaseUser):
     city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     # USER DETAILS ENDS
-
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name', 'type']
+    REQUIRED_FIELDS = ['name', ]
 
     def get_full_name(self):
         # The user is identified by their email address
-        return self.email
+        return self.name
 
     def get_short_name(self):
         # The user is identified by their email address
@@ -174,6 +173,30 @@ class User(AbstractBaseUser):
     def is_active(self):
         """Is the user active?"""
         return self.active
+
+    def _generate_jwt_token(self):
+        """
+        Generates a JSON Web Token that stores this user's ID and has an expiry
+        date set to 10 days into the future.
+        """
+        dt = datetime.now() + timedelta(days=10)
+        token = jwt.encode({
+            'id': str(self.id),
+            'exp': int(dt.strftime('%s'))
+        }, settings.SECRET_KEY, algorithm='HS256')
+
+        return token.decode('utf-8')
+
+    @property
+    def token(self):
+        """
+        Allows us to get a user's token by calling `user.token` instead of
+        `user.generate_jwt_token().
+
+        The `@property` decorator above makes this possible. `token` is called
+        a "dynamic property".
+        """
+        return self._generate_jwt_token()
 
     # hook in the New Manager to our Model
     objects = UserManager()
@@ -217,7 +240,7 @@ class Industry(models.Model):
     industry_id = models.CharField(
         max_length=160,
         default='',
-        verbose_name='Industry Id',
+        verbose_name='Industry Code/Id',
         null=True
     )
     # Address details of the Industry
@@ -258,25 +281,14 @@ class Industry(models.Model):
 
 
 class Station(models.Model):
-    MPCB = 'MPCB'
-    MPPCB = 'MPPCB'
-    KSPCB = 'KSPCB'
-    OSPCB = 'OSPCB'
-    CPCB = 'CPCB'
-    RSPCB = 'RSPCB'
-    HSPCB = 'HSPCB'
-    WBPCB = 'WBPCB'
     PPCB = 'PPCB'
-    DJB = 'DJB'
-    UKPCB = 'UKPCB'
+    MPPCB = 'MPPCB'
+    TSPCB = 'TSPCB'
+    HSPCB = 'HSPCB'
+    UPPCB = 'UPPCB'
     DPCC = 'DPCC'
     JSPCB = 'JSPCB'
-    BSPCB = 'BSPCB'
 
-    ATTACHED_CHOICES = (
-        ('Inlet', 'Inlet'),
-        ('Outlet', 'Outlet'),
-    )
     CLOSURE_CHOICES = (
         (None, 'None'),
         ('Seasonal', 'Seasonal'),
@@ -303,7 +315,7 @@ class Station(models.Model):
 
     # NOT FOR ALL PCBs #
     site_id = models.CharField(max_length=80,
-                               verbose_name='StationID/StationID',
+                               verbose_name='Site ID or Station ID',
                                default=None, null=True)
     key = models.TextField(max_length=1000, default=None, null=True,
                            verbose_name='Key or Token', blank=True)
@@ -323,12 +335,13 @@ class Station(models.Model):
                                   max_length=1024,
                                   blank=True)
     prefix = models.CharField(max_length=64, unique=True,
-                              verbose_name='File Prefix', db_index=True)
-
-    version = models.CharField(max_length=10, default='ver_1.0',
-                               verbose_name='PCB Software Version',
-                               blank=True)
-
+                              verbose_name='File Prefix',
+                              help_text='unique name used in file, from '
+                                        'station',
+                              db_index=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES,
+                              default='Offline',
+                              blank=True)
     # Address details of the Station
     address = models.TextField(default=None, null=True, blank=True)
     zipcode = models.IntegerField(default=None, null=True, blank=True)
@@ -345,20 +358,22 @@ class Station(models.Model):
     # emails/phone of customer
     user_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='Customer Alert Email',
+                                  help_text='for multiple emails user semi-colon(;)',
                                   blank=True)
     user_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='Customer Alert Contact',
+                               help_text='for multiple emails user semi-colon(;)',
                                blank=True)
     is_cpcb = models.BooleanField(default=False, verbose_name='Is CPCB',
+                                  help_text='send data to cpcb also',
                                   blank=True)
-    # emails/phone to CPCB only if notify_cpcb is enabled
-    notify_cpcb = models.BooleanField(default=True, verbose_name='Notify CPCB',
-                                      blank=True)
     cpcb_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='CPCB Alert Email',
+                                  help_text='for multiple emails user semi-colon(;)',
                                   blank=True)
     cpcb_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='CPCB Alert Contacts',
+                               help_text='for multiple emails user semi-colon(;)',
                                blank=True)
     closure_status = models.CharField(max_length=20, choices=CLOSURE_CHOICES,
                                       default=None,
@@ -374,39 +389,55 @@ class Station(models.Model):
     ganga = models.BooleanField(default=False,
                                 verbose_name='Ganga Basin')
     approval_date = models.DateField(verbose_name='Approved On',
+                                     help_text='YYYY-MM-DD',
                                      default=django.utils.timezone.now,
                                      blank=True)
-
     amc = models.DateTimeField(blank=True, null=True,
+                               help_text='YYYY-MM-DD',
                                default=None, verbose_name='AMC')
     cmc = models.DateTimeField(blank=True, null=True,
+                               help_text='YYYY-MM-DD',
                                default=None, verbose_name='CMC')
-    active = models.BooleanField(default=True, verbose_name='Active/Blocked')
+    active = models.BooleanField(default=True, verbose_name='Enable Upload',
+                                 help_text='uncheck to disable data upload')
     created = models.DateTimeField(auto_now_add=True, blank=True)
+    camera = models.URLField(max_length=200, blank=True,
+                             help_text='Camera IP or URL',
+                             verbose_name='Camera URL/IP')
+
+    @property
+    def parameters(self):
+        parameters = StationParameter.objects.filter(station=self).values_list(
+            'parameter__name',
+            flat=True)
+        if parameters:
+            return parameters
+        else:
+            return list()
+
+    # def update_status(self):
+    #     status = 'Offline'
+    #     try:
+    #         station = StationInfo.objects.get(station=self)
+    #         if station.last_seen > (datetime.now() - timedelta(hours=4)):
+    #             status = 'Online'
+    #         elif (datetime.now() - timedelta(hours=48)) < station.last_seen < (datetime.now() - timedelta(hours=4)):
+    #             status = 'Delay'
+    #     except StationInfo.DoesNotExist:
+    #         pass
+    #     return status
 
     def __str__(self):
         return "%s | %s | %s | %s" % (self.name, self.industry.name,
                                       self.pcb, self.state)
 
-    def save(self, *args, **kwargs):
-        if self.pcb.name not in [Station.KSPCB, Station.MPCB, Station.RSPCB,
-                            Station.OSPCB,
-                            Station.MPPCB]:
-            self.key = self.pub_key = None
-
-        elif self.pcb.name == Station.MPCB:  # needs only key
-            self.pub_key = None
-
-        elif self.pcb.name == Station.RSPCB:  # this needs site id
-            self.key = self.pub_key = None
-
-        elif self.pcb.name == Station.OSPCB:  # this needs token to connect
-            self.pub_key = None
-
-        super(Station, self).save(*args, **kwargs)
-
 
 class StationInfo(models.Model):
+    STATUS_CHOICES = (
+        ('Live', 'Live'),
+        ('Delay', 'Delay'),
+        ('Offline', 'Offline')
+    )
     station = models.OneToOneField(
         Station,
         on_delete=models.CASCADE,
@@ -442,7 +473,8 @@ class Parameter(models.Model):
     # CREATE EXTENSION IF NOT EXISTS citext;
     else migration will fail
     """
-    name = CICharField(max_length=80, default=None, unique=True)
+    name = CICharField(max_length=80, default=None, unique=True,
+                       db_index=True)
     unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True)
     alias = models.CharField(max_length=100, null=True, verbose_name='Alias')
     # hex code or color name
@@ -486,7 +518,8 @@ class StationParameter(models.Model):
     """
     station = models.ForeignKey(
         Station,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        db_index=True
     )
     parameter = models.ForeignKey(
         Parameter,
@@ -515,6 +548,18 @@ class StationParameter(models.Model):
         null=True,
         verbose_name='Monitoring'
     )
+    monitoring_id = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+        verbose_name='Monitoring ID'
+    )
+    analyser_id = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+        verbose_name='Monitoring'
+    )
     allowed = models.BooleanField(
         default=True,
         verbose_name='Is Active'
@@ -529,7 +574,8 @@ class StationParameter(models.Model):
 
 class Reading(models.Model):
     station = models.ForeignKey(Station, null=True, to_field='prefix',
-                             on_delete=models.CASCADE, db_index=True)
+                                on_delete=models.CASCADE,
+                                db_index=True)
     reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:
@@ -565,32 +611,4 @@ class Registration(models.Model):
         blank=True
     )
 
-
-# class ReadingJSON(models.Model):
-#     station = models.ForeignKey(
-#         Station,
-#         on_delete=models.CASCADE
-#     )
-#     # {'param1': 'val1', 'param2': 'val2'...}
-#     reading = JSONField(
-#         max_length=9999,
-#         blank=True
-#     )
-#     timestamp = models.DateTimeField(
-#         db_index=True,
-#         auto_now_add=True,
-#         blank=True
-#     )
-#     filename = models.CharField(
-#         max_length=80
-#     )
-#
-#     class Meta:
-#         unique_together = (('timestamp', 'filename'),)
-#
-#     def __str__(self):
-#         return "%s: \n %s" % (self.station.name, self.reading)
-
 ##############################################################################
-# SIGNALS
-post_save.connect(Parameter.check4new, sender=StationParameter)

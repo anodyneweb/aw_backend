@@ -1,0 +1,351 @@
+{% extends "layout.html" %} {% load static %} {% load crispy_forms_tags %}
+{% block content %}
+<style>
+.ScrollStyle
+{
+    max-height: 400px;
+    max-widht: 600px;
+    overflow-y: scroll;
+
+}
+
+</style>
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+<!--    <h1 class="h3 mb-4 text-gray-800">{{ station.name }}</h1>-->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">{{ station.name }} <sup>{{ station.status }}</sup></h6>
+            <div class="dropdown no-arrow">
+                <button type="button" class="btn-info btn-sm btn" data-placement="left"
+                        data-original-title="Edit"
+                        data-target="#table-form"
+                        data-toggle="modal">
+                    Show Table
+                </button>
+                <a class="dropdown-toggle" href="#" role="button" id="dropdownchartmenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                    <div class="dropdown-header">Actions:</div>
+                    <a href="#" data-placement="left" data-original-title="Station"
+                       data-target="#station-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Edit</a>
+                    {% if station.camera %}
+                    <a class="dropdown-item" href="#"
+                       data-placement="left" data-original-title="Station"
+                       data-target="#cam-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">View Camera</a>
+                    {% endif %}
+                    <div class="dropdown-divider"></div>
+                    <a href="#" data-placement="left" data-original-title="Stations"
+                       data-target="#delete-form" data-toggle="modal"
+                       class="dropdown-item" aria-hidden="true">Delete</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="btn-group mr-2" role="group" aria-label="Row Item 2">
+                <button class="btn-secondary btn-sm btn" type="button" >
+                    <a id="reportrange">
+                        <i class="fa fa-calendar"></i>&nbsp;
+                        <span></span> <i class="fa fa-caret-down"></i>
+                    </a>
+                </button>
+                <button type="button" title="Update Chart" id="updateChart"
+                        onclick="redraw('{{details.uuid}}');" class="btn btn-primary btn-sm">
+                    Update
+                </button>
+                &nbsp;
+            </div>
+            <span id="loader" style="visibility: hidden;">
+                <img src="/static/img/loader.gif" class="loader" height="20" width="20">
+            </span>
+            <div id="chart_graphDiv">
+                {{ chart|safe }}
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="table-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>{{station.name}}</b> <br><small>{{station.status}}</small>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="daterange">{{ details.from }} - {{ details.to }}</p>
+
+                    <div class="table-responsive ScrollStyle" id="tabular">
+                        {{ tabular |safe }}
+                    </div>
+                </div>
+                <div class='modal-footer'>
+                    <button class="btn-primary btn-sm btn" type="button"
+                            onclick="exportTableToCSV('{{station.name}}.csv');">
+                        <span class="fa fa-download"></span>
+                        Report Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="delete-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Delete Station</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+             </div>
+
+                <div class='modal-body'>
+                    <h4>Are you sure you want to delete?</h4>
+                </div>
+                <div class='modal-footer'>
+                    <button type='button' class='btn btn-default' data-dismiss='modal'>Cancel
+                    </button>
+                    <button class='btn btn-primary' type='button'
+                            id="delete-confirm">Confirm</button>
+                 </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="station-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Add Station</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+             </div>
+
+                <div class="modal-body">
+                    <form action="{% url 'dashboard:station-info' station.uuid %}" method="post" >
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-6">
+                                {{ form.industry|as_crispy_field }}
+                                {{ form.site_id|as_crispy_field }}
+                                {{ form.state|as_crispy_field }}
+                                {{ form.city|as_crispy_field }}
+                                {{ form.longitude|as_crispy_field }}
+                                {{ form.latitude|as_crispy_field }}
+                                {{ form.amc|as_crispy_field }}
+                                {{ form.prefix|as_crispy_field }}
+                            </div>
+                            <div class="col-6">
+                                {{ form.name|as_crispy_field }}
+                                {{ form.pcb|as_crispy_field }}
+                                {{ form.closure_status|as_crispy_field }}
+                                {{ form.monitoring_type|as_crispy_field }}
+                                {{ form.process_attached|as_crispy_field }}
+                                {{ form.zipcode|as_crispy_field }}
+                                {{ form.cmc|as_crispy_field }}
+                                {{ form.approval_date|as_crispy_field }}
+                            </div>
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        {{ form.is_cpcb|as_crispy_field }}
+                                        {{ form.active|as_crispy_field }}
+                                        {{ form.ganga|as_crispy_field }}
+                                    </div>
+                                    <div class="col-6">
+                                        {{ form.camera|as_crispy_field }}
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        {{ form.user_email|as_crispy_field }}
+                                        {{ form.user_ph|as_crispy_field }}
+                                    </div>
+                                    <div class="col-6">
+                                        {{ form.cpcb_email|as_crispy_field }}
+                                        {{ form.cpcb_ph|as_crispy_field }}
+                                    </div>
+                                </div>
+                                {{ form.address|as_crispy_field }}
+                                {{ form.key|as_crispy_field }}
+                                {{ form.pub_key|as_crispy_field }}
+                                {{ form.pvt_key|as_crispy_field }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning">Update Station</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="cam-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>{{station.name}}</b>
+                        <br>
+                        <small>{{station.industry}}</small>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <img id="camera" class="img-responsive"
+                         src="{{details.cam_url}}"
+                         alt="&nbsp; No Feed Check Connection...">
+                </div>
+            </div>
+     </div>
+ </div>
+
+</div>
+<!-- /.container-fluid -->
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="{% static 'js/moment.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chart.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/daterangepicker.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chartjs-plugin-zoom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/dropdown.min.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/daterangepicker.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/dropdown.min.css' %}">
+
+<script>
+
+function GetCities(state) {
+        var $citylist = $("#industry_city");
+        if (state.id.indexOf("site") >= 0)
+        {
+            $citylist = $("#site_city");
+        }
+        $.ajax({
+            url: "/dashboard/GetCities?state=" + state.value
+        }).done(function(cities) {
+             $citylist.empty(); // remove old options
+             $.each(cities.cities, function(key, value) {
+              $citylist.append($("<option></option>").attr("value", value[0]).text(value[1]));
+            });
+            $("#id_longitude").val(cities.lng);
+            $("#id_latitude").val(cities.lat);
+        });
+    }
+
+function GetLongLat(city) {
+
+        if (city.id.indexOf("industry") >= 0) {
+            var $zipcode = $("#industry_zipcode");
+            var city = $("#industry_city").val();
+            var state = $("#industry_state").val();
+        }
+        else{
+            var $zipcode = $("#site_zipcode");
+            var city = $("#site_city").val();
+            var state = $("#site_state").val();
+            $("#id_longitude").addClass('loadinggif');
+            $("#id_latitude").addClass('loadinggif');
+        }
+        $zipcode.addClass('loadinggif');
+        $.ajax({
+            url: "/dashboard/GetLongLat?city=" + city +  '&state='+ state,
+        }).done(function(long) {
+            $("#id_longitude").removeClass('loadinggif').val(long.long);
+            $("#id_latitude").removeClass('loadinggif').val(long.lat);
+            $zipcode.removeClass('loadinggif').val(long.zipcode);
+        });
+    }
+
+$('#delete-confirm').click(function () {
+// Sending as Delete request
+    $('#delete-form').modal('hide');
+    console.log('DELETING....');
+    $.ajax({
+        url: "/dashboard/station-info/{{ station.uuid }}",
+        type: 'DELETE',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+        },
+        success: function (response) {
+            window.location = "/dashboard/stations/";
+        }
+});
+});
+
+
+var fromDate = null;
+var toDate = null;
+var sessionObject;
+
+// Date Range Picker script start \\
+$(function() {
+var start = moment().subtract(24, 'hour');
+var end = moment();
+
+function cb(start, end) {
+    $('#reportrange span').html(start.format('DD/MM/YYYY hh:mm A') + ' - ' + end.format('DD/MM/YYYY hh:mm A'));
+
+    fromDate = start.format('MM/DD/YYYY hh:mm A');
+    toDate = end.format('MM/DD/YYYY hh:mm A');
+
+    }
+    $('#reportrange').daterangepicker({
+        timePicker: true,
+        startDate:start,
+        endDate: end,
+        maxDate: moment(),
+        ranges: {
+           'Today': [moment().startOf('day'), moment()],
+           'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
+           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
+           'This Month': [moment().startOf('month').startOf('day'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month').startOf('day'), moment().subtract(1, 'month').endOf('month')],
+        },
+    }, cb);
+    cb(start, end);
+});
+// Date Range Picker script end \\
+
+function redraw(site_id){
+    var siteGraph = document.getElementById('chart_graphDiv');
+    var loader = document.getElementById('loader');
+    var tabular = document.getElementById('tabular');
+    var cards = document.getElementById('cardsview');
+    loader.style.visibility = "visible";
+    var threshold = 'false';
+    if(($('input[name="threshold"]').is(':checked'))){
+        threshold = 'true';
+    }
+    var URL = '/dashboard/graphdata?site='+site_id+'&from_date='+fromDate+'&to_date='+toDate;
+    $.ajax({
+            url: URL,
+            type: 'GET',
+            success: function(response) {
+                    // Chart View
+                    tabular.innerHTML = '';
+                    tabular.innerHTML = response.tabular;
+                    console.log('Update Table')
+                    // FIX REQ: Plotly undefined comes when graph is never been created on page
+                    Plotly.react(siteGraph, response.data, response.layout);
+                    //siteGraph.data[0].opacity = 0.8;
+                    // tabular view
+                    loader.style.visibility = "hidden";
+                    // Updating Cards
+
+                    //console.log('Update Cards')
+                    //cards.innerHTML = '';
+                    //cards.innerHTML = response.cards;
+            },
+            error: function(response) {
+                }
+    });
+}
+
+</script>
+{% endblock %}
