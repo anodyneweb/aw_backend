@@ -274,7 +274,7 @@ class IndustryView(AuthorizedView):
             })
         industry_row = [dict(
             Name=industry.name,
-            Code=industry.industry_id,
+            Industry_Code=industry.industry_id,
             Status=industry.status,
             Category=industry.type,
             City=industry.city,
