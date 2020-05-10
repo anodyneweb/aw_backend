@@ -4,7 +4,7 @@ from django.urls import path
 # Routers provide an easy way of automatically determining the URL conf.
 from dashboard.views import StationView, IndustryView, UserView, ParameterView, \
     DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
-    plot_chart
+    plot_chart, ReportView
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -48,6 +48,9 @@ urlpatterns = [
     url(r'^cameras/$', CameraView.as_view(), name='cameras'),
     url(r'^management/$', CameraView.as_view(), name='management'),
     url(r'^geographical/$', GeographicalView.as_view(), name='geographical'),
+    url(r'^reports/$', ReportView.as_view(), name='reports'),
+    url(r'^reports/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})$',
+        ReportView.as_view(), name='report-date'),
     url(r'graphdata$', plot_chart),
 
     # get industry sites

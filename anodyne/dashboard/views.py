@@ -43,6 +43,11 @@ def get_error(err):
         message.append('%s: %s' % (field, msg))
     return message
 
+def yes_no(flag):
+    if flag:
+        return 'Yes'
+    return 'No'
+
 
 class AuthorizedView(View):
     template_name = 'login.html'
@@ -87,7 +92,8 @@ class DashboardView(AuthorizedView):
             Active=F('active'),
             City=F('city__name'),
             Address=F('address'),
-            Camera=F('camera'),
+            Added_On=F('created__date'),
+            Camera = F('camera'),
         )
         df = pd.DataFrame(stations)
         # BUG: can't format here have to concatenate only
@@ -99,6 +105,7 @@ class DashboardView(AuthorizedView):
                                    station=df['Station'])
         df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
                                     industry=df['Industry'])
+        df['Added_On'] = df['Added_On'].dt.strftime('%d-%B-%Y')
 
         df = df.drop(columns=['uuid', 'industry__uuid'])
         details = {
@@ -129,10 +136,11 @@ class StationView(AuthorizedView):
             'industry__uuid',
             Name=F('name'),
             Industry=F('industry__name'),
-            City=F('city__name'),
-            PCB=F('pcb'),
             Ganga=F('ganga'),
-            Address=F('address'),
+            # City=F('city__name'),
+
+
+            # Address=F('address'),
         )
         df = pd.DataFrame(stations)
         station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
@@ -141,6 +149,8 @@ class StationView(AuthorizedView):
                                 station=df['Name'])
         df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
                                     industry=df['Industry'])
+        apply_yes_no = np.vectorize(yes_no)
+        df['Ganga'] = apply_yes_no(df['Ganga'])
         df = df.drop(columns=['uuid', 'industry__uuid'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
@@ -245,7 +255,7 @@ class IndustryView(AuthorizedView):
                                    Name=F('name'),
                                    Status=F('status'),
                                    PCB=F('pcb'),
-                                   Ganga=F('ganga'),
+                                   # Ganga=F('ganga'),
                                    City=F('city__name'),
                                    Address=F('address'),
                                    )
@@ -266,11 +276,14 @@ class IndustryView(AuthorizedView):
             Name=industry.name,
             Code=industry.industry_id,
             Status=industry.status,
-            Type=industry.type,
+            Category=industry.type,
             City=industry.city,
-            Address=industry.address
+            Address=industry.address,
+            Ganga=industry.ganga
         )]
         df = pd.DataFrame(industry_row)
+        apply_yes_no = np.vectorize(yes_no)
+        df['Ganga'] = apply_yes_no(df['Ganga'])
         content.update({
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
@@ -292,7 +305,7 @@ class IndustryView(AuthorizedView):
             'uuid',
             Name=F('name'),
             Status=F('status'),
-            Type=F('type'),
+            Category=F('type'),
             State=F('state'),
             Address=F('address')
         )
@@ -612,13 +625,54 @@ class GeographicalView(AuthorizedView):
 class ManagementView(AuthorizedView):
 
     def get(self, request):
-        context = {''}
+        context = {}
         info_template = get_template('management.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
 
 
-### GEO
+class ReportView(AuthorizedView):
+    def get(self, request, from_date=None, to_date=None):
+
+        q = {
+            'Category': F('industry__type'),
+            'Industry Code': F('industry__industry_code'),
+            'Name of Industry': F('industry__name'),
+            'Name of Station': F('name'),
+            'Address': F('industry__address'),
+            'State': F('industry__state__name'),
+            'Status': F('industry__status'),
+            'In Ganga Indusrty': F('industry__ganga'),
+        }
+        if from_date and to_date:
+            from_date = datetime.strptime(from_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+        else:
+            to_date = datetime.now()
+            from_date = to_date - timedelta(days=100)
+        reading_q = {
+            'reading__timestamp__gte': from_date,
+            'reading__timestamp__lte': to_date,
+        }
+
+        stations = Reading.objects.filter(**reading_q).values_list('station__prefix',
+                                                       flat=True).distinct('station')
+
+        stations = Station.objects.filter(prefix__in=stations).select_related('industry').values(
+            **q)
+        df = pd.DataFrame(stations)
+        # BUG: can't format here have to concatenate only
+        # generating hyperlinks
+        context = {
+            'csv_name': from_date.strftime('%B_%Y'),
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='center', escape=False),
+        }
+        info_template = get_template('reports.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
 
 def industry_sites(request):
     i_uuid = request.GET.get('industry') or None
@@ -655,7 +709,7 @@ def site_details(request=None, pk=None):
                 'Status': F('status'),
                 'Industry': F('industry__name'),
                 'Industry_code': F('industry__industry_code'),
-                'Type': F('industry__type')
+                'Category': F('industry__type')
             }
         )
         return JsonResponse(dict(site[0]), safe=False)

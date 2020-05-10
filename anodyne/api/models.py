@@ -272,6 +272,10 @@ class Industry(models.Model):
         auto_now_add=True,
         blank=True
     )
+    ganga = models.BooleanField(
+        default=False,
+        verbose_name='Ganga Basin'
+    )
 
     class Meta:
         default_permissions = ()
