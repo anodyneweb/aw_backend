@@ -21,7 +21,7 @@
                 <button type="button" class="btn-info btn-sm btn" data-placement="left"
                         data-original-title="Edit"
                         data-target="#table-form"
-                        data-toggle="modal">
+                        data-toggle="modal" onclick="getTable('{{station.uuid}}');">
                     Show Table
                 </button>
                 <a class="dropdown-toggle" href="#" role="button" id="dropdownchartmenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -300,12 +300,10 @@ function cb(start, end) {
         endDate: end,
         maxDate: moment(),
         ranges: {
-
            'Last 15 Minutes': [moment().subtract(15, 'minutes'), moment()],
            'Last 1 Hour': [moment().subtract(1, 'hours'), moment()],
-           'Today': [moment().startOf('day'), moment()],
+           'Last 7 Days': [moment().subtract(7, 'days').startOf('day'), moment()],
            'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
-           'This Month': [moment().startOf('month').startOf('day'), moment().endOf('month')],
         },
     }, cb);
     cb(start, end);
@@ -328,25 +326,37 @@ function redraw(site_id){
             url: URL,
             type: 'GET',
             success: function(response) {
-                    // Chart View
-                    tabular.innerHTML = '';
-                    tabular.innerHTML = response.tabular;
-                    console.log('Update Table')
-                    // FIX REQ: Plotly undefined comes when graph is never been created on page
                     Plotly.react(siteGraph, response.data, response.layout);
-                    //siteGraph.data[0].opacity = 0.8;
-                    // tabular view
                     loader.style.visibility = "hidden";
-                    // Updating Cards
-
-                    //console.log('Update Cards')
-                    //cards.innerHTML = '';
-                    //cards.innerHTML = response.cards;
             },
             error: function(response) {
                 }
     });
 }
+
+function getTable(site_id){
+    var tabular = document.getElementById('tabular');
+    var loader = document.getElementById('loader');
+    loader.style.visibility = "visible";
+
+    var URL = '/dashboard/tabulardata?site='+site_id+'&from_date='+fromDate+'&to_date='+toDate;
+    $.ajax({
+            url: URL,
+            type: 'GET',
+            success: function(response) {
+                    // Chart View
+                    tabular.innerHTML = '';
+                    tabular.innerHTML = response.tabular;
+                    loader.style.visibility = "hidden";
+            },
+            error: function(response) {
+                        tabular.innerHTML = '<h3>Failed to upload, please retry later.</h3>';
+                        loader.style.visibility = "hidden";
+
+                }
+    });
+}
+
 
 </script>
 {% endblock %}

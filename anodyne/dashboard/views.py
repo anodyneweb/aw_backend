@@ -43,6 +43,7 @@ def get_error(err):
         message.append('%s: %s' % (field, msg))
     return message
 
+
 def yes_no(flag):
     if flag:
         return 'Yes'
@@ -93,7 +94,7 @@ class DashboardView(AuthorizedView):
             City=F('city__name'),
             Address=F('address'),
             Added_On=F('created__date'),
-            Camera = F('camera'),
+            Camera=F('camera'),
         )
         df = pd.DataFrame(stations)
         # BUG: can't format here have to concatenate only
@@ -138,7 +139,6 @@ class StationView(AuthorizedView):
             Industry=F('industry__name'),
             Ganga=F('ganga'),
             # City=F('city__name'),
-
 
             # Address=F('address'),
         )
@@ -200,10 +200,9 @@ class StationView(AuthorizedView):
         content = {
             'station': station,
             'form': StationForm(instance=station),
-            'tabular': df.to_html(classes="table table-bordered",
-                                  table_id="dataTable", index=False,
-                                  justify='center'),
+
         }
+        content.update(**site_tabular_readings(station=station))
         graph_details = render_chart2(site=station)
         content.update(**graph_details)
         # content.update(**render_chart2(request, site=station))
@@ -655,10 +654,12 @@ class ReportView(AuthorizedView):
             'reading__timestamp__lte': to_date,
         }
 
-        stations = Reading.objects.filter(**reading_q).values_list('station__prefix',
-                                                       flat=True).distinct('station')
+        stations = Reading.objects.filter(**reading_q).values_list(
+            'station__prefix',
+            flat=True).distinct('station')
 
-        stations = Station.objects.filter(prefix__in=stations).select_related('industry').values(
+        stations = Station.objects.filter(prefix__in=stations).select_related(
+            'industry').values(
             **q)
         df = pd.DataFrame(stations)
         # BUG: can't format here have to concatenate only
@@ -735,13 +736,13 @@ def render_chart2(**kwargs):
     else:
         from_date = datetime.strptime(from_date, "%m/%d/%Y %H:%M %p")
         to_date = datetime.strptime(to_date, "%m/%d/%Y %H:%M %p")
-    # status = site.site_status
-    # if status.lower() == 'live':
-    status = 'success', 'Live'
-    # elif status.lower() == 'delay':
-    #     status = 'warning', 'Delay',
-    # else:
-    #     status = 'danger', 'Offline'
+    status = site.status
+    if status.lower() == 'live':
+        status = 'success', 'Live'
+    elif status.lower() == 'delay':
+        status = 'warning', 'Delay',
+    else:
+        status = 'danger', 'Offline'
     details = {
         'uuid': site.uuid,
         'name': site.name.replace('_', ' ').title(),
@@ -761,7 +762,6 @@ def render_chart2(**kwargs):
         'reading', flat=True).order_by('-reading__timestamp')
     # Join both database
     df = pd.DataFrame(readings)
-    df = df.fillna(0)
     xaxis = dict(showgrid=True, title_text='Time', linecolor='grey')
     yaxis = dict(showgrid=True, title_text='Param Value', linecolor='grey')
     layout = dict(autosize=True,
@@ -801,8 +801,8 @@ def render_chart2(**kwargs):
             unit = random.choice(UNIT)[0]
             # Clean values
 
-            df[param] = df[param].apply(lambda x: 0 if x in ['', ' '] else x)
-            df[param] = df[param].astype(float)
+            # df[param] = df[param].apply(lambda x: 0 if x in ['Invalid', ''] else x)
+            df[param] = df[param].apply(pd.to_numeric, args=('coerce',))
             cards[param] = {
                 'color': clr,
                 'unit': unit,
@@ -812,6 +812,8 @@ def render_chart2(**kwargs):
                 'last_received': df.timestamp.iloc[-1],
                 'last_value': df[param].iloc[-1]
             }
+            df[param] = df[param].fillna(0)
+            df[param] = df[param].astype(float)
             trace = dict(type='scatter', mode='markers+lines',
                          x=list(df.timestamp),
                          y=list(df[param]), name=param.upper(),
@@ -830,12 +832,7 @@ def render_chart2(**kwargs):
     plot_div = Markup(plot(obj_layout, output_type='div'))
 
     # format for tabular view
-    if not df.empty:
-        # sorting latest first
-        df.sort_values(by='timestamp', ascending=False, inplace=True)
-        df.columns = [a.upper() for a in list(df.columns.values)]
-        df.set_index('timestamp'.upper(), inplace=True)
-    else:
+    if df.empty:
         layout.update(
             {
                 "layout": {
@@ -848,16 +845,27 @@ def render_chart2(**kwargs):
                 }
             }
         )
-    tabl = df.to_html(classes='table_scroll')
     # cards = generate_html_cards(cards)
-    context = {
-        'chart': plot_div,
-        'details': details,
-        'data': traces,
-        'tabular': tabl,
-        # 'cards': cards,
-        'layout': js_layout
-    }
+    # context = {
+    #     'chart': plot_div,
+    #     'details': details,
+    #     'data': traces,
+    #     'tabular': tabl,
+    #     # 'cards': cards,
+    #     'layout': js_layout
+    # }
+    if kwargs.get('update'):
+        context = {
+            'layout': js_layout,  # for api req
+            'data': traces,  # for api req
+            'cards': cards,
+        }
+    else:
+        context = {
+            'chart': plot_div,
+            'details': details,
+            'cards': cards,
+        }
     return context
 
 
@@ -903,7 +911,69 @@ def plot_chart(request):
     kwargs = {
         'from_date': request.GET.get('from_date'),
         'to_date': request.GET.get('to_date'),
-        'site': site
+        'site': site,
+        'update': True
     }
     context = render_chart2(**kwargs)
     return JsonResponse(context)
+
+
+def plot_table(request):
+    uuid = request.GET.get('site')
+
+    station = Station.objects.get(uuid=uuid)
+    kwargs = {
+        'from_date': request.GET.get('from_date'),
+        'to_date': request.GET.get('to_date'),
+        'station': station
+    }
+    context = site_tabular_readings(**kwargs)
+    return JsonResponse(context)
+
+
+def site_tabular_readings(**kwargs):
+    site = kwargs.get('station')
+    # TODO: this is causing trouble on server
+    from_date = kwargs.get('from_date')
+    to_date = kwargs.get('to_date')
+    if not (from_date and to_date):
+        to_date = datetime.now()
+        try:
+            last_seen = Reading.objects.filter(
+                station=site).latest('reading__timestamp').reading.get(
+                'timestamp')
+            last_seen = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
+            from_date = last_seen - timedelta(hours=10)
+        except Reading.DoesNotExist:
+            from_date = datetime.now() - timedelta(days=13, hours=10)
+    else:
+        from_date = datetime.strptime(from_date, "%m/%d/%Y %H:%M %p")
+        to_date = datetime.strptime(to_date, "%m/%d/%Y %H:%M %p")
+
+    q = {
+        'reading__timestamp__gte': from_date,
+        'reading__timestamp__lte': to_date,
+    }
+    # if from_date > archival_date and to_date > archival_date:
+    current_readings = Reading.objects.filter(
+        station=site, **q).values_list('reading', flat=True)
+
+    readings = list(current_readings)
+    if readings:
+        df = pd.DataFrame(readings)
+        if not df.empty:
+            df = df[df['timestamp'].notna()]
+            df = df.fillna(0)
+            # sorting latest first
+            df.sort_values(by='timestamp', ascending=False, inplace=True)
+            df.columns = [a.upper() for a in list(df.columns.values)]
+            df.set_index('timestamp'.upper(), inplace=True)
+            df = df.loc[~df.index.duplicated(keep='first')]
+        tabl = df.to_html(classes='table_scroll')
+    else:
+        tabl = '<h3> No Records found from: %s to %s</h3><br>' \
+               'Please change date range' % (from_date, to_date)
+    context = {
+        'tabular': tabl,
+    }
+    return context
