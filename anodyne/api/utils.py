@@ -195,6 +195,7 @@ def chartsview(request):
     return HttpResponse(html)
 
 
+
 def tablesview(request):
     """Show the login page.
 

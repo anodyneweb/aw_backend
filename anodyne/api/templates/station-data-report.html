@@ -1,27 +1,20 @@
 {% extends "layout.html" %} {% load static %}
 {% block content %}
-<!-- Begin Page Content -->
+<style>
+</style>
 <div class="container-fluid">
-  <!-- Content Row -->
-  <div class="row">
+  <!-- Page Heading -->
+  <h1 class="h3 mb-2 text-gray-800">Station Data Report</h1>
+<!--  <p class="mb-4">SAGAR Test Table</p>-->
 
-    <div class="card shadow mb-4">
-      <div class="card-header py-3">
-        <div class="d-sm-flex align-items-center justify-content-between">
-          <h3 class="h3 mb-0 text-gray-800">Reporting</h3>
-        </div>
-      </div>
-      <div class="card-body">
-        <label id="rList_label" for="rList">Report</label>
-          <div class="btn-group" role="group" aria-label="Row Item 1">
-            <select title="Report Type" onchange="updateFields();"  id="rList" class="form-control col-md-10 select">
-                {% for rtype, report in reports %}
-                <option value={{rtype}}>{{report}}</option>
-                {% endfor %}
-            </select>
-          </div>
-
-        <label id="sList_label" for="sList">Station</label>
+  <div class="card shadow mb-4">
+    <!-- Card Header - Dropdown -->
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">{{ station_name }} | {{ industry_name }}</h6>
+    </div>
+    <!-- Card Body -->
+    <div class="card-body">
+      <label id="sList_label" for="sList">Station</label>
           <div class="btn-group" role="group" aria-label="Row Item 1">
             <select title="Report Type" id="sList" class="form-control col-md-10 select">
                 {% for uuid, station in station_options %}
@@ -32,14 +25,15 @@
         <label id="fList_label" for="fList">Average:</label>
           <div class="btn-group" role="group" aria-label="Row Item 1">
             <select title="Report Type" id="fList" class="form-control col-md-10 select">
-              <option value="Min15">Per 15 Min</option>
-              <option value="hourly">Per Hour</option>
-              <option value="daily">Per Day</option>
-              <option value="monthly">Per Month</option>
-              <option value="yearly">Per Year</option>
+              <option value="Min1">Realtime</option>
+              <option value="Min15">15 Min Average</option>
+              <option value="hourly">Hour Average</option>
+              <option value="daily">Day Average</option>
+              <option value="monthly">Month Average</option>
+              <option value="yearly">Year Average</option>
             </select>
           </div>
-        <div class="btn-group" role="group" aria-label="Row Item 3">
+      <div class="btn-group" role="group" aria-label="Row Item 3">
           <button class="btn-secondary btn-sm btn" type="button" >
               <a id="reportrange">
                 <i class="fa fa-calendar"></i>&nbsp;
@@ -50,7 +44,7 @@
                     onclick="get_data2();" class="btn btn-primary btn-sm">
               Update
             </button>
-          {% if can_download %}&nbsp;&nbsp;&nbsp;
+                      {% if can_download %}&nbsp;&nbsp;&nbsp;
             <a href="javascript:fnExcelReport('{{reportname}}');"
              class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
             <i class="fas fa-download fa-sm text-white-50"></i>&nbsp;Download
@@ -59,24 +53,26 @@
         </div>
         <br>
         <span id="loader" style="visibility: hidden; padding:5px">&nbsp;&nbsp;&nbsp;Please wait...&nbsp;<img src="/static/img/loader.gif" class="loader" height="20" width="20"></span>
-        <p>Please Download to see all records.</p>
-        <h3>{{ station_name }}</h3>
-        <h4>{{ industry_name }}</h4>
-        <div id="tabular" class="table-responsive">
-          {{ tabular|safe }}
+
+      <div id="tabular">
+          {% if can_download %}
+          <p>Please Download to see all records.</p>
+          {% endif %}
+      {{ tabular|safe }}
+
         </div>
-      </div>
-  </div>
+    </div>
   </div>
 </div>
-<!-- /.container-fluid -->
 {% endblock %}
 {% block scripts %}
-<!-- Bootstrap core  Table View JavaScript-->
-<!-- Table level plugins -->
+  <!-- Page level plugins -->
   <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
   <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
-  <!-- Table level custom scripts -->
+
+  <!-- Page level custom scripts -->
+  <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<!-- Bootstrap core Table View JavaScript Ends-->
 <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/moment.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'js/chart.min.js' %}"></script>
@@ -87,44 +83,15 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/daterangepicker.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'css/dropdown.min.css' %}">
 
-<!-- Bootstrap core Table View JavaScript Ends-->
+
 <script>
 $(document).ready(function() {
-
     $('#sList').val("{{current_station}}");
-
-    if ('{{current_report}}') {
-        console.log('{{current_report}}');
-        $('#rList').val("{{current_report}}");
+     if ('{{ current_freq }}' != 'None') {
+        $('#fList').val("{{current_freq}}");
     }
-    updateFields();
-
-
 });
 
-function updateFields(){
-// Disable Fields on current basis
-    if ($('#rList').val() == 'sdr')
-    {
-        document.getElementById('sList').style.visibility = "visible";
-        document.getElementById('sList_label').style.visibility = "visible";
-        document.getElementById('fList').style.visibility = "visible";
-        document.getElementById('fList_label').style.visibility = "visible";
-        //document.getElementById('dwlalert').style.visibility = "visible";
-
-
-    }
-    else{
-        document.getElementById('sList').style.visibility = "hidden";
-        document.getElementById('sList_label').style.visibility = "hidden";
-        document.getElementById('fList').style.visibility = "hidden";
-        document.getElementById('fList_label').style.visibility = "hidden";
-        //document.getElementById('dwlalert').style.visibility = "hidden";
-
-    }
-
-
-}
 var fromDate = null;
 var toDate = null;
 var sessionObject;
@@ -139,7 +106,6 @@ var end = moment();
 
     fromDate = start.format('MM/DD/YYYY');
     toDate = end.format('MM/DD/YYYY');
-
     }
     $('#reportrange').daterangepicker({
         timePicker: true,
@@ -149,8 +115,10 @@ var end = moment();
         ranges: {
            //'Today': [moment().startOf('day'), moment()],
            //'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
-           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
+           //'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
            'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
+           'This Year': [moment().startOf('year').startOf('day'), moment().endOf('month')],
+           'Last Year': [moment().subtract(1, 'year').startOf('year').startOf('day'), moment().subtract(1, 'year').endOf('year')],
            'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
            'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
         },
@@ -158,21 +126,20 @@ var end = moment();
     cb(start, end);
 });
 
+
 function get_data2(){
-    var rtype = $('#rList option:selected').val();
     var site = $('#sList option:selected').val();
     var freq = $('#fList option:selected').val();
     var siteTable = document.getElementById('tabular');
-    var URL  = '/dashboard/reports/'+rtype+'/'+freq+'/'+fromDate+'/'+toDate;
+    var URL  = '/dashboard/stationdata/'+site+'/'+freq+'/'+fromDate+'/'+toDate;
     console.log(URL);
     document.location.href = URL;
 }
 
 function fnExcelReport(fname){
     var site = $('#sList option:selected').val();
-    var rtype = $('#rList option:selected').val();
     var freq = $('#fList option:selected').val();
-    var URL  = '/dashboard/reports/'+rtype+'/'+freq+'/'+fromDate+'/'+toDate+'/'+fname;
+    var URL  = '/dashboard/stationdata/'+site+'/'+freq+'/'+fromDate+'/'+toDate+'/'+fname;
     window.open(URL, '_blank');
 }
 

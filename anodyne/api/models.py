@@ -116,6 +116,7 @@ class User(AbstractBaseUser):
                                  help_text='uncheck to block user (inactivate)',
                                  )
     staff = models.BooleanField(default=True)  # a staff not using it for now;
+    is_cpcb = models.BooleanField(default=False, help_text='Only for CPCB user')
     admin = models.BooleanField(default=False,
                                 help_text='admin user can add/edit/delete details')
     created = models.DateTimeField(default=django.utils.timezone.now,
@@ -134,6 +135,9 @@ class User(AbstractBaseUser):
                               to_field='name', null=True)
     city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
+    station = models.ManyToManyField('Station', default=None)
+
+
     # USER DETAILS ENDS
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name', ]
@@ -197,6 +201,33 @@ class User(AbstractBaseUser):
         a "dynamic property".
         """
         return self._generate_jwt_token()
+
+    # @staticmethod
+    # def new_user_hook(sender, instance, created, **kwargs):
+    #     """
+    #     A User post_save hook to create a User Profile
+    #     """
+    #     if created and instance.email != settings.ANONYMOUS_USER_NAME:
+    #         if instance.is_superuser:
+    #             # to add multiple many2many obj. use 'set' else 'add'
+    #             sites = Station.objects.select_related()
+    #             instance.site.set(sites)
+    #             instance.save()
+
+    @property
+    def assigned_stations(self):
+        if self.admin:
+            return Station.objects.select_related('industry')
+        return self.site.select_related('industry')
+
+
+    @property
+    def assigned_industries(self):
+        if self.is_admin:
+            return Industry.objects.all()
+        uuids = self.site.values_list('industry__uuid')
+        industries = Industry.objects.filter(uuid__in=uuids)
+        return industries
 
     # hook in the New Manager to our Model
     objects = UserManager()
@@ -379,8 +410,10 @@ class Station(models.Model):
                                verbose_name='CPCB Alert Contacts',
                                help_text='for multiple emails user semi-colon(;)',
                                blank=True)
-    closure_status = models.CharField(max_length=20, choices=CLOSURE_CHOICES,
+    closure_status = models.TextField(max_length=255,
+                                      verbose_name='Offline Reason',
                                       default=None,
+                                      help_text='Mention Offline Reason if any',
                                       blank=True)
     monitoring_type = models.CharField(max_length=20, default=None,
                                        choices=MONITORING_TYPE_CHOICES,
@@ -577,9 +610,11 @@ class StationParameter(models.Model):
 
 
 class Reading(models.Model):
-    station = models.ForeignKey(Station, null=True, to_field='prefix',
+    station = models.ForeignKey(Station,
+                                null=True,
                                 on_delete=models.CASCADE,
-                                db_index=True)
+                                db_index=True
+                                )
     reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:

@@ -1,9 +1,11 @@
 from crispy_forms.helper import FormHelper
 from django import forms
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.forms import ModelForm
 from django.urls import reverse
 
-from api.models import Station, Industry, User, Parameter, State, City
+from api.models import Station, Industry, User, Parameter, State, City, \
+    StationParameter
 
 ATTRS = {'class': 'textinput textInput form-control'}
 
@@ -20,9 +22,8 @@ class StationForm(ModelForm):
     )
     city_qst = City.objects.all().select_related('state')
     city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
-                                 attrs={'onchange': "GetLongLat(this)", })
-                             )
-
+        attrs={'onchange': "GetLongLat(this)", })
+                                  )
 
     class Meta:
         model = Station
@@ -38,7 +39,9 @@ class StationForm(ModelForm):
             'user_ph': forms.Textarea(attrs={'rows': 1}),
             'cpcb_email': forms.Textarea(attrs={'rows': 1}),
             'cpcb_ph': forms.Textarea(attrs={'rows': 1}),
+            'closure_status': forms.Textarea(attrs={'rows': 1}),
         }
+
 
 class IndustryForm(ModelForm):
     """
@@ -52,8 +55,8 @@ class IndustryForm(ModelForm):
     )
     city_qst = City.objects.all().select_related('state')
     city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
-                                 attrs={'onchange': "GetLongLat(this)", })
-                             )
+        attrs={'onchange': "GetLongLat(this)", })
+                                  )
 
     class Meta:
         model = Industry
@@ -83,6 +86,16 @@ class UserForm(ModelForm):
     city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
         attrs={'onchange': "GetLongLat(this)", })
                                   )
+    # station = forms.ModelMultipleChoiceField(required=False,
+    #                                       queryset=Station.objects.all(),
+    #                                       widget=FilteredSelectMultiple(
+    #                                           'Stations', False),
+    #                                       label='')
+    # class Media:
+    #     # for sites
+    #     css = {'all': ('admin/css/widgets.css', '/static/css/overrides.css'), }
+    #     # Adding this javascript is crucial
+    #     js = ['/admin/jsi18n/']
 
     class Meta:
         model = User
@@ -101,3 +114,14 @@ class ParameterForm(ModelForm):
     class Meta:
         model = Parameter
         fields = '__all__'
+
+
+class StationParameterForm(ModelForm):
+    """
+    This is related to Staff users only
+    """
+
+    class Meta:
+        model = StationParameter
+        fields = '__all__'
+        exclude = ('station', 'parameter')

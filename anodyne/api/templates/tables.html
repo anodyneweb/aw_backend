@@ -25,6 +25,24 @@
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="#">Something else here</a>
         </div>
+        <label id="sList_label" for="sList">Station</label>
+          <div class="btn-group" role="group" aria-label="Row Item 1">
+            <select title="Report Type" id="sList" class="form-control col-md-10 select">
+                {% for uuid, station in station_options %}
+                <option value={{uuid}}>{{station}}</option>
+                {% endfor %}
+            </select>
+          </div>
+        <label id="fList_label" for="fList">Average:</label>
+          <div class="btn-group" role="group" aria-label="Row Item 1">
+            <select title="Report Type" id="fList" class="form-control col-md-10 select">
+              <option value="Min15">Per 15 Min</option>
+              <option value="hourly">Per Hour</option>
+              <option value="daily">Per Day</option>
+              <option value="monthly">Per Month</option>
+              <option value="yearly">Per Year</option>
+            </select>
+          </div>
       </div>
     </div>
     <!-- Card Body -->

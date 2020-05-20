@@ -125,11 +125,13 @@ font-size: 15px;
         <div id="collapsethree" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
           <div class="bg-white py-2 collapse-inner rounded">
             <h6 class="collapse-header">Type:</h6>
-            <a class="collapse-item" href="{% url 'dashboard:reports' %}">Status Report</a>
-            <a class="collapse-item" href="{% url 'dashboard:tables' %}">Readings</a>
+            <a class="collapse-item" href="{% url 'dashboard:station-data' %}">Station Data Report</a>
+            <a class="collapse-item" href="{% url 'dashboard:exceedance' %}">Exceedance Count Report</a>
+            <a class="collapse-item" href="{% url 'dashboard:reports' %}">Others</a>
           </div>
         </div>
       </li>
+      {% if request.user.is_admin %}
       <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
           <i class="fas fa-fw fa-cog"></i>
@@ -151,6 +153,7 @@ font-size: 15px;
           </div>
         </div>
       </li>
+      {% endif %}
 
 <!--      <li class="nav-item">-->
 <!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">-->
@@ -328,7 +331,16 @@ font-size: 15px;
   {% block scripts %}
   {% endblock %}
 <script>
+
 $(function() {
+    // Hide SideBar by default Starts
+    $("body").toggleClass("sidebar-toggled");
+    $(".sidebar").toggleClass("toggled");
+    if ($(".sidebar").hasClass("toggled")) {
+      $('.sidebar .collapse').collapse('hide');
+    };
+    // Hide SideBar by default Ends
+
     // Fade out all messages after a delay.
     setTimeout(function() {
         $('.alert.message').fadeOut(500);
