@@ -64,12 +64,10 @@ var loader = document.getElementById('loader');
         if (industry.value != null && industry.value != '')
         {
             var $sites = $("#sList");
-            console.log($sites);
             loader.style.visibility = "visible";
         $.ajax({
             url: "/dashboard/GetSites?industry=" + industry.value
         }).done(function(details) {
-            console.log(details);
             $sites.empty(); // remove old options
             $.each(details.sites, function(key, value) {
                 $sites.append($("<option></option>").attr("value", value.uuid).text(value.name));
@@ -119,7 +117,6 @@ var loader = document.getElementById('loader');
 
     var map;
     function myMap(site) {
-    console.log(site.Industry);
     if(typeof site === "undefined"){
         // do nothing
 	  }else {
@@ -192,7 +189,6 @@ var loader = document.getElementById('loader');
 
         // creating map object
         map = new google.maps.Map(document.getElementById("sitesMap"), mapProp);
-        console.log(site.Uuid);
         // adding markers on the map
         var contentString = '<div id="content">' +
             '<div id="geo_site">' +

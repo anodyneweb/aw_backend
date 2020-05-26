@@ -1,5 +1,16 @@
 {% extends "layout.html" %} {% load static %}
+
 {% block content %}
+<style>
+  .ScrollStyle
+{
+    max-height: 400px;
+    max-widht: 600px;
+    overflow-y: scroll;
+
+}
+
+</style>
 <!-- Begin Page Content -->
 <div class="container-fluid">
   <!-- Content Row -->
@@ -32,7 +43,7 @@
         <label id="fList_label" for="fList">Average:</label>
           <div class="btn-group" role="group" aria-label="Row Item 1">
             <select title="Report Type" id="fList" class="form-control col-md-10 select">
-              <option value="Min15">Per 15 Min</option>
+              <option value="15Min">Per 15 Min</option>
               <option value="hourly">Per Hour</option>
               <option value="daily">Per Day</option>
               <option value="monthly">Per Month</option>
@@ -62,7 +73,7 @@
         <p>Please Download to see all records.</p>
         <h3>{{ station_name }}</h3>
         <h4>{{ industry_name }}</h4>
-        <div id="tabular" class="table-responsive">
+        <div class="table-responsive ScrollStyle" id="tabular">
           {{ tabular|safe }}
         </div>
       </div>

@@ -3,9 +3,11 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
+
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h5 class="m-0 font-weight-bold text-primary">{{ industry.name }}</h5>
+            <h5 class="m-0 font-weight-bold text-primary">{{ industry.name }}&nbsp;<sup><a href="#" class="btn btn-sm btn-{{details.label}}">{{ industry.status }}</a></sup></h5>
+
             <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -26,9 +28,75 @@
             </div>
         </div>
         <div class="card-body">
+            <p><b>Address:</b> &nbsp;{{ industry.address }}</p>
+
+
+            <div class="row">
+<!--                <div class="col-xl-3 col-md-6 mb-4">-->
+<!--                    <div class="card border-bottom-info shadow h-100 py-2">-->
+<!--                        <div class="card-body">-->
+<!--                            <div class="row no-gutters align-items-center">-->
+<!--                                <div class="col mr-2">-->
+<!--                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Exceedance</div>-->
+<!--                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.exceedance }}</div>-->
+<!--                                </div>-->
+<!--                                <div class="col-auto">-->
+<!--                                    <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>-->
+<!--                                </div>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-bottom-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Number Of Parameters</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.parameters }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-info fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-bottom-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Data Received On</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.last_seen }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-bottom-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Number Of Stations</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ details.stations }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-industry fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
             <div class="table-responsive">
-                {{ tabular|safe }}
-                <br>
                 {% if tabular_stations %}
                 <h6 class="m-0 font-weight-bold text-primary">Stations</h6>
                 {{ tabular_stations|safe }}
@@ -52,7 +120,7 @@
                     <h4>Stations listed below will be deleted as well, do you confirm?</h4>
                     <br>
                     {% for station in industry.station_set.all %}
-                        <li class="nav-item"> {{ station.name }}</li>
+                    <li class="nav-item"> {{ station.name }}</li>
                     {% endfor %}
                     {% else %}
                     <h4>Are you sure?</h4>
@@ -106,7 +174,7 @@
 
     <div class="modal fade" id="station-form">
         <div class="modal-dialog">
-        <div class="modal-content">
+            <div class="modal-content">
             <div class="modal-header">
                 <h3 class='modal-title'>
                     <b>Add Station</b>

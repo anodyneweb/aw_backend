@@ -1,6 +1,12 @@
 {% extends "layout.html" %} {% load static %}
 {% block content %}
 <style>
+.ScrollStyle
+{
+    max-height: 500px;
+    overflow-y: scroll;
+
+}
 </style>
 <div class="container-fluid">
   <!-- Page Heading -->
@@ -26,7 +32,7 @@
           <div class="btn-group" role="group" aria-label="Row Item 1">
             <select title="Report Type" id="fList" class="form-control col-md-10 select">
               <option value="Min1">Realtime</option>
-              <option value="Min15">15 Min Average</option>
+              <option value="15Min">15 Min Average</option>
               <option value="hourly">Hour Average</option>
               <option value="daily">Day Average</option>
               <option value="monthly">Month Average</option>
@@ -54,12 +60,12 @@
         <br>
         <span id="loader" style="visibility: hidden; padding:5px">&nbsp;&nbsp;&nbsp;Please wait...&nbsp;<img src="/static/img/loader.gif" class="loader" height="20" width="20"></span>
 
-      <div id="tabular">
+<div class="table-responsive ScrollStyle" id="tabular">
           {% if can_download %}
           <p>Please Download to see all records.</p>
           {% endif %}
-      {{ tabular|safe }}
 
+      {{ tabular|safe }}
         </div>
     </div>
   </div>

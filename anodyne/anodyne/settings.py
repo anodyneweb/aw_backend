@@ -158,7 +158,7 @@ APP_NAME = 'VepoLink'
 # can set environ LOGLEVEL=debug/info/error etc
 LOGLEVEL = os.environ.get('LOGLEVEL', 'debug').upper()
 LOG_PATH = os.path.join('/var/log/', 'vepolink')
-
+TMP_PATH = '/tmp/'
 if not os.path.exists(LOG_PATH):
     os.makedirs(LOG_PATH)
 

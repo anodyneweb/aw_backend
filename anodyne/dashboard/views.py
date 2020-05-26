@@ -22,7 +22,7 @@ from pandas import ExcelWriter
 from plotly.offline import plot
 import numpy as np
 from anodyne.connectors import connector
-from anodyne.settings import DATE_FMT
+from anodyne.settings import DATE_FMT, TMP_PATH
 from anodyne.views import get_rgb
 from api.GLOBAL import UNIT, CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
@@ -54,6 +54,18 @@ def yes_no(flag):
     return 'No'
 
 
+def get_status_label(status):
+    if status == 'Live':
+        label = 'success'
+    elif status == 'Delay':
+        label = 'warning'
+    else:
+        label = 'danger'
+    tmplt = '<a href="  # " class="btn btn-sm btn-%s">%s</a>' % (label,
+                                                                 status)
+    return tmplt
+
+
 class AuthorizedView(View):
     template_name = 'login.html'
 
@@ -66,6 +78,12 @@ class AuthorizedView(View):
 
 
 def make_clickable(html, **kwargs):
+    to_check = kwargs.get('to_check')
+    if to_check:
+        if kwargs.get(to_check):
+            return html.format(**kwargs)
+        else:
+            return kwargs.get('else_return')
     return html.format(**kwargs)
 
 
@@ -76,7 +94,8 @@ class DashboardView(AuthorizedView):
 
     def get(self, request):
         info_template = get_template('dashboard.html')
-        stations = Station.objects.filter().select_related(
+        stations = Station.objects.all()
+        stations = stations.select_related(
             'industry').values(
             'uuid',
             'industry__uuid',
@@ -97,24 +116,41 @@ class DashboardView(AuthorizedView):
 
         station_href = "<a href='/dashboard/station-info/{uuid}'>{station}</a>"
         industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
+        cam_templt = '<a href="{cam_url}" class="fa fa-camera fa-success" aria-hidden="true"></a>'
+        df['Camera'] = apply_func(cam_templt, cam_url=df['Camera'],
+                                  to_check='cam_url', else_return='')
         df['Station'] = apply_func(station_href, uuid=df['uuid'],
                                    station=df['Station'])
         df['Industry'] = apply_func(industry_href, uuid=df['industry__uuid'],
                                     industry=df['Industry'])
         df['Added_On'] = df['Added_On'].dt.strftime('%d-%B-%Y')
-
+        total_industries = len(set(list(df['industry__uuid'])))
+        seen_on = []
+        for uuid in df['industry__uuid']:
+            records = StationInfo.objects.filter(
+                station__industry__uuid=uuid).distinct(
+                'station__industry').values_list('last_seen', flat=True)
+            if records:
+                seen_on.append(records[0])
+            else:
+                seen_on.append(' ')
+        df['Last Data Update'] = seen_on
         df = df.drop(columns=['uuid', 'industry__uuid'])
+
         details = {
+            'total_industries': total_industries,
             'total': df.shape[0],
             'live': df[df['Status'] == 'Live'].shape[0],
             'delay': df[df['Status'] == 'Delay'].shape[0],
             'offline': df[df['Status'] == 'Offline'].shape[0],
 
         }
+        apply_status_label = np.vectorize(get_status_label)
+        df['Status'] = apply_status_label(df['Status'])
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center', escape=False),
+                                  justify='left', escape=False),
             'details': details
         }
         html = info_template.render(content, request)
@@ -225,7 +261,7 @@ class StationView(AuthorizedView):
             content.update({
                 'param_table': df.to_html(classes="table table-bordered",
                                           table_id="dataTable", index=False,
-                                          justify='center', escape=False),
+                                          justify='left', escape=False),
 
             })
 
@@ -288,6 +324,8 @@ class IndustryView(AuthorizedView):
             df_station['Name'] = apply_func(station_href,
                                             uuid=df_station['uuid'],
                                             station=df_station['Name'])
+            apply_status_label = np.vectorize(get_status_label)
+            df_station['Status'] = apply_status_label(df_station['Status'])
             df_station = df_station.drop(columns=['uuid', 'industry__uuid'])
             content.update({
                 'tabular_stations': df_station.to_html(
@@ -307,10 +345,36 @@ class IndustryView(AuthorizedView):
         df = pd.DataFrame(industry_row)
         apply_yes_no = np.vectorize(yes_no)
         df['Ganga'] = apply_yes_no(df['Ganga'])
+        parameters = StationParameter.objects.filter(
+            station__industry=industry).distinct('parameter__name')
+        last_seen = StationInfo.objects.filter(
+            station__industry__uuid=industry.uuid).distinct(
+            'station__industry').values_list('last_seen', flat=True)
+        if not last_seen:
+            last_seen = 'Never'
+        else:
+            last_seen = last_seen[0].strftime('%d/%m/%Y %H:%M %p')
+
+        if industry.status == 'Live':
+            label = 'success'
+        elif industry.status == 'Delay':
+            label = 'warning'
+        else:
+            label = 'danger'
+        details = {
+            'parameters': parameters.count(),
+            'last_seen': last_seen,
+            'exceedance': 20,
+            'stations': len(stations),
+            'label': label
+
+        }
         content.update({
-            'tabular': df.to_html(classes="table table-bordered",
-                                  table_id="dataTable", index=False,
-                                  justify='center'),
+            'details': details,
+
+            # 'tabular': df.to_html(classes="table table-bordered",
+            #                       table_id="dataTable", index=False,
+            #                                       justify='left'),
 
             'industry': industry,
             'form': IndustryForm(instance=industry),
@@ -356,11 +420,13 @@ class IndustryView(AuthorizedView):
 
             industry_href = "<a href='/dashboard/industry-info/{uuid}'>{industry}</a>"
             df['Industry Name'] = apply_func(industry_href,
-                                    uuid=df['S No.'],
-                                    industry=df['Industry Name'])
+                                             uuid=df['S No.'],
+                                             industry=df['Industry Name'])
             df['S No.'] = [idx + 1 for idx, _ in enumerate(df['S No.'])]
             df['Added On'] = df['Added On'].dt.strftime('%m-%d-%Y')
             df['Last Data Fetched'] = seen_on
+            apply_yes_no = np.vectorize(yes_no)
+            df['Ganga Basin'] = apply_yes_no(df['Ganga Basin'])
             df = df[[
                 'S No.',
                 'Industry Name',
@@ -378,7 +444,7 @@ class IndustryView(AuthorizedView):
             content = {
                 'tabular': df.to_html(classes="table table-bordered",
                                       table_id="dataTable", index=False,
-                                      justify='center', escape=False),
+                                      justify='left', escape=False),
                 'form': IndustryForm()
             }
 
@@ -455,7 +521,7 @@ class UserView(AuthorizedView):
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center'),
+                                  justify='left'),
             'user': user,
             'form': UserForm(instance=user)
         }
@@ -484,7 +550,7 @@ class UserView(AuthorizedView):
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center', escape=False),
+                                  justify='left', escape=False),
             'form': UserForm(),
 
         }
@@ -560,7 +626,7 @@ class ParameterView(AuthorizedView):
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center'),
+                                  justify='left'),
             'parameter': parameter,
             'form': ParameterForm(instance=parameter)
         }
@@ -587,7 +653,7 @@ class ParameterView(AuthorizedView):
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center', escape=False),
+                                  justify='left', escape=False),
 
         }
         info_template = get_template('parameter.html')
@@ -747,287 +813,6 @@ class ManagementView(AuthorizedView):
         return HttpResponse(html)
 
 
-import math
-
-
-# class ReportView(AuthorizedView):
-#
-#     def get(self, request, rtype=None, from_date=None, to_date=None, station=None):
-#         context = {}
-#         reports = (
-#             ('sdr', 'Data Report'),  # needs station data report
-#             ('offr', 'Monthly Offline Report'),  # industry wise
-#             ('indr', 'Industry Report'),  # Live Industry Report?
-#
-#             ('er', 'Exceedance Report'),  # needs stations list
-#
-#             ('lodr', 'Weekly Live Offline Report'),
-#
-#             # TODO
-#             ('smser', 'SMS Email Report'),
-#             ('alarmr', 'Alarm Report'),
-#             ('mtnr', 'Maintenance Report'),
-#         )
-#
-#         categories = Category.objects.all().values_list('name', flat=True)
-#         stations = request.user.assigned_stations.order_by(
-#             'name').values(**{
-#             "uid": F('uuid'),
-#             "sname": F('name')
-#             # "sname": Concat(F('name'), Value(': '),
-#             #                 F('industry__name'),
-#             #                 output_field=CharField())
-#
-#         })
-#         df = pd.DataFrame(stations)
-#         station_options = list(zip(df.uid, df.sname))
-#
-#         if from_date and to_date:
-#             from_date = datetime.strptime(from_date, "%m/%d/%Y")
-#             to_date = datetime.strptime(to_date, "%m/%d/%Y")
-#         else:
-#             to_date = datetime.now()
-#             from_date = to_date - timedelta(days=100)
-#         if rtype:
-#             if rtype == 'sdr':
-#                 context.update(**self.get_station_data(station, from_date, to_date))
-#             if rtype == 'offr':
-#                 context.update(**self.get_monthly_offline(from_date, to_date))
-#             if rtype == 'indr':
-#                 context.update(
-#                     **self.get_industry_live_report(from_date, to_date))
-#
-#         context.update({
-#             'reports': reports,
-#             'categories': categories,
-#             'current_rtype': rtype,
-#             'from_date': from_date,
-#             'to_date': to_date,
-#             'station_options': station_options
-#         })
-#
-#         info_template = get_template('reports.html')
-#         html = info_template.render(context, request)
-#         return HttpResponse(html)
-#
-#     def get_station_data(self, station, from_date, to_date):
-#         q = {
-#             'Category': F('industry__type'),
-#             'Industry Code': F('industry__industry_code'),
-#             'Name of Industry': F('industry__name'),
-#             'Name of Station': F('name'),
-#             'Address': F('industry__address'),
-#             'State': F('industry__state__name'),
-#             'Status': F('industry__status'),
-#             'In Ganga Indusrty': F('industry__ganga'),
-#         }
-#         reading_q = {
-#             'reading__timestamp__gte': from_date,
-#             'reading__timestamp__lte': to_date,
-#         }
-#
-#         stations = Reading.objects.filter(station__uuid=station, **reading_q).values_list(
-#             'station__prefix',
-#             flat=True).distinct('station')
-#
-#         stations = Station.objects.filter(
-#             prefix__in=stations).select_related(
-#             'industry').values(**q)
-#         df = pd.DataFrame(stations)
-#         df['S No.'] = [sno + 1 for sno in range(len(df.Category))]
-#         # BUG: can't format here have to concatenate only
-#         # generating hyperlinks
-#         df = df[[
-#             "S No.",
-#             "Category",
-#             "Industry Code",
-#             "Name of Industry",
-#             "Name of Station",
-#             "Address",
-#             "State",
-#             "Status",
-#             "In Ganga Indusrty"
-#         ]]
-#         context = {
-#             'current_station': station,
-#             'csv_name': from_date.strftime('%B_%Y'),
-#             'tabular': df.to_html(classes="table table-bordered",
-#                                   table_id="dataTable", index=False,
-#                                   justify='center', escape=False),
-#         }
-#         return context
-#
-#     def get_monthly_offline(self, from_date, to_date):
-#         columns = {
-#             'Category': F('industry__type'),
-#             'Industry Code': F('industry__industry_code'),
-#             'Industry': F('industry__name'),
-#             'Address': F('industry__address'),
-#             'Contact No.': F('industry__user__phone'),  # TBD
-#             'State': F('industry__state'),
-#             'Station': F('name'),
-#             'Last Data Fetched': F('stationinfo__last_seen'),
-#             'Ganga Basin': F('industry__ganga'),
-#             'Reason for offline': F('closure_status'),
-#             'uid': F('uuid'),
-#         }
-#         x = StationInfo.objects.all().values('station__name', 'last_seen')
-#         industries = self.request.user.assigned_stations.filter(
-#             stationinfo__last_seen__gte=from_date,
-#         ).order_by('name', '-stationinfo__last_seen').distinct('name').values(
-#             **columns)
-#         # industries = self.request.user.assigned_stations.all().order_by('name',
-#         #                                                               '-stationinfo__last_seen').distinct(
-#         #     'name').values(**columns)
-#         df = pd.DataFrame(industries)
-#         if not df.empty:
-#             parameters = []
-#             for uid in df['uid']:
-#                 parameters.append(
-#                     ', '.join(
-#                         StationParameter.objects.filter(
-#                             station__uuid=uid).values_list(
-#                             'parameter__name', flat=True)))
-#             df['Parameters'] = parameters
-#             #
-#             # df['Days Since Offline'] = (pd.Timestamp.today() - pd.to_datetime(
-#             #     df['Last Data Fetched'])).dt.days
-#             df['Last Data Fetched'] = df['Last Data Fetched'].dt.strftime(
-#                 "%Y-%m-%d %H:%M:%S")
-#             df = df.sort_values(by=['Last Data Fetched'], ascending=False)
-#             apply_yes_no = np.vectorize(yes_no)
-#             df['Ganga Basin'] = apply_yes_no(df['Ganga Basin'])
-#             df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
-#             # rdate = datetime.now().strftime('%d_%m_%Y')
-#             # writer = ExcelWriter('latest_offline_report_%s.xlsx' % rdate)
-#             # df.to_excel(writer, rdate, index=False)
-#             # writer.save()
-#             df = df[[
-#                 "S No.",
-#                 "Category",
-#                 "Industry Code",
-#                 "Industry",
-#                 "Contact No.",
-#                 "State",
-#                 "Station",
-#                 "Parameters",
-#                 "Last Data Fetched",
-#                 # "Days Since Offline",
-#                 "Ganga Basin",
-#                 "Reason for offline",
-#                 "Address"
-#             ]]
-#
-#             columns = list(df.columns)
-#             df.rename(columns={col: col.upper() for col in columns},
-#                       inplace=True)
-#             records2html = df.to_html(classes="table table-bordered",
-#                                       table_id="dataTable", index=False,
-#                                       justify='center', escape=False)
-#         else:
-#
-#             records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
-#                 from_date.date(), to_date.date())
-#         context = {
-#             'csv_name': 'some_name',
-#             'tabular': records2html
-#         }
-#         return context
-#
-#     def get_industry_live_report(self, from_date, to_date):
-#         columns = {
-#             'Category': F('industry__type'),
-#             'Industry Code': F('industry__industry_code'),
-#             'Industry': F('industry__name'),
-#             'Address': F('industry__address'),
-#             'State': F('industry__state'),
-#             'In Ganga Industry': F('industry__ganga'),
-#             'uid': F('uuid'),
-#         }
-#         industries = self.request.user.assigned_stations.filter(
-#             stationinfo__last_seen__gte=(
-#                     datetime.now() - timedelta(hours=1008))).order_by('name',
-#                                                                       '-stationinfo__last_seen').distinct(
-#             'name').values(**columns)
-#         df = pd.DataFrame(industries)
-#         if not df.empty:
-#             df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
-#             # writer = ExcelWriter('latest_offline_report_%s.xlsx' % rdate)
-#             # df.to_excel(writer, rdate, index=False)
-#             # writer.save()
-#             df = df[[
-#                 "S No.",
-#                 "Category",
-#                 "Industry Code",
-#                 "Industry",
-#                 "Address",
-#                 "State",
-#                 "In Ganga Industry"
-#             ]]
-#
-#             columns = list(df.columns)
-#             df.rename(columns={col: col.upper() for col in columns},
-#                       inplace=True)
-#             records2html = df.to_html(classes="table table-bordered",
-#                                       table_id="dataTable", index=False,
-#                                       justify='center', escape=False)
-#         else:
-#
-#             records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
-#                 from_date.date(), to_date.date())
-#         context = {
-#             'csv_name': 'some_name',
-#             'tabular': records2html
-#         }
-#         return context
-#
-#     def get_weekly_live_offline_report(self, from_date, to_date):
-#         columns = {
-#             'Category': F('industry__type'),
-#             'Industry Code': F('industry__industry_code'),
-#             'Industry': F('industry__name'),
-#             'Address': F('industry__address'),
-#             'State': F('industry__state'),
-#             'In Ganga Industry': F('industry__ganga'),
-#             'uid': F('uuid'),
-#         }
-#         industries = self.request.user.assigned_stations.filter(
-#             stationinfo__last_seen__lt=(
-#                     datetime.now() - timedelta(hours=8))).order_by('name',
-#                                                                    '-stationinfo__last_seen').distinct(
-#             'name').values(**columns)
-#         df = pd.DataFrame(industries)
-#         df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
-#         # writer = ExcelWriter('latest_offline_report_%s.xlsx' % rdate)
-#         # df.to_excel(writer, rdate, index=False)
-#         # writer.save()
-#         df = df[[
-#             "S No.",
-#             "Category",
-#             "Industry Code",
-#             "Industry",
-#             "Address",
-#             "State",
-#             "In Ganga Industry"
-#         ]]
-#         if not df.empty:
-#             columns = list(df.columns)
-#             df.rename(columns={col: col.upper() for col in columns},
-#                       inplace=True)
-#             records2html = df.to_html(classes="table table-bordered",
-#                                       table_id="dataTable", index=False,
-#                                       justify='center', escape=False)
-#         else:
-#
-#             records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
-#                 from_date.date(), to_date.date())
-#         context = {
-#             'csv_name': 'some_name',
-#             'tabular': records2html
-#         }
-#         return context
-
-
 def industry_sites(request):
     i_uuid = request.GET.get('industry') or None
     if i_uuid:
@@ -1165,7 +950,7 @@ def make_chart(**kwargs):
                 'avg': "{:.2f}".format(df[param].mean()),
                 "last_received": last_received_df.timestamp.iloc[0],
                 "last_value": "{0:.2f}".format(
-                        last_received_df[param].iloc[0])
+                    last_received_df[param].iloc[0])
             }
             df[param] = df[param].fillna(0)
             df[param] = df[param].astype(float)
@@ -1329,7 +1114,8 @@ def site_tabular_readings(**kwargs):
             df.columns = [a.upper() for a in list(df.columns.values)]
             df.set_index('timestamp'.upper(), inplace=True)
             df = df.loc[~df.index.duplicated(keep='first')]
-        tabl = df.to_html(classes='table_scroll')
+        tabl = df.to_html(classes='table_scroll',
+                          justify='left')
     else:
         tabl = '<h3> No Records found from: %s to %s</h3><br>' \
                'Please change date range' % (from_date, to_date)
@@ -1453,18 +1239,30 @@ class StationDataReportView(AuthorizedView):
             df = df.dropna(axis=0, how='all', thresh=None,
                            subset=list(df.columns), inplace=False)
             df.sort_values(by='TIMESTAMP', ascending=False, inplace=True)
+            columns = list(df.columns)
+            new_col = {}
+            for param in columns:
+                try:
+                    p = Parameter.objects.get(name__iexact=param)
+                    new_col[param] = '%s (%s)' % (p.name, p.unit)
+                except Parameter.DoesNotExist:
+                    new_col[param] = param
+
+            df.rename(columns=new_col, inplace=True)
 
             if dwld:
-                writer = ExcelWriter(fname, engine='xlsxwriter',
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
                 df.to_excel(writer)
                 writer.save()
-                return fname
+                return fpath
 
             records2html = df.to_html(
                 classes="table table-bordered",
-                max_rows=50
+                max_rows=50,
+                justify='left'
             )
             can_download = True
         else:
@@ -1586,17 +1384,19 @@ class ExceedanceDataReportView(AuthorizedView):
 
             newdf = pd.DataFrame([adict])
             if dwld:
-                writer = ExcelWriter(fname, engine='xlsxwriter',
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
                 newdf.to_excel(writer)
                 writer.save()
-                return fname
+                return fpath
 
             records2html = newdf.to_html(
                 classes="table table-bordered",
                 index=False,
-                max_rows=50
+                max_rows=50,
+                justify='left'
             )
             can_download = True
         else:
@@ -1709,7 +1509,8 @@ class ReportView(AuthorizedView):
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = 'live_offline_report_%s.xlsx' % rdate
         if dwld:
-            writer = ExcelWriter(fname, engine='xlsxwriter',
+            fpath = os.path.join(TMP_PATH, fname)
+            writer = ExcelWriter(fpath, engine='xlsxwriter',
                                  datetime_format='mm-dd-yyyy hh:mm:ss',
                                  date_format='mm-dd-yyyy')
             df_live = df[df['Status'] == 'Live']
@@ -1719,16 +1520,17 @@ class ReportView(AuthorizedView):
             df_delay = df[df['Status'] == 'Delay']
             df_delay.to_excel(writer, 'Delay', index=False)
             writer.save()
-            return fname
+            return fpath
 
         if not df.empty:
             columns = list(df.columns)
             df.rename(columns={col: col.upper() for col in columns},
                       inplace=True)
 
-            records2html = df.to_html(
-                classes='report_scroll table table-bordered table-responsive '
-                        'table-hover', table_id='reportTable')
+            records2html = df.to_html(index=False,
+                                      justify='left',
+                                      classes='table_scroll',
+                                      table_id='reportTable')
             can_download = True
         else:
 
@@ -1806,22 +1608,22 @@ class ReportView(AuthorizedView):
             df.rename(columns={col: col.upper() for col in columns},
                       inplace=True)
             records2html = df.to_html(
-                classes='report_scroll table table-bordered table-responsive '
-                        'table-hover',
+                classes='table_scroll',
                 index=False,
-                justify='center',
+                justify='left',
                 # max_cols=14,
                 # max_rows=20
                 table_id='reportTable'
             )
             can_download = True
             if dwld:
-                writer = ExcelWriter(fname, engine='xlsxwriter',
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
                 df.to_excel(writer, rdate, index=False)
                 writer.save()
-                return fname
+                return fpath
         else:
 
             records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
