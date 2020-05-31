@@ -7,13 +7,7 @@ This file will run as independent entity.
 import argparse
 import os
 import sys
-
 import django
-from django.db import IntegrityError
-from django.db.models import F
-
-from anodyne import settings
-from api.utils import send_mail
 
 FTP_BASE = os.environ.get('FTP_PATH', '/var/www/ftp_home/')
 #  you have to set the correct path to you settings module
@@ -22,14 +16,26 @@ PROJ_PATH = "/home/ubuntu/aw_backend/anodyne"
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "anodyne.settings")
 sys.path.append(PROJ_PATH)
 django.setup()
+
+from django.db import IntegrityError
+from django.db.models import F
+
+from anodyne import settings
+from api.utils import send_mail
+
 from api.models import Station, Reading, StationParameter, \
     Exceedance, SMSAlert
 from datetime import datetime, timedelta
 import pandas as pd
+import logging
+
+log = logging.getLogger('vepolink')
 
 
-# Runs every 3rd hour
+# 0 0,2,4,6,8,10,12,14,16,18,20,22 * * * sudo python3 /home/ubuntu/aw_backend/anodyne/scripts/check_exceedance.py
+# Runs every 2nd hour
 def check4exceedance(hours=3):
+    log.info('Checking Exceedance')
     to_date = datetime.now()
     from_date = to_date - timedelta(hours=hours)
     q = {
@@ -42,6 +48,7 @@ def check4exceedance(hours=3):
         reading = Reading.objects.filter(station=station,
                                          **q).values_list('reading', flat=True)
         df = pd.DataFrame(reading)
+        log.info('Exceedance Details:%s' % df.head())
         if not df.empty:
             pd.set_option('display.float_format', lambda x: '%.2f' % x)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -68,7 +75,6 @@ def check4exceedance(hours=3):
                     if not exceed_df.empty:
                         exceedances = []
                         for idx, row in exceed_df.iterrows():
-                            # print(row['timestamp'], row[col])
                             tstamp, value = row['timestamp'], row[col]
                             tmp = {
                                 "station": station,
@@ -82,9 +88,10 @@ def check4exceedance(hours=3):
                                 Exceedance.objects.bulk_create(
                                     [Exceedance(**q) for q in exceedances])
                             except IntegrityError:
-                                print('Exists..........')
+                                pass
                             msg = '%s exceeds %s times in last 3 hours.' % (
                                 col, len(exceed_df[col]))
+                            log.info(msg)
                             # TODO: send sms here
                             SMSAlert.objects.create(
                                 station=station,
@@ -102,19 +109,12 @@ def check4exceedance(hours=3):
                                           #                fail_silently=True
                                           )
                             except Exception as err:
-                                print(
+                                log.exception(
                                     'Failed to send exceedance email to %s due to %s' % (
-                                    email_id,
-                                    err))
+                                        email_id,
+                                        err))
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='This Exceednace check')
-    # parser.add_argument('-n', dest='nightly', action="store_true",
-    #                     default=False)
-    # parser.add_argument('-f', dest='four_hour', action="store_true",
-    #                     default=False)
-    # arguments = parser.parse_args()
-    # nightly = arguments.nightly
-    # four_hour = arguments.four_hour
+    parser = argparse.ArgumentParser(description='Exceednace check')
     check4exceedance()
