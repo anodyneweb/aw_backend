@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.contrib.postgres.fields import CICharField
 from django.db import models
+
 log = logging.getLogger('vepolink')
 from django.contrib.postgres.fields import HStoreField
 
@@ -47,6 +48,10 @@ class Category(models.Model):
 
 class PCB(models.Model):
     name = models.CharField(max_length=256, unique=True)
+    email = models.EmailField(verbose_name='PCB Email',
+                              max_length=255,
+                              blank=True
+                              )
     var1 = models.CharField(max_length=256)
     var2 = models.CharField(max_length=256)
     var3 = models.TextField(default=None)
@@ -116,7 +121,8 @@ class User(AbstractBaseUser):
                                  help_text='uncheck to block user (inactivate)',
                                  )
     staff = models.BooleanField(default=True)  # a staff not using it for now;
-    is_cpcb = models.BooleanField(default=False, help_text='Only for CPCB user')
+    is_cpcb = models.BooleanField(default=False,
+                                  help_text='Only for CPCB user')
     admin = models.BooleanField(default=False,
                                 help_text='admin user can add/edit/delete details')
     created = models.DateTimeField(default=django.utils.timezone.now,
@@ -136,7 +142,6 @@ class User(AbstractBaseUser):
     city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
     station = models.ManyToManyField('Station', default=None)
-
 
     # USER DETAILS ENDS
     USERNAME_FIELD = 'email'
@@ -219,7 +224,6 @@ class User(AbstractBaseUser):
         if self.admin:
             return Station.objects.select_related('industry')
         return self.site.select_related('industry')
-
 
     @property
     def assigned_industries(self):
@@ -650,4 +654,136 @@ class Registration(models.Model):
         blank=True
     )
 
+
+class Exceedance(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    parameter = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+    )
+    value = models.FloatField(
+        default=0,
+        null=True
+    )
+    timestamp = models.DateTimeField()
+
+    def __str__(self):
+        return '%s: %s (%s)' % (self.station, self.parameter, self.value)
+
+    class Meta:
+        unique_together = (('station', 'parameter', 'value', 'timestamp'),)
+
+
+class SMSAlert(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    message = models.TextField(default=None)
+    contact = models.TextField(default=None,
+                               help_text='Contacts Semicolon separated')
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return '%s: %s' % (self.station, self.message)
+
+
+class Device(models.Model):
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Name')
+    make = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Device Make')
+    upload_method = models.CharField(
+        max_length=256,
+        choices=(
+            ('MODBUS', 'MODBUS'),
+            ('API', 'API'),
+            ('CLIENT SW', 'CLIENT SW'),
+        ),
+        blank=True,
+        verbose_name='Upload Method')
+    process_attached = models.CharField(
+        max_length=256,
+        choices=(
+            ('ETP', 'ETP'),
+            ('STACK', 'STACK'),
+            ('STP', 'STP'),
+        ),
+        blank=True,
+        verbose_name='Process Attached')
+    type = models.CharField(
+        max_length=256,
+        blank=True,
+        choices=(
+            ('GROUND WATER', 'GROUND WATER'),
+            ('CAAQMS', 'CAAQMS'),
+            ('CEMS', 'CEMS'),
+            ('ASH', 'ASH'),
+            ('GPS', 'GPS'),
+            ('ANALYZER', 'ANALYZER'),
+            ('CAMERA', 'CAMERA'),
+        ),
+        verbose_name='Type')
+    system_certified = models.BooleanField(
+        max_length=256,
+        blank=True,
+        verbose_name='System Certified')
+    frequency = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Frequency')
+    manufacture = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Manufacture')
+    model = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Model')
+    serial_no = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Serial No.')
+    description = models.TextField(
+        blank=True,
+        verbose_name='Description')
+    oem_vendor = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='OEM Vendor')
+
+
+class Maintenance(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
+    parameter = models.ForeignKey(
+        Parameter,
+        on_delete=models.CASCADE,
+    )
+    start_date = models.DateField(default=django.utils.timezone.now,
+                                  blank=True,
+                                  verbose_name='Start Date')
+    end_date = models.DateField(default=django.utils.timezone.now,
+                                blank=True,
+                                verbose_name='End Date')
+    send_to_pcb = models.ForeignKey(PCB,
+                                    on_delete=models.CASCADE,
+                                    verbose_name='Send To')
+    comments = models.TextField()
 ##############################################################################

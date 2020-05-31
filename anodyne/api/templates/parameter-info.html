@@ -80,13 +80,16 @@
 {% endblock %}
 {% block scripts %}
 <script>
+console.log('settings...')
+var color_code = document.getElementById('id_color_code');
+color_code.type = 'color';
 
 $('#delete-confirm').click(function () {
 // Sending as Delete request
     $('#delete-form').modal('hide');
     console.log('DELETING....');
     $.ajax({
-        url: "/dashboard/parameter-info/{{ param.id }}",
+        url: "/dashboard/parameter-info/{{ pk }}",
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');

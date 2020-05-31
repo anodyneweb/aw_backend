@@ -5,7 +5,8 @@ from django.urls import path
 from dashboard.views import StationView, IndustryView, UserView, ParameterView, \
     DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
     plot_chart, ReportView, plot_table, StationDataReportView, \
-    StationParameterView, ExceedanceDataReportView
+    StationParameterView, ExceedanceDataReportView, SMSReportView, \
+    IndustryReportView, MaintenanceView, DeviceView
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -82,6 +83,32 @@ urlpatterns = [
         r'^reports/(?P<rtype>[aA-zZ]+)/(?P<freq>[aA-zZ0-9]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
         ReportView.as_view(),
         name='download-report'),
+
+    url(r'^smsreport$', SMSReportView.as_view(),
+        name='smsreport'),
+    url(
+        r'^smsreport/(?P<pk>[aA-zZ0-9-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})$',
+        SMSReportView.as_view(), name='smsreport-details'),
+    url(
+        r'^smsreport/(?P<pk>[0-9a-f-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
+        SMSReportView.as_view(), name='dwld-smsreport'),
+
+    url(r'^industryreport$', IndustryReportView.as_view(),
+        name='industryreport'),
+    url(
+        r'^industryreport/(?P<pk>[aA-zZ0-9-]+)/(?P<type>[aA-zZ0-9]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})$',
+        IndustryReportView.as_view(), name='industryreport-details'),
+    url(
+        r'^industryreport/(?P<pk>[0-9a-f-]+)/(?P<type>[aA-zZ0-9]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
+        IndustryReportView.as_view(), name='dwld-industryreport'),
+
+    url(r'^maintenance/$', MaintenanceView.as_view(), name='maintenance'),
+    path('maintenance-info/<int:pk>', MaintenanceView.as_view(),
+         name='maintenance-info'),
+
+url(r'^device/$', DeviceView.as_view(), name='device'),
+    path('device-info/<int:pk>', DeviceView.as_view(),
+         name='device-info'),
 
     url(r'graphdata$', plot_chart),
     url(r'tabulardata$', plot_table),

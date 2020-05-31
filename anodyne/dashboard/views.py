@@ -1,14 +1,12 @@
-import os
 import json
-import random
+import os
 from datetime import datetime, timedelta
 
+import numpy as np
 import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core import serializers
-from django.db import IntegrityError
-from django.db.models import F, Value, CharField
+from django.db.models import F, Value, CharField, Count
 from django.db.models.functions import Concat
 from django.http import Http404, HttpResponse, JsonResponse, \
     HttpResponseBadRequest, FileResponse
@@ -20,15 +18,13 @@ from django.views import View
 from markupsafe import Markup
 from pandas import ExcelWriter
 from plotly.offline import plot
-import numpy as np
-from anodyne.connectors import connector
+
 from anodyne.settings import DATE_FMT, TMP_PATH
 from anodyne.views import get_rgb
-from api.GLOBAL import UNIT, CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
-    Reading, Category, StationInfo
+    Reading, Category, StationInfo, Exceedance, Maintenance, Device
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
-    StationParameterForm
+    StationParameterForm, MaintenanceForm, DeviceForm
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -186,7 +182,7 @@ class StationView(AuthorizedView):
         content = {
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
-                                  justify='center', escape=False),
+                                  justify='left', escape=False),
             'form': StationForm()
         }
         info_template = get_template('station.html')
@@ -331,7 +327,7 @@ class IndustryView(AuthorizedView):
                 'tabular_stations': df_station.to_html(
                     classes="table table-bordered",
                     table_id="dataTable", index=False,
-                    justify='center', escape=False),
+                    justify='left', escape=False),
             })
         industry_row = [dict(
             Name=industry.name,
@@ -628,6 +624,7 @@ class ParameterView(AuthorizedView):
                                   table_id="dataTable", index=False,
                                   justify='left'),
             'parameter': parameter,
+            'pk': pk,
             'form': ParameterForm(instance=parameter)
         }
         info_template = get_template('parameter-info.html')
@@ -688,12 +685,12 @@ class ParameterView(AuthorizedView):
             for err in errors:
                 messages.info(request, err, extra_tags='danger')
 
-        url = reverse('dashboard:parameter-info', kwargs={'slug': pk})
+        url = reverse('dashboard:parameter-info', kwargs={'pk': pk})
         return redirect(url)
 
     def delete(self, request, pk, format=None):
         if request.user.is_admin:
-            parameter = self._get_object(id)
+            parameter = self._get_object(pk)
             parameter.delete()
             message = 'Successfully Deleted'
             messages.success(request, message, extra_tags="success")
@@ -749,7 +746,7 @@ class StationParameterView(AuthorizedView):
 
     def delete(self, request, pk, format=None):
         if request.user.is_admin:
-            parameter = self._get_object(id)
+            parameter = self._get_object(pk)
             parameter.delete()
             message = 'Successfully Deleted'
             messages.success(request, message, extra_tags="success")
@@ -903,7 +900,8 @@ def make_chart(**kwargs):
     xaxis = dict(showgrid=True, title_text='Time', linecolor='grey')
     yaxis = dict(showgrid=True, title_text='Param Value', linecolor='grey')
     layout = dict(autosize=True,
-                  paper_bgcolor='white', plot_bgcolor='white',
+                  paper_bgcolor='white',
+                  plot_bgcolor='white',
                   xaxis=xaxis,
                   yaxis=yaxis,
                   title=site.name,
@@ -935,8 +933,9 @@ def make_chart(**kwargs):
     for param in list(df.columns):
         # param should be in parameters list else its blocked
         if param != 'timestamp':
-            clr = get_rgb()
+
             parameter = Parameter.objects.get(name__icontains=param)
+            clr = parameter.color_code or get_rgb()
             df[param] = df[param].apply(pd.to_numeric, args=('coerce',))
             last_received_df = df[['timestamp', param]]
             last_received_df = last_received_df.dropna(axis=0, how='all',
@@ -1114,8 +1113,10 @@ def site_tabular_readings(**kwargs):
             df.columns = [a.upper() for a in list(df.columns.values)]
             df.set_index('timestamp'.upper(), inplace=True)
             df = df.loc[~df.index.duplicated(keep='first')]
-        tabl = df.to_html(classes='table_scroll',
-                          justify='left')
+        tabl = df.to_html(
+            classes="table table-bordered",
+            justify='left'
+        )
     else:
         tabl = '<h3> No Records found from: %s to %s</h3><br>' \
                'Please change date range' % (from_date, to_date)
@@ -1141,6 +1142,7 @@ class StationDataReportView(AuthorizedView):
                             output_field=CharField())
 
         })
+
         df = pd.DataFrame(stations)
         station_options = list(zip(df.uid, df.sname))
         # we will give time frame for month wise and all
@@ -1427,6 +1429,16 @@ class ReportView(AuthorizedView):
                             output_field=CharField())
 
         })
+        industries = request.user.assigned_industries.order_by(
+            'name').values(**{
+            "uid": F('uuid'),
+            "iname": Concat(F('name'), Value(': '),
+                            F('type'),
+                            output_field=CharField())
+
+        })
+        idf = pd.DataFrame(industries)
+        industry_options = list(zip(idf.uid, idf.iname))
         df = pd.DataFrame(stations)
         station_options = list(zip(df.uid, df.sname))
         # we will give time frame for month wise and all
@@ -1434,10 +1446,7 @@ class ReportView(AuthorizedView):
             ('lodr', 'Live Offline Delay'),
             ('mor', 'Monthly Offline Report'),
             # ('indr', 'Industry Report'),
-            # ('smsr', 'SMS Report'),
             # ('mbr', 'Monthly Backup Report'),
-            # ('smsr', 'SMS Report'),
-
             # later ('cpcbar', 'Alarm Report'),
             # later ('shr', 'Station Halt Report'),
             # later ('dr', 'Distillery Report'),
@@ -1447,6 +1456,8 @@ class ReportView(AuthorizedView):
         context = {
             'reports': reports,
             'categories': categories,
+            'station_options': station_options,
+            'industry_options': industry_options
         }
 
         if not (from_date and to_date):  # '%d/%m/%Y'
@@ -1454,7 +1465,8 @@ class ReportView(AuthorizedView):
             to_date = datetime.now()
         else:
             from_date = datetime.strptime(from_date, "%m/%d/%Y")
-            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y").replace(hour=23,
+                                                                     minute=59)
 
         q = {
             'reading__timestamp__gte': from_date,
@@ -1485,6 +1497,7 @@ class ReportView(AuthorizedView):
             'to_date': to_date.date(),
             # 'tabular': tabular,
             'current_report': rtype or 'lodr',
+            'current_industry': None
             # 'can_download': can_download
         })
         info_template = get_template('reports.html')
@@ -1529,7 +1542,7 @@ class ReportView(AuthorizedView):
 
             records2html = df.to_html(index=False,
                                       justify='left',
-                                      classes='table_scroll',
+                                      classes="table table-bordered",
                                       table_id='reportTable')
             can_download = True
         else:
@@ -1579,13 +1592,14 @@ class ReportView(AuthorizedView):
                             station__uuid=uid).values_list(
                             'parameter__name', flat=True)))
             df['Parameters'] = parameters
-            #
             df['Days Since Offline'] = (pd.Timestamp.today() - pd.to_datetime(
                 df['Last Data Fetched'])).dt.days
             df['Last Data Fetched'] = df['Last Data Fetched'].dt.strftime(
                 "%Y-%m-%d %H:%M:%S")
             df = df.sort_values(by=['Last Data Fetched'], ascending=False)
             df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
+            apply_yes_no = np.vectorize(yes_no)
+            df['Ganga Basin'] = apply_yes_no(df['Ganga Basin'])
 
             df = df[[
                 "S No.",
@@ -1608,7 +1622,7 @@ class ReportView(AuthorizedView):
             df.rename(columns={col: col.upper() for col in columns},
                       inplace=True)
             records2html = df.to_html(
-                classes='table_scroll',
+                classes="table table-bordered",
                 index=False,
                 justify='left',
                 # max_cols=14,
@@ -1635,3 +1649,478 @@ class ReportView(AuthorizedView):
             'reportname': fname
         }
         return context
+
+
+class SMSReportView(AuthorizedView):
+
+    def get(self, request, **kwargs):
+        pk = kwargs.get('pk')
+        from_date = kwargs.get('from_date')
+        to_date = kwargs.get('to_date')
+        dwld = kwargs.get('dwld')
+
+        industries = request.user.assigned_industries.order_by(
+            'name').values(**{
+            "uid": F('uuid'),
+            "sname": F('name'),
+        })
+        df = pd.DataFrame(industries)
+        industry_options = [('All', 'All')]
+        industry_options.extend(list(zip(df.uid, df.sname)))
+        # we will give time frame for month wise and all
+        context = {
+            'industry_options': industry_options,
+        }
+        if not (from_date and to_date):  # '%d/%m/%Y'
+            from_date = datetime.now() - timedelta(days=30)
+            to_date = datetime.now()
+        else:
+            from_date = datetime.strptime(from_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+        if pk:
+            q = {
+                'reading__timestamp__gte': from_date,
+                'reading__timestamp__lte': to_date.replace(hour=23, minute=59),
+                'dwld': dwld  # this will come via ajax,
+            }
+            if pk != 'All':
+                industry = request.user.assigned_industries.get(uuid=pk)
+                context.update({
+                    'current_industry': pk,
+                    'industry': industry
+                })
+
+            if dwld:
+                report = self.get_sms_report(**q)
+                fl = open(report, 'rb')
+                response = FileResponse(fl,
+                                        filename=os.path.basename(report))
+                return response
+            else:
+                context.update(self.get_sms_report(**q))
+
+            context.update({
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+                # 'tabular': tabular,
+                'current_industry': pk,
+            })
+        else:
+            context.update({
+                'current_industry': industry_options[0][0],
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+            })
+
+        info_template = get_template('sms-data-report.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def get_sms_report(self, **q):
+        dwld = q.pop('dwld')
+        from_date = q.get('reading__timestamp__gte')
+        to_date = q.get('reading__timestamp__lte')
+        query = {
+            "timestamp__gte": from_date,
+            "timestamp__lte": to_date,
+
+        }
+        if 'industry' in q:
+            industry = q.pop('industry')
+            query.update({
+                "station__industry": industry
+            })
+
+        columns = {
+            'Category': F('station__industry__type'),
+            'Industry Code': F('station__industry__industry_code'),
+            'Industry Name': F('station__industry__name'),
+            'Address': F('station__industry__address'),
+            'Contact No.': F('station__user_ph'),  # TBD
+            'State': F('station__industry__state'),
+            'Station': F('station__name'),
+            'Ganga Basin': F('station__industry__ganga'),
+            'uid': F('station__uuid'),
+            'Parameter': F('parameter')
+        }
+        records = Exceedance.objects.filter(**query
+                                            ).values(**columns).annotate(
+            Exceedance=Count('parameter')).order_by('Exceedance')
+
+        df = pd.DataFrame(records)
+        rdate = datetime.now().strftime('%d_%m_%Y')
+        fname = 'sms_report_%s.xlsx' % rdate
+        if not df.empty:
+            df["Parameter Standard Limit"] = ['' for a in df['Parameter']]
+            df["Total SMS"] = [a for a in df['Exceedance']]
+            df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
+            apply_yes_no = np.vectorize(yes_no)
+            df['Ganga Basin'] = apply_yes_no(df['Ganga Basin'])
+
+            df = df[[
+                "S No.",
+                "Category",
+                "Industry Code",
+                "Industry Name",
+                "Address",
+                "Contact No.",
+                "State",
+                "Station",
+                "Parameter Standard Limit",
+                "Parameter",
+                "Exceedance",
+                "Total SMS",
+                "Ganga Basin",
+            ]]
+
+            columns = list(df.columns)
+            df.rename(columns={col: col.upper() for col in columns},
+                      inplace=True)
+            records2html = df.to_html(
+                classes="table table-bordered",
+                index=False,
+                justify='left',
+                # max_cols=14,
+                # max_rows=20
+                table_id='reportTable'
+            )
+            can_download = True
+            if dwld:
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
+                                     datetime_format='mm-dd-yyyy hh:mm:ss',
+                                     date_format='mm-dd-yyyy')
+                df.to_excel(writer, rdate, index=False)
+                writer.save()
+                return fpath
+        else:
+            records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
+                from_date.date(), to_date.date())
+            can_download = False
+        context = {
+            'can_download': can_download,
+            'tabular': records2html,
+            'reportname': fname
+        }
+        return context
+
+
+class IndustryReportView(AuthorizedView):
+
+    def get(self, request, **kwargs):
+        pk = kwargs.get('pk')
+        type = kwargs.get('type')
+        from_date = kwargs.get('from_date')
+        to_date = kwargs.get('to_date')
+        dwld = kwargs.get('dwld')
+
+        industries = request.user.assigned_industries.order_by(
+            'name').values(**{
+            "uid": F('uuid'),
+            "sname": F('name'),
+        })
+        category = Category.objects.all().values('id', 'name')
+        cdf = pd.DataFrame(category)
+        df = pd.DataFrame(industries)
+        category_options = [('All', 'All')]
+        category_options.extend(list(zip(cdf.id, cdf.name)))
+        industry_options = [('All', 'All')]
+        industry_options.extend(list(zip(df.uid, df.sname)))
+        # we will give time frame for month wise and all
+        context = {
+            'industry_options': industry_options,
+            'category_options': category_options,
+        }
+        if not (from_date and to_date):  # '%d/%m/%Y'
+            from_date = datetime.now() - timedelta(days=30)
+            to_date = datetime.now()
+        else:
+            from_date = datetime.strptime(from_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+
+        context.update({
+            'current_industry': pk,
+            'current_category': type,
+        })
+        if pk:
+            q = {
+                'from_date': from_date,
+                'to_date': to_date.replace(hour=23, minute=59),
+                'type': type,
+                'industry': pk,
+                'dwld': dwld  # this will come via ajax,
+            }
+
+            if dwld:
+                report = self.get_industry_report(**q)
+                fl = open(report, 'rb')
+                response = FileResponse(fl,
+                                        filename=os.path.basename(report))
+                return response
+            else:
+                context.update(self.get_industry_report(**q))
+
+            context.update({
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+                # 'tabular': tabular,
+                'current_industry': pk,
+            })
+        else:
+            context.update({
+                'current_industry': industry_options[0][0],
+                'current_category': category_options[0][0],
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+            })
+
+        info_template = get_template('industry-data-report.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def get_industry_report(self, **q):
+        dwld = q.pop('dwld')
+        industry_uuid = q.pop('industry')
+        from_date = q.get('from_date')
+        to_date = q.get('to_date')
+        category = q.get('type')
+
+        columns = {
+            'Category': F('type'),
+            'Industry Code': F('industry_code'),
+            'Industry Name': F('name'),
+            'Address': F('address'),
+            'State': F('state'),
+            'Status': F('status'),
+            'Ganga Basin': F('ganga'),
+            'uid': F('uuid'),
+        }
+        records = self.request.user.assigned_industries.filter(
+            station__stationinfo__last_seen__gte=from_date,
+            station__stationinfo__last_seen__lte=to_date
+        )
+
+        if industry_uuid != 'All':
+            records = records.filter(uuid=industry_uuid)
+
+        if category != 'All':
+            records = records.filter(type__id=category)
+        records = records.values(**columns)
+        df = pd.DataFrame(records)
+        rdate = datetime.now().strftime('%d_%m_%Y')
+        fname = 'industry_report_%s.xlsx' % rdate
+        if not df.empty:
+            df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
+            apply_yes_no = np.vectorize(yes_no)
+            df['Ganga Basin'] = apply_yes_no(df['Ganga Basin'])
+
+            df = df[[
+                "S No.",
+                "Category",
+                "Industry Code",
+                "Industry Name",
+                "Address",
+                "State",
+                "Status",
+                "Ganga Basin",
+            ]]
+
+            columns = list(df.columns)
+            df.rename(columns={col: col.upper() for col in columns},
+                      inplace=True)
+            records2html = df.to_html(
+                classes="table table-bordered",
+                index=False,
+                justify='left',
+                # max_cols=14,
+                # max_rows=20
+                table_id='reportTable'
+            )
+            can_download = True
+            if dwld:
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
+                                     datetime_format='mm-dd-yyyy hh:mm:ss',
+                                     date_format='mm-dd-yyyy')
+                df.to_excel(writer, rdate, index=False)
+                writer.save()
+                return fpath
+        else:
+            records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
+                from_date.date(), to_date.date())
+            can_download = False
+        context = {
+            'can_download': can_download,
+            'tabular': records2html,
+            'reportname': fname
+        }
+        return context
+
+
+class MaintenanceView(AuthorizedView):
+    def _get_object(self, pk):
+        try:
+            return Maintenance.objects.get(id=pk)
+        except Maintenance.DoesNotExist:
+            raise Http404
+
+    def _get_maintenance(self, request, pk):
+        mntnc = self._get_object(pk)
+        content = {
+            'parameter': mntnc,
+            'pk': pk,
+            'station': mntnc.station,
+            'form': MaintenanceForm(instance=mntnc)
+        }
+        info_template = get_template('maintenance-info.html')
+        # TODO: this render guy takes time
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def get(self, request, pk=None):
+        if pk:
+            return self._get_maintenance(request, pk)
+
+        maintenance = Maintenance.objects.all().select_related('station').values(
+            ID=F('id'),
+            Name=F('station__name'),
+            Parameter=F('parameter__name'),
+            Start=F('start_date'),
+            To=F('send_to_pcb__name'),
+            End=F('end_date'),
+            Comment=F('comments'),
+        )
+        df = pd.DataFrame(maintenance)
+        mntnc_href = "<a href='/dashboard/maintenance-info/{id}'>{name}</a>"
+        df['Name'] = apply_func(mntnc_href, id=df['ID'], name=df['Name'])
+        df = df.drop(columns=['ID'])
+
+        content = {
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='left', escape=False),
+            'form': MaintenanceForm()
+        }
+        info_template = get_template('maintenance.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def post(self, request, pk=None):
+        return self._update_maintanence(request, pk)
+
+    def _update_maintanence(self, request, pk):
+        if pk:
+            mtnc = self._get_object(pk)
+            form = MaintenanceForm(request.POST, instance=mtnc)
+            url = reverse('dashboard:maintenance-info', kwargs={'pk': pk})
+        else:
+            form = MaintenanceForm(request.POST)
+            url = reverse('dashboard:maintenance-info', kwargs={'pk': pk})
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
+        else:
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
+        return redirect(url)
+
+    def delete(self, request, pk, format=None):
+        if request.user.is_admin:
+            mntnc = self._get_object(pk)
+            mntnc.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
+        else:
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)
+
+
+class DeviceView(AuthorizedView):
+    def _get_object(self, pk):
+        try:
+            return Device.objects.get(id=pk)
+        except Device.DoesNotExist:
+            raise Http404
+
+    def _get_device(self, request, pk):
+        device = self._get_object(pk)
+        content = {
+            'device': device,
+            'pk': pk,
+            'form': DeviceForm(instance=device)
+        }
+        info_template = get_template('device-info.html')
+        # TODO: this render guy takes time
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def get(self, request, pk=None):
+        if pk:
+            return self._get_device(request, pk)
+        columns = {
+            "Id": F("id"),
+            "Name": F("name"),
+            "Make": F("make"),
+            "Upload Method": F("upload_method"),
+            "Process Attached": F("process_attached"),
+            "Type": F("type"),
+            "System Certified": F("system_certified"),
+            "Frequency": F("frequency"),
+            "Manufacture": F("manufacture"),
+            "Model": F("model"),
+            "Serial No.": F("serial_no"),
+            "Description": F("description"),
+            "OEM Vendor": F("oem_vendor"),
+        }
+        maintenance = Device.objects.all().values(**columns)
+        df = pd.DataFrame(maintenance)
+        if not df.empty:
+            mntnc_href = "<a href='/dashboard/device-info/{id}'>{name}</a>"
+            df['Name'] = apply_func(mntnc_href, id=df['Id'], name=df['Name'])
+            df = df.drop(columns=['Id'])
+        content = {
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='left', escape=False),
+            'form': DeviceForm()
+        }
+        info_template = get_template('device.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def post(self, request, pk=None):
+        return self._update_device(request, pk)
+
+    def _update_device(self, request, pk):
+        if pk:
+            dvc = self._get_object(pk)
+            form = DeviceForm(request.POST, instance=dvc)
+            url = reverse('dashboard:device-info', kwargs={'pk': pk})
+        else:
+            form = DeviceForm(request.POST)
+            url = reverse('dashboard:device')
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
+        else:
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+        return redirect(url)
+
+    def delete(self, request, pk, format=None):
+        if request.user.is_admin:
+            device = self._get_object(pk)
+            device.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
+        else:
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)

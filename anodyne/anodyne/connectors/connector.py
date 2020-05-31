@@ -3,6 +3,7 @@ import csv
 import logging
 import os
 from datetime import datetime
+from pytz import timezone
 
 from anodyne.connectors import prequisite
 from anodyne.connectors.to_database import ToDatabase
@@ -32,9 +33,10 @@ class ReadCSV:
                     tstamp, value = reader[idx + 2][:2]
                     readings[param] = value
                     try:
-                        tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
-                    except:
-                        tstamp = tstamp
+                        tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S").utcnow()
+                        tstamp = timezone('Asia/Kolkata').localize(tstamp)
+                    except ValueError:
+                        log.exception('Incorrect timestamp')
             readings['timestamp'] = tstamp
         return readings
         # df = pd.DataFrame([readings])

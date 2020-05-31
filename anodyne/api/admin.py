@@ -50,5 +50,7 @@ admin.site.register(StationParameter)
 admin.site.register(Parameter)
 admin.site.register(Registration)
 admin.site.register(Unit)
+admin.site.register(Exceedance)
+admin.site.register(SMSAlert)
 # Remove Group Model from admin. We're not using it.
 admin.site.unregister(Group)

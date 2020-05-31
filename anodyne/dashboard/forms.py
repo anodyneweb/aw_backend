@@ -5,7 +5,7 @@ from django.forms import ModelForm
 from django.urls import reverse
 
 from api.models import Station, Industry, User, Parameter, State, City, \
-    StationParameter
+    StationParameter, Maintenance, Device
 
 ATTRS = {'class': 'textinput textInput form-control'}
 
@@ -86,6 +86,7 @@ class UserForm(ModelForm):
     city = forms.ModelChoiceField(queryset=city_qst, widget=forms.Select(
         attrs={'onchange': "GetLongLat(this)", })
                                   )
+
     # station = forms.ModelMultipleChoiceField(required=False,
     #                                       queryset=Station.objects.all(),
     #                                       widget=FilteredSelectMultiple(
@@ -110,7 +111,6 @@ class ParameterForm(ModelForm):
     """
     This is related to Staff users only
     """
-
     class Meta:
         model = Parameter
         fields = '__all__'
@@ -125,3 +125,34 @@ class StationParameterForm(ModelForm):
         model = StationParameter
         fields = '__all__'
         exclude = ('station', 'parameter')
+
+
+class MaintenanceForm(ModelForm):
+    class Meta:
+        model = Maintenance
+        fields = '__all__'
+
+    start_date = forms.DateField(
+        widget=forms.TextInput(
+            attrs={'type': 'date'}
+        )
+    )
+    end_date = forms.DateField(
+        widget=forms.TextInput(
+            attrs={'type': 'date'}
+        )
+    )
+    comments = forms.CharField(
+        widget=forms.Textarea(
+            attrs={'rows': 2}
+        )
+    )
+
+
+class DeviceForm(ModelForm):
+    class Meta:
+        model = Device
+        fields = '__all__'
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 2}),
+        }

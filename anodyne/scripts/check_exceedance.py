@@ -1,90 +1,33 @@
-import json
-import logging
-import math
+#!/usr/bin/python3
+"""
+Task of this watchdog is to only keep track in any new file has come to the
+server this will intimate application about new files for processing.
+This file will run as independent entity.
+"""
+import os
+import sys
+
+import django
 from django.db import IntegrityError
 from django.db.models import F
-from datetime import datetime, timedelta
 
 from anodyne import settings
-from api.models import Reading, Station, StationInfo, StationParameter, \
-    Exceedance, SMSAlert
 from api.utils import send_mail
 
-log = logging.getLogger('vepolink')
-
-
-class ToDatabase:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
-
-    def _clean_reading(self, reading):
-        if reading:
-            clean_reading = {}
-            for k, v in reading.items():
-                if k.lower() == 'timestamp':
-                    k = k.lower()
-                    clean_reading[k] = v
-                else:
-                    try:
-                        value = float(v)
-                        if not math.isnan(value):
-                            clean_reading[k] = '{0:.2f}'.format(value)
-                    except ValueError:
-                        pass
-            if len(clean_reading.keys()) > 1:
-                return clean_reading
-
-    def insert(self):
-        basename = self.kwargs.get('basename')
-        response = {
-            'success': False,
-            'msg': ''
-        }
-        db_status = {
-            'db': response
-        }
-        log.info('Adding to database:%s' % self.kwargs)
-        try:
-            readings = self._clean_reading(self.kwargs.get('readings'))
-            if readings:
-                station = Station.objects.get(prefix=self.kwargs.get('prefix'))
-                Reading.objects.create(
-                    station=station,
-                    reading=readings
-                )
-                station.status = 'Live'
-                station.save()
-                sinfo, created = StationInfo.objects.get_or_create(
-                    station=station)
-                obj = sinfo if sinfo else created
-                obj.last_seen = readings.get('timestamp')
-                obj.last_upload_info = json.dumps(response)
-                readings['timestamp'] = readings.get('timestamp').strftime(
-                    '%Y-%m-%d %H:%M:%S ')
-                obj.readings = json.dumps(readings)
-                obj.save()
-                log.info('Added to Reading successfully')
-                response['success'] = True
-                response['msg'] = "%s: Added Readings" % basename
-            else:
-                response['success'] = False
-                response['msg'] = "%s: No Readings Found" % basename
-        except IntegrityError:
-            response['msg'] = "%s: Reading exists." % basename
-            return db_status
-        except Exception as err:
-            response['success'] = False
-            response['msg'] = "%s: Failed to readings to databse %s" % (
-                basename, err
-            )
-            log.exception('DB ERROR')
-
-        return db_status
-
-
+FTP_BASE = os.environ.get('FTP_PATH', '/var/www/ftp_home/')
+#  you have to set the correct path to you settings module
+# TODO: to enable this host django app properly on server
+PROJ_PATH = "/home/ubuntu/aw_backend/anodyne"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "anodyne.settings")
+sys.path.append(PROJ_PATH)
+django.setup()
+from api.models import Station, Reading, StationParameter, \
+    Exceedance, SMSAlert
+from datetime import datetime, timedelta
 import pandas as pd
 
 
+# Runs every 3rd hour
 def check4exceedance():
     to_date = datetime.now()
     from_date = to_date - timedelta(hours=24)

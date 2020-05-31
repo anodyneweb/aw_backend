@@ -9,55 +9,32 @@
     overflow-y: scroll;
 
 }
-
 </style>
 <!-- Begin Page Content -->
-
-
-
-
 <div class="container-fluid">
   <!-- Content Row -->
     <div class="card shadow mb-4">
       <div class="card-header py-3">
         <div class="d-sm-flex align-items-center justify-content-between">
-          <h3 class="h3 mb-0 text-gray-800">Reporting</h3>
+          <h3 class="h3 mb-0 text-gray-800">Industry Reports</h3>
         </div>
       </div>
       <div class="card-body">
         <div class="form-row">
           <div class="form-group col-md-3">
-            <label id="rList_label" for="rList">Report</label>
-            <select title="Report Type" onchange="updateFields();"  id="rList" class="form-control select">
-              {% for rtype, report in reports %}
-              <option value={{rtype}}>{{report}}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group col-md-3">
-            <label id="iList_label" for="fList">Industry:</label>
-            <select title="Industry" id="iList" class="form-control select">
+            <label id="iList_label" for="iList">Industry:</label>
+            <select title="Industry" id="iList" class="form-control select" onchange="updateFields();">
               {% for uuid, industry in industry_options %}
               <option value={{uuid}}>{{industry}}</option>
               {% endfor %}
             </select>
           </div>
-          <div class="form-group col-md-3">
-            <label id="sList_label" for="sList">Station</label>
-            <select title="Report Type" id="sList" class="form-control col-md-6 select">
-              {% for uuid, station in station_options %}
-              <option value={{uuid}}>{{station}}</option>
+        <div class="form-group col-md-3">
+            <label id="cList_label" for="cList">Category:</label>
+            <select title="Industry" id="cList" class="form-control select">
+              {% for id, category in category_options %}
+              <option value={{id}}>{{category}}</option>
               {% endfor %}
-            </select>
-          </div>
-          <div class="form-group col-md-3">
-            <label id="fList_label" for="fList">Average:</label>
-            <select title="Report Type" id="fList" class="form-control col-md-6 select">
-              <option value="15Min">Per 15 Min</option>
-              <option value="hourly">Per Hour</option>
-              <option value="daily">Per Day</option>
-              <option value="monthly">Per Month</option>
-              <option value="yearly">Per Year</option>
             </select>
           </div>
         </div>
@@ -83,7 +60,7 @@
         <br>
 
         <span id="loader" style="visibility: hidden; padding:5px">&nbsp;&nbsp;&nbsp;Please wait...&nbsp;<img src="/static/img/loader.gif" class="loader" height="20" width="20"></span>
-        <p>Please Download to see all records.</p>
+        <p>Industries Sending Data to PCB</p>
         <h3>{{ station_name }}</h3>
         <h4>{{ industry_name }}</h4>
         <div class="table-responsive ScrollStyle" id="tabular">
@@ -113,48 +90,26 @@
 <!-- Bootstrap core Table View JavaScript Ends-->
 <script>
 $(document).ready(function() {
-
-    $('#sList').val("{{current_station}}");
-    $('#iList').val("{{industry_station}}");
-
-    if ('{{current_report}}') {
-        console.log('{{current_report}}');
-        $('#rList').val("{{current_report}}");
-    }
+    $('#iList').val("{{current_industry}}");
+    $('#cList').val("{{current_category}}");
     updateFields();
-
-
 });
 
 function updateFields(){
 // Disable Fields on current basis
-    if ($('#rList').val() == 'sdr')
+    if ($('#iList').val() == 'All')
     {
-        document.getElementById('sList').style.visibility = "visible";
-        document.getElementById('sList_label').style.visibility = "visible";
-        document.getElementById('fList').style.visibility = "visible";
-        document.getElementById('fList_label').style.visibility = "visible";
-        //document.getElementById('dwlalert').style.visibility = "visible";
-
-
-    }
-    else if ($('#rList').val() == 'smsr') {
-        document.getElementById('sList').style.visibility = "hidden";
-        document.getElementById('sList_label').style.visibility = "hidden";
-        document.getElementById('fList').style.visibility = "hidden";
-        document.getElementById('fList_label').style.visibility = "hidden";
+        document.getElementById('cList').style.visibility = "visible";
+        document.getElementById('cList_label').style.visibility = "visible";
     }
     else{
-        document.getElementById('iList').style.visibility = "hidden";
-        document.getElementById('iList_label').style.visibility = "hidden";
-        document.getElementById('sList').style.visibility = "hidden";
-        document.getElementById('sList_label').style.visibility = "hidden";
-        document.getElementById('fList').style.visibility = "hidden";
-        document.getElementById('fList_label').style.visibility = "hidden";
-        //document.getElementById('dwlalert').style.visibility = "hidden";
-
+        document.getElementById('cList').style.visibility = "hidden";
+        document.getElementById('cList_label').style.visibility = "hidden";
+        $('#cList').val('All');
     }
 }
+
+
 var fromDate = null;
 var toDate = null;
 var sessionObject;
@@ -189,20 +144,17 @@ var end = moment();
 });
 
 function get_data2(){
-    var rtype = $('#rList option:selected').val();
-    var site = $('#sList option:selected').val();
-    var freq = $('#fList option:selected').val();
+    var industry = $('#iList option:selected').val();
+    var category = $('#cList option:selected').val();
     var siteTable = document.getElementById('tabular');
-    var URL  = '/dashboard/reports/'+rtype+'/'+freq+'/'+fromDate+'/'+toDate;
-    console.log(URL);
+    var URL  = '/dashboard/industryreport/'+industry+'/'+category+'/'+fromDate+'/'+toDate;
     document.location.href = URL;
 }
 
 function fnExcelReport(fname){
-    var site = $('#sList option:selected').val();
-    var rtype = $('#rList option:selected').val();
-    var freq = $('#fList option:selected').val();
-    var URL  = '/dashboard/reports/'+rtype+'/'+freq+'/'+fromDate+'/'+toDate+'/'+fname;
+    var industry = $('#iList option:selected').val();
+    var category = $('#cList option:selected').val();
+    var URL  = '/dashboard/industryreport/'+industry+'/'+category+'/'+fromDate+'/'+toDate+'/'+fname;
     window.open(URL, '_blank');
 }
 
