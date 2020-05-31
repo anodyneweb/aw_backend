@@ -48,10 +48,7 @@
         </div>
     </div>
 
-
-    <div class="col-sm-12" id="geo">
         <div id="sitesMap" class="col"></div>
-    </div>
 
 
 </div>
@@ -60,65 +57,204 @@
 {% block scripts %}
 <script type="text/javascript">
 var loader = document.getElementById('loader');
-    function GetSites(industry) {
-        if (industry.value != null && industry.value != '')
-        {
-            var $sites = $("#sList");
-            loader.style.visibility = "visible";
-        $.ajax({
-            url: "/dashboard/GetSites?industry=" + industry.value
-        }).done(function(details) {
-            $sites.empty(); // remove old options
-            $.each(details.sites, function(key, value) {
-                $sites.append($("<option></option>").attr("value", value.uuid).text(value.name));
-            });
-            if (details.sites.length > 0) {
-                $("#site_dd").show();
-                $('#site_dd_p').removeAttr('style').text('choose site for info.')
-                $("#site_dd_p").show();
-                GetSiteDetails(details.sites[0]);
-                loader.style.visibility = "hidden";
-            } else {
-                $("#site_dd").hide();
-                $("#geo").hide();
-                $('#site_dd_p').css("color", "red").text('no site available under this industry')
-                $("#site_dd_p").show();
-                $('#siteinfotable').hide();
-                loader.style.visibility = "hidden";
-            }
-
-        });
-            }else{
-                $("#site_dd").hide();
-                $("#geo").hide();
-                $("#site_dd_p").hide();
-                $('#siteinfotable').hide();
-                loader.style.visibility = "hidden";
-            }
-    }
-
-    function GetSiteDetails(s) {
-        var site;
-        if (s.uuid == null) {
-            site = s.value;
-        } else {
-            site = s.uuid;
-        }
+function GetSites(industry) {
+    if (industry.value != null && industry.value != '')
+    {
+        var $sites = $("#sList");
         loader.style.visibility = "visible";
-        $.ajax({
-            url: "/dashboard/GetSiteDetails?site=" + site
-        }).done(function(details) {
-            var lt = details.Latitude;
-            var lg = details.Longitude;
-            myMap(details);
-            $('#geo').show();
+    $.ajax({
+        url: "/dashboard/GetSites?industry=" + industry.value
+    }).done(function(details) {
+        $sites.empty(); // remove old options
+        $.each(details.sites, function(key, value) {
+            $sites.append($("<option></option>").attr("value", value.uuid).text(value.name));
         });
+        if (details.sites.length > 0) {
+            $("#site_dd").show();
+            $('#site_dd_p').removeAttr('style').text('choose site for info.')
+            $("#site_dd_p").show();
+            GetSiteDetails(details.sites[0]);
+            loader.style.visibility = "hidden";
+        } else {
+            $("#site_dd").hide();
+            $("#geo").hide();
+            $('#site_dd_p').css("color", "red").text('no site available under this industry')
+            $("#site_dd_p").show();
+            $('#siteinfotable').hide();
+            loader.style.visibility = "hidden";
+        }
+
+    });
+        }else{
+            $("#site_dd").hide();
+            $("#geo").hide();
+            $("#site_dd_p").hide();
+            $('#siteinfotable').hide();
+            loader.style.visibility = "hidden";
+        }
+}
+
+function GetSiteDetails(s) {
+    var site;
+    if (s.uuid == null) {
+        site = s.value;
+    } else {
+        site = s.uuid;
     }
+    loader.style.visibility = "visible";
+    $.ajax({
+        url: "/dashboard/GetSiteDetails?site=" + site
+    }).done(function(details) {
+        var lt = details.Latitude;
+        var lg = details.Longitude;
+        myMap(details);
+        $('#geo').show();
+    });
+}
+
+
+
+
 
     var map;
     function myMap(site) {
     if(typeof site === "undefined"){
-        // do nothing
+    var icon = {
+        url: "/static/img/marker.png",
+        scaledSize: new google.maps.Size(34, 35), // scaled size
+        origin: new google.maps.Point(0,0), // origin
+        anchor: new google.maps.Point(0, 0) // anchor
+    };
+    var mapProp= {
+            center: new google.maps.LatLng(28.7041,77.1025),
+            zoom: 9,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            styles: [
+        {
+            "featureType": "administrative",
+            "elementType": "labels.text.fill",
+            "stylers": [
+                {
+                    "color": "#444444"
+                }
+            ]
+        },
+        {
+            "featureType": "landscape",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "color": "#f2f2f2"
+                }
+            ]
+        },
+        {
+            "featureType": "poi",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "visibility": "off"
+                }
+            ]
+        },
+        {
+            "featureType": "road",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "saturation": -100
+                },
+                {
+                    "lightness": 45
+                }
+            ]
+        },
+        {
+            "featureType": "road.highway",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "visibility": "simplified"
+                }
+            ]
+        },
+        {
+            "featureType": "road.arterial",
+            "elementType": "labels.icon",
+            "stylers": [
+                {
+                    "visibility": "off"
+                }
+            ]
+        },
+        {
+            "featureType": "transit",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "visibility": "off"
+                }
+            ]
+        },
+        {
+            "featureType": "water",
+            "elementType": "all",
+            "stylers": [
+                {
+                    "color": "#46bcec"
+                },
+                {
+                    "visibility": "on"
+                }
+            ]
+        }
+    ]
+        };
+
+    // creating map object
+    var map = new google.maps.Map(document.getElementById("sitesMap"),mapProp);
+
+    // adding markers on the map
+    var siteDetailBox = '';
+    var markPosition;
+    {% for site in sites %}
+    var status = 'danger'
+        if($.trim('{{ site.status }}') == 'Live') {
+            status = 'success'
+        }
+        if($.trim('{{ site.status }}') == 'Delay') {
+            status = 'warning'
+        }
+
+
+       var siteDetailBox{{ forloop.counter }} =
+            '<div class="card bg-'+status+' text-white shadow">'+
+            '<div class="card-body">'+
+            '{{site.name}}'+
+            '<div class="text-white">{{ site.status }}</div>'+
+            '<div class="text-white">11 pm {{ site.last_seen }}</div>'+
+            '</div>'
+            '</div>';
+        markPosition = new google.maps.LatLng({{site.longitude}}, {{site.latitude}});
+        var marker{{ forloop.counter }} = new google.maps.Marker(
+                                                {   position:markPosition,
+                                                    icon: icon
+                                                }
+                                                );
+        marker{{ forloop.counter }}.setMap(map);
+        marker{{ forloop.counter }}.addListener('click', function() {
+            map.setZoom(10); // on-click zoom
+          map.setCenter(marker{{ forloop.counter }}.getPosition());
+        });
+        // Showing site details on marker click
+        google.maps.event.addListener(marker{{ forloop.counter }},'click',function() {
+            var infowindow{{ forloop.counter }} = new google.maps.InfoWindow({
+              content:siteDetailBox{{ forloop.counter }}
+              //content:"<span class='label label-info'><b>({{site.status}})</b></span>"
+            });
+            infowindow{{ forloop.counter }}.open(map,marker{{ forloop.counter }});
+        });
+    {% endfor %}
 	  }else {
         var icon = {
             url: "/static/img/marker.png",
@@ -199,7 +335,7 @@ var loader = document.getElementById('loader');
             '<div id="bodyContent">' +
             '<p><b>Status:</b>&nbsp;'+site.Status+'</p>' +
             '<p>'+site.State_City+'</p>' +
-            '<a href="/dashboard/station-info/'+site.Uuid+'" target="_blank"> More Info...</a>' +
+            '<a href="/dashboard/station-info/'+site.Uuid+'"> More Info...</a>' +
             '</div>' +
             '</div>';
 
@@ -245,3 +381,4 @@ var loader = document.getElementById('loader');
 </script>
 
 {% endblock %}
+

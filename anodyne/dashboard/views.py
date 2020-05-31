@@ -1113,9 +1113,11 @@ def site_tabular_readings(**kwargs):
             df.columns = [a.upper() for a in list(df.columns.values)]
             df.set_index('timestamp'.upper(), inplace=True)
             df = df.loc[~df.index.duplicated(keep='first')]
+        df.reset_index(level=0, inplace=True)
         tabl = df.to_html(
             classes="table table-bordered",
-            justify='left'
+            justify='left',
+            index=False
         )
     else:
         tabl = '<h3> No Records found from: %s to %s</h3><br>' \
@@ -1260,11 +1262,13 @@ class StationDataReportView(AuthorizedView):
                 df.to_excel(writer)
                 writer.save()
                 return fpath
+            df.reset_index(level=0, inplace=True)
 
             records2html = df.to_html(
                 classes="table table-bordered",
                 max_rows=50,
-                justify='left'
+                justify='left',
+                index=False
             )
             can_download = True
         else:
@@ -1358,13 +1362,11 @@ class ExceedanceDataReportView(AuthorizedView):
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = '%s_%s.xlsx' % (str(industry.name).replace(' ', '_'), rdate)
         df = pd.DataFrame(readings)
-
-        cols = df.columns.drop('timestamp')
-
         adict = {'Between Date': '%s to %s' % (from_date.strftime('%d-%B-%Y'),
                                                to_date.strftime('%d-%B-%Y'))
                  }
         if not df.empty:
+            cols = df.columns.drop('timestamp')
             spmeta = StationParameter.objects.filter(
                 station__industry=industry).distinct('parameter__name').values(
                 **{

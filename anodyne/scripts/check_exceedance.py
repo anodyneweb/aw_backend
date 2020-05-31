@@ -4,6 +4,7 @@ Task of this watchdog is to only keep track in any new file has come to the
 server this will intimate application about new files for processing.
 This file will run as independent entity.
 """
+import argparse
 import os
 import sys
 
@@ -28,9 +29,9 @@ import pandas as pd
 
 
 # Runs every 3rd hour
-def check4exceedance():
+def check4exceedance(hours=3):
     to_date = datetime.now()
-    from_date = to_date - timedelta(hours=24)
+    from_date = to_date - timedelta(hours=hours)
     q = {
         'reading__timestamp__gte': from_date,
         'reading__timestamp__lte': to_date,
@@ -83,8 +84,8 @@ def check4exceedance():
                             except IntegrityError:
                                 print('Exists..........')
                             msg = '%s exceeds %s times in last 3 hours.' % (
-                            col, len(exceed_df[col]))
-                            #TODO: send sms here
+                                col, len(exceed_df[col]))
+                            # TODO: send sms here
                             SMSAlert.objects.create(
                                 station=station,
                                 message=msg,
@@ -101,5 +102,19 @@ def check4exceedance():
                                           #                fail_silently=True
                                           )
                             except Exception as err:
-                                print('Failed to send exceedance email to %s due to %s' % (email_id,
-                                                                                           err))
+                                print(
+                                    'Failed to send exceedance email to %s due to %s' % (
+                                    email_id,
+                                    err))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='This Exceednace check')
+    # parser.add_argument('-n', dest='nightly', action="store_true",
+    #                     default=False)
+    # parser.add_argument('-f', dest='four_hour', action="store_true",
+    #                     default=False)
+    # arguments = parser.parse_args()
+    # nightly = arguments.nightly
+    # four_hour = arguments.four_hour
+    check4exceedance()
