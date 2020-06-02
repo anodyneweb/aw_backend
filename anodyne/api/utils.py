@@ -2,22 +2,37 @@ import logging
 import time
 from datetime import datetime, timedelta
 
+from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import SetPasswordForm, UserModel
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import get_connection, EmailMultiAlternatives
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
-from django.shortcuts import redirect
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, \
+    HttpResponseRedirect
+from django.shortcuts import redirect, resolve_url
 from django.template.context_processors import csrf
 from django.template.loader import get_template
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_decode
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
 from geopy import Nominatim
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from django.utils.translation import gettext_lazy as _
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from anodyne import settings
 from api.models import Station, Reading, City
 import pandas as pd
+
+from dashboard.forms import PasswordResetForm
+
 log = logging.getLogger('vepolink')
 
 
@@ -287,3 +302,118 @@ def blankview(request):
     template = get_template('blank.html')
     html = template.render(context, request)
     return HttpResponse(html)
+
+@csrf_protect
+def reset_password(request,
+                   template_name='registration/password_reset_form.html',
+                   email_template_name='registration-links/password_reset_email.html',
+                   subject_template_name='registration-links/password_reset_subject.txt',
+                   password_reset_form=PasswordResetForm,
+                   token_generator=default_token_generator,
+                   post_reset_redirect=None,
+                   from_email=settings.EMAIL_HOST_USER,
+                   extra_context=None,
+                   html_email_template_name='registration-links/password_reset_email.html',
+                   extra_email_context=None):
+    if not post_reset_redirect:
+        post_reset_redirect = reverse('login')
+
+    # warnings.warn("The password_reset() view is superseded by the "
+    #               "class-based PasswordResetView().",
+    #               RemovedInDjango21Warning, stacklevel=2)
+
+    if post_reset_redirect is None:
+        post_reset_redirect = reverse('password_reset_done')
+    else:
+        post_reset_redirect = resolve_url(post_reset_redirect)
+    if request.method == "POST":
+        form = password_reset_form(request.POST)
+        if form.is_valid():
+            opts = {
+                'use_https': request.is_secure(),
+                'token_generator': token_generator,
+                'from_email': from_email,
+                'email_template_name': email_template_name,
+                'subject_template_name': subject_template_name,
+                'request': request,
+                'html_email_template_name': html_email_template_name,
+                'extra_email_context': extra_email_context,
+            }
+            form.save(**opts)
+            messages.success(request, 'Reset mail sent to your '
+                                      'registered e-mail.',
+                             extra_tags="alert alert-success")
+        else:
+            messages.error(request, 'Not a valid email',
+                           extra_tags="alert alert-danger")
+            return redirect(reverse('login'))
+
+    return HttpResponseRedirect(post_reset_redirect)
+
+
+# This view handles the changing password to reset.
+def reset_confirm(request, uidb64=None, token=None):
+    context = {
+        'login_url': reverse('login')
+    }
+    # messages.success(request, 'Password Changed Successfully.')
+    return password_reset_confirm(request, uidb64=uidb64,
+                                  template_name=
+                                  'registration-links/password_reset_confirm.html',
+                                  token=token, post_reset_redirect=
+                                  reverse('login'), extra_context=context)
+
+
+# Doesn't need csrf_protect since no-one can guess the URL
+@sensitive_post_parameters()
+@never_cache
+def password_reset_confirm(request, uidb64=None, token=None,
+                           template_name='registration-links/password_reset_confirm.html',
+                           token_generator=default_token_generator,
+                           set_password_form=SetPasswordForm,
+                           post_reset_redirect=None,
+                           extra_context=None):
+    """
+    Check the hash in a password reset link and present a form for entering a
+    new password.
+    """
+    # warnings.warn("The password_reset_confirm() view is superseded by the "
+    #               "class-based PasswordResetConfirmView().",
+    #               RemovedInDjango21Warning, stacklevel=2)
+    assert uidb64 is not None and token is not None  # checked by URLconf
+    if post_reset_redirect is None:
+        post_reset_redirect = reverse('password_reset_complete')
+    else:
+        post_reset_redirect = resolve_url(post_reset_redirect)
+    try:
+        # urlsafe_base64_decode() decodes to bytestring
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = UserModel._default_manager.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = None
+
+    if user is not None and token_generator.check_token(user, token):
+        validlink = True
+        title = _('Enter new password')
+        if request.method == 'POST':
+            form = set_password_form(user, request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Password Changed Successfully.',
+                                 extra_tags='alert alert-success')
+                return HttpResponseRedirect(post_reset_redirect)
+        else:
+            form = set_password_form(user)
+    else:
+        validlink = False
+        form = None
+        title = _('Password reset unsuccessful')
+    context = {
+        'form': form,
+        'title': title,
+        'validlink': validlink,
+    }
+    if extra_context is not None:
+        context.update(extra_context)
+
+    return TemplateResponse(request, template_name, context)

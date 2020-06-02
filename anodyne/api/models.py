@@ -223,13 +223,13 @@ class User(AbstractBaseUser):
     def assigned_stations(self):
         if self.admin:
             return Station.objects.select_related('industry')
-        return self.site.select_related('industry')
+        return self.station.select_related('industry')
 
     @property
     def assigned_industries(self):
         if self.is_admin:
             return Industry.objects.all()
-        uuids = self.site.values_list('industry__uuid')
+        uuids = self.station.values_list('industry__uuid')
         industries = Industry.objects.filter(uuid__in=uuids)
         return industries
 

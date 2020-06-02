@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% load crispy_forms_tags %}
+    {% block headerclass %}
+    <title>VepoLink</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!--===============================================================================================-->
+    <link rel="icon" type="image/png" href="images/icons/favicon.ico"/>
+    <!--================================ Page Stylessheets ============================================-->
+    <link rel="stylesheet" type="text/css" href="/static/bootstrap/css/bootstrap.min.css">
+    <!--===============================================================================================-->
+    <link rel="stylesheet" type="text/css" href="/static/bootstrap/css/bootstrap-toggle.min.css">
+    <!--===============================================================================================-->
+    <link rel="stylesheet" type="text/css" href="/static/css/util.css">
+    <!--===============================================================================================-->
+    <link rel="stylesheet" type="text/css" href="/static/css/main.css">
+    <!--===============================================================================================-->
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.min.css">
+    <!-- <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600' rel='stylesheet' type='text/css'> -->
+    <!--===============================================================================================-->
+    <link href="/static/bootstrap/css/bootstrap-toggle.min.css" rel="stylesheet">
+
+
+    <!--==================================== Page Scripts =============================================-->
+
+    <script src="/static/js/jquery.min.js"></script>
+    <!--===============================================================================================-->
+    <script src="/static/bootstrap/js/bootstrap.min.js"></script>
+    <!--===============================================================================================-->
+    <script src="/static/js/jquery-ui.min.js"></script>
+    <!--===============================================================================================-->
+    <script src="/static/bootstrap/js/bootstrap-toggle.min.js"></script>
+    <!--===============================================================================================-->
+
+
+    <style>
+    /*body {
+        height: 100%;
+        font-family: SourceSansPro-Regular, sans-serif;
+    }*/
+    body{
+        color: #333;
+    }
+    .login-form {
+        padding-top: 30px;
+    }
+    a{
+        color: #337ab7;
+    }
+    .container-login100{
+        background: url('/static/img/background_img/login_bg.jpg') no-repeat center center fixed;
+        -webkit-background-size: cover;
+        -moz-background-size: cover;
+        -o-background-size: cover;
+        background-size: cover;
+    }
+    [id$='RegistrationForm'] fieldset legend{
+        display: block;
+        font-size: 30px;
+        color: #017A75;
+        line-height: 1.2;
+        text-align: center;
+        border-bottom: 0;
+        margin-bottom: 30px;
+    }
+    .asteriskField{
+        color: #d44950;
+    }
+    .wrap-login100 {
+        width: 750px;
+    }
+    .regFieldsMain .control-group, .regFieldsSec .control-group{
+        display: inline-block;
+        width: 49%;
+        vertical-align: top;
+        padding: 0 10px;
+        margin-bottom: 10px;
+    }
+    .regFieldsMain .form-control, .regFieldsSec .form-control{
+        /*font-family: SourceSansPro-Bold;*/
+        color: #017A75;
+        line-height: 1.2;
+        display: block;
+        width: 100%;
+        background: transparent;
+        display: block;
+        border-radius: 15px;
+        box-shadow: 0 5px 5px 0px rgba(0, 0, 0, 0.1);
+        -moz-box-shadow: 0 5px 5px 0px rgba(0, 0, 0, 0.1);
+        -webkit-box-shadow: 0 5px 5px 0px rgba(0, 0, 0, 0.1);
+        -o-box-shadow: 0 5px 5px 0px rgba(0, 0, 0, 0.1);
+        -ms-box-shadow: 0 5px 5px 0px rgba(0, 0, 0, 0.1);
+        -webkit-transition: all 0.4s;
+        -o-transition: all 0.4s;
+        -moz-transition: all 0.4s;
+        transition: all 0.4s;
+    }
+    .regFieldsMain .controls, .regFieldsSec .controls{
+        width: 100%;
+        position: relative;
+        background-color: #fff;
+        border-radius: 20px;
+    }
+
+    .card-header {
+        padding: .75rem 1.25rem;
+        margin-bottom: 0;
+        background-color: rgba(0,0,0,.03);
+        border-bottom: 1px;
+        border: 1px solid rgba(0,0,0,.125);
+        border-radius: 10px;
+    }
+    .card {
+        position: relative;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+        min-width: 0;
+        word-wrap: break-word;
+        background-color: #fff;
+        background-clip: border-box;
+        border-radius: .25rem;
+        padding: 0;
+        margin-top: 40px;
+    }
+    .compLogo{
+        text-align: center;
+        float: left;
+    }
+    .shape{
+        border-style: solid; border-width: 0 70px 40px 0; float:right; height: 0px; width: 0px;
+        -ms-transform:rotate(360deg); /* IE 9 */
+        -o-transform: rotate(360deg);  /* Opera 10.5 */
+        -webkit-transform:rotate(360deg); /* Safari and Chrome */
+        transform:rotate(360deg);
+    }
+
+    .shape-text{
+        color:#fff; font-size:12px; font-weight:bold; position:relative; right:-37px; top:0; white-space: nowrap;
+        -ms-transform:rotate(30deg); /* IE 9 */
+        -o-transform: rotate(360deg);  /* Opera 10.5 */
+        -webkit-transform:rotate(30deg); /* Safari and Chrome */
+        transform:rotate(30deg);
+    }
+
+    .project {
+        min-height:100px;
+        height:auto;
+        padding: 10px 15px;
+    }
+
+    .project{
+        background:#fff; border:1px solid #ddd; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); margin: 15px 0; overflow:hidden;
+    }
+
+    .project-radius{
+        border-radius:7px;
+    }
+    .project-primary {  border-color: #428bca; }
+    .project-primary .shape{
+        border-color: transparent #428bca transparent transparent;
+        border-color: rgba(255,255,255,0) #428bca rgba(255,255,255,0) rgba(255,255,255,0);
+    }
+    .project-content{
+        padding-top: 10px;
+    }
+    .isUser{
+        padding-right: 30px;
+    }
+    .bttndisabled{
+        background-color: gray !important;
+        border: white !important;
+    }
+    .bttndisabled:hover{
+        cursor: default !important;
+        box-shadow: none;
+    }
+
+    @media screen and (min-width: 1400px){
+        .wrap-login100{
+            width: 950px;
+        }
+    }
+    .p0{
+        padding:0px;
+    }
+    .control-group > .control-label{
+        color: #017A75;
+        text-transform: uppercase;
+        font-size:14px;
+    }
+
+    </style>
+    {% endblock %}
+{% block content %}
+</head>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="container-login100">
+            <div class="login-form wrap-login100 p-l-55 p-r-55 p-t-80 p-b-30" >
+                <div>
+                    <form action="/register" class="form-group col-xs-12" id="id-RegistrationForm" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <fieldset>
+                            <legend>
+                                    Registration
+                            </legend>
+                            <div class="row"> <div class="col group"> <div id="div_id_industry_name" class="control-group"> <label for="id_industry_name" class="control-label requiredField">
+                        Industry Name<span class="asteriskField">*</span> </label> <div class="controls"> <input type="text" name="industry_name" maxlength="80" class="form-control textinput textInput" required="" id="id_industry_name"> </div> </div> <div id="div_id_industry_code" class="control-group"> <label for="id_industry_code" class="control-label ">
+                        Industry Code
+                    </label> <div class="controls"> <input type="text" name="industry_code" maxlength="160" class="form-control textinput textInput" id="id_industry_code"> </div> </div> <div id="div_id_category" class="control-group"> <label for="id_category" class="control-label requiredField">
+                        Category<span class="asteriskField">*</span> </label> <div class="controls"> <select name="category" class="form-control select" id="id_category"> <option value="Other">Other</option> <option value="Aluminium">Aluminium</option> <option value="Beverages">Beverages</option> <option value="Cement">Cement</option> <option value="CETP">CETP</option> <option value="Chemical &amp; Pharmaceutical">Chemical &amp; Pharmaceutical</option> <option value="ChlorAlkali">ChlorAlkali</option> <option value="Copper">Copper</option> <option value="Dairy">Dairy</option> <option value="Distillery">Distillery</option> <option value="Dye &amp; Dye Intermediates">Dye &amp; Dye Intermediates</option> <option value="Fertilizer">Fertilizer</option> <option value="Iron &amp; Steel">Iron &amp; Steel</option> <option value="Oil Refinery">Oil Refinery</option> <option value="Pesticide">Pesticide</option> <option value="Petrochemical">Petrochemical</option> <option value="Pharmaceuticals">Pharmaceuticals</option> <option value="Power Plant">Power Plant</option> <option value="Pulp &amp; Paper">Pulp &amp; Paper</option> <option value="Slaughter House">Slaughter House</option> <option value="Sugar">Sugar</option> <option value="Tannery">Tannery</option> <option value="Textile">Textile</option> <option value="Zinc">Zinc</option> <option value="Chemical">Chemical</option> <option value="STP">STP</option> <option value="Coal and Mines">Coal and Mines</option> <option value="Polymer">Polymer</option> <option value="Food &amp; Beverages">Food &amp; Beverages</option> <option value="Food Dairy &amp; Beverages">Food Dairy &amp; Beverages</option> <option value="Automoblie">Automoblie</option> <option value="Common Bio Medical Waste Treatment Plant">Common Bio Medical Waste Treatment Plant</option> <option value="Engineering">Engineering</option>
+
+                    </select> </div> </div> </div>
+                        <div class="col group"> <div id="div_id_contact_person" class="control-group"> <label for="id_contact_person" class="control-label requiredField">
+                            Contact Person Name<span class="asteriskField">*</span> </label> <div class="controls"> <input type="text" name="contact_person" maxlength="80" class="form-control textinput textInput" required="" id="id_contact_person"> </div> </div> <div id="div_id_email" class="control-group"> <label for="id_email" class="control-label requiredField">
+                            Email address<span class="asteriskField">*</span> </label> <div class="controls"> <input type="text" name="email" onchange="CheckEmail();" class="form-control textinput textInput" placeholder="abc@yourdomain.com" required="" id="id_email"> </div> </div> <div id="div_id_phone" class="control-group"> <label for="id_phone" class="control-label requiredField">
+                            Contact Number<span class="asteriskField">*</span> </label> <div class="controls"> <input type="text" name="phone" maxlength="10" class="form-control textinput textInput" required="" id="id_phone"> </div> </div> </div>
+                    </div> </fieldset>
+                        <div class="buttonHolder modal-footer"> <a href="/login" class="isUser exisiting_user">Already a User?</a><input type="submit" name="submit" value="Submit" class="btn btn-primary" id="user-submit">
+
+                        </div>
+                    </form>
+                    <hr>
+                    <div class="message">
+                    {% for message in messages %}
+                        <div class='alert alert-{{message.tags}} message'>
+                            {{ message|escape }}
+                        </div>
+                        {% endfor %}
+                        {% endblock %}
+                    </div><!--message ends-->
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% block pagescripts %}
+</html>
+<script>
+  $(function() {
+      // Fade out all messages after a delay.
+      setTimeout(function() {
+        $('.alert.message').fadeOut(500);
+      }, 4000);
+  });
+
+  $(function() {
+    $( ".datepicker" ).datepicker({
+    uiLibrary: 'bootstrap',
+    });
+  });
+    function CheckEmail(){
+        console.log('Checking email');
+        var email = $('#id_email').val();
+        console.log(email);
+        var validate = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/;
+        if (validate.test(email)) {
+            $('#user-submit').prop('disabled',false).removeClass('bttndisabled');
+        //uncomment below if registration should be done from unique email id
+        $.ajax({
+            url: '/dashboard/CheckUser?email=' + email,
+            type: 'GET',
+            success: function (response) {
+                console.log(response.exists);
+                if(response.exists){
+                    alert(email + ' already exists.');
+                    $('#user-submit').attr('disabled','disabled');
+                }
+                else{
+                    $('#user-submit').removeAttr('disabled');
+                }
+            },
+        });
+
+        }else{
+            $('#user-submit').prop('disabled',true).addClass('bttndisabled');
+        }
+    }
+
+    function GetLongLat(city) {
+        var $zipcode = $("#id_zipcode");
+        var city = $("#id_city").val();
+        var state = $("#id_state").val();
+        $("#id_longitude").addClass('loadinggif');
+        $("#id_latitude").addClass('loadinggif');
+        $zipcode.addClass('loadinggif');
+        $.ajax({
+            url: "/dashboard/GetLongLat?city=" + city +  '&state='+ state,
+        }).done(function(long) {
+            $("#id_longitude").removeClass('loadinggif').val(long.long);
+            $("#id_latitude").removeClass('loadinggif').val(long.lat);
+            $zipcode.removeClass('loadinggif').val(long.zipcode);
+        });
+    }
+
+    function GetCities(state) {
+        var $citylist = $("#id_city");
+        if (state.id.indexOf("site") >= 0)
+        {
+            $citylist = $("#id_city");
+        }
+        $.ajax({
+            url: "/dashboard/GetCities?state=" + state.value
+        }).done(function(cities) {
+             $citylist.empty(); // remove old options
+             $.each(cities.cities, function(key, value) {
+              $citylist.append($("<option></option>").attr("value", value[0]).text(value[1]));
+            });
+            $("#id_longitude").val(cities.lng);
+            $("#id_latitude").val(cities.lat);
+        });
+    }
+</script>
+{% endblock %}

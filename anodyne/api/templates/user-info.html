@@ -21,7 +21,6 @@
                        data-target="#delete-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Delete</a>
               <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">Something else here</a>
             </div>
     </div>
     <div class="card-body">
@@ -84,6 +83,9 @@
                         </div>
                         <div class="col-6">
                             {{ form.city|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.station }}
                         </div>
                     </div>
                     <button type="submit" class="btn btn-warning">Update User</button>

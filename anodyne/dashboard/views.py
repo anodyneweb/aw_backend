@@ -21,6 +21,7 @@ from plotly.offline import plot
 
 from anodyne.settings import DATE_FMT, TMP_PATH
 from anodyne.views import get_rgb
+from api import utils
 from api.models import Station, Industry, User, Parameter, StationParameter, \
     Reading, Category, StationInfo, Exceedance, Maintenance, Device
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
@@ -90,7 +91,7 @@ class DashboardView(AuthorizedView):
 
     def get(self, request):
         info_template = get_template('dashboard.html')
-        stations = Station.objects.all()
+        stations = request.user.assigned_stations
         stations = stations.select_related(
             'industry').values(
             'uuid',
@@ -159,7 +160,7 @@ class StationView(AuthorizedView):
         if uuid:
             return self._get_station(request, uuid)
 
-        stations = Station.objects.all().values(
+        stations = request.user.assigned_stations.values(
             'uuid',
             'industry__uuid',
             Name=F('name'),
@@ -304,7 +305,7 @@ class IndustryView(AuthorizedView):
     def _get_industry(self, request, uuid):
         content = {}
         industry = self._get_object(uuid)
-        stations = industry.station_set.all()
+        stations = request.user.assigned_stations
         stations = stations.values('uuid',
                                    'industry__uuid',
                                    Name=F('name'),
@@ -387,7 +388,7 @@ class IndustryView(AuthorizedView):
         if uuid:
             return self._get_industry(request, uuid)
         #
-        industries = Industry.objects.all().values(
+        industries = request.user.assigned_industries.values(
             **{
                 'S No.': F('uuid'),
                 'Industry Name': F('name'),
@@ -506,7 +507,6 @@ class UserView(AuthorizedView):
             Email=user.email,
             Admin=user.admin,
             Active=user.active,
-            Last_Login=user.last_login.strftime(DATE_FMT),
             Phone=user.phone or '-',
             City=user.city or '-',
             State=user.state or '-',
@@ -560,7 +560,14 @@ class UserView(AuthorizedView):
         form = UserForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.info(request, 'Added Successfully', extra_tags='success')
+            msg = 'Added successfully'
+
+            try:
+                utils.reset_password(request)
+                msg += ' & email for password creation is sent.'
+            except:
+                msg += ' but failed to send password reset mail. (check your email config.)'
+            messages.info(request, msg, extra_tags='success')
         else:
             errors = get_error(form.errors)
             for err in errors:
@@ -760,7 +767,7 @@ class CameraView(AuthorizedView):
 
     def get(self, request):
         # records = Industry.objects.filter(station__camera__isnull=False).values(
-        records = Industry.objects.all().values(
+        records = request.user.assigned_industries.values(
             'name', 'station__name', 'station__camera')
         df = pd.DataFrame(list(records))
         df['site_n_cam'] = list(zip(df.station__name, df.station__camera))
@@ -775,7 +782,7 @@ class GeographicalView(AuthorizedView):
 
     def get(self, request):
         # Setup detailed view for each site
-        industries = Industry.objects.all().select_related()
+        industries = request.user.assigned_industries.select_related()
         industries_info = industries.values('name', 'type', 'uuid',
                                             'industry_code', 'status',
                                             'city', 'state'
@@ -933,7 +940,6 @@ def make_chart(**kwargs):
     for param in list(df.columns):
         # param should be in parameters list else its blocked
         if param != 'timestamp':
-
             parameter = Parameter.objects.get(name__icontains=param)
             clr = parameter.color_code or get_rgb()
             df[param] = df[param].apply(pd.to_numeric, args=('coerce',))
@@ -1148,7 +1154,6 @@ class StationDataReportView(AuthorizedView):
         df = pd.DataFrame(stations)
         station_options = list(zip(df.uid, df.sname))
         # we will give time frame for month wise and all
-        categories = Category.objects.all().values_list('name', flat=True)
         context = {
             'station_options': station_options,
         }
@@ -1983,7 +1988,8 @@ class MaintenanceView(AuthorizedView):
         if pk:
             return self._get_maintenance(request, pk)
 
-        maintenance = Maintenance.objects.all().select_related('station').values(
+        maintenance = Maintenance.objects.all().select_related(
+            'station').values(
             ID=F('id'),
             Name=F('station__name'),
             Parameter=F('parameter__name'),

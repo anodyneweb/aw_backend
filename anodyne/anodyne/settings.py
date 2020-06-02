@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'rest_framework.authtoken',
     'api',
@@ -152,7 +153,8 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = 'vepolink@anodyne.in'
 EMAIL_HOST_PASSWORD = 'awecdelhi340@'
 APP_NAME = 'VepoLink'
-
+#https://myaccount.google.com/security
+# https://myaccount.google.com/lesssecureapps
 
 # Logging Setup
 # can set environ LOGLEVEL=debug/info/error etc

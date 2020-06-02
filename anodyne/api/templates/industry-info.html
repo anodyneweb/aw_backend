@@ -7,7 +7,7 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h5 class="m-0 font-weight-bold text-primary">{{ industry.name }}&nbsp;<sup><a href="#" class="btn btn-sm btn-{{details.label}}">{{ industry.status }}</a></sup></h5>
-
+{% if request.user.is_admin %}
             <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -26,6 +26,7 @@
                        data-target="#station-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Add Station</a>
             </div>
+            {% endif %}
         </div>
         <div class="card-body">
             <p><b>Address:</b> &nbsp;{{ industry.address }}</p>

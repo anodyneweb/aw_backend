@@ -9,6 +9,7 @@
     <div class="card shadow mb-4">
     <div class="card-header py-3">
       <h5 class="m-0 font-weight-bold text-primary">Stations</h5>
+        {% if request.user.is_admin %}
         <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -19,10 +20,8 @@
             <a href="#" data-placement="left" data-original-title="Station"
                        data-target="#station-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Add</a>
-              <a class="dropdown-item" href="#">Another action</a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">Something else here</a>
             </div>
+        {% endif %}
     </div>
     <div class="card-body">
       <div class="table-responsive">
