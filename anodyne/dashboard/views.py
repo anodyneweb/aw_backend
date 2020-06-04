@@ -231,7 +231,7 @@ class StationView(AuthorizedView):
 
         }
         content.update(**site_tabular_readings(station=station))
-        graph_details = make_chart(site=station)
+        graph_details = make_chart(site=station, freq='15Min')
         content.update(**graph_details)
 
         parameters = StationParameter.objects.filter(
@@ -863,6 +863,7 @@ def make_chart(**kwargs):
     import plotly.graph_objects as go
     from api.models import Reading
     site = kwargs.get('site')
+    freq = kwargs.get('freq')
     from_date = kwargs.get('from_date')
     to_date = kwargs.get('to_date')
     if not (from_date and to_date):
@@ -920,7 +921,27 @@ def make_chart(**kwargs):
     obj_layout = go.Figure(layout=layout)
     js_layout = layout
     cards = {}
-    # threshld_shapes = []
+    if not df.empty:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        cols = df.columns.drop('timestamp')
+        df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+        df = df.set_index('timestamp')
+        if freq == 'monthly':
+            df = df.resample('M').mean()
+        elif freq == 'weekly':
+            df = df.resample('7D').mean()
+        elif freq == 'daily':
+            df = df.resample('D').mean()
+        elif freq == 'hourly':
+            df = df.resample('h').mean()
+        elif freq == '15Min':
+            df = df.resample('15Min').mean()
+        elif freq == 'yearly':
+            df = df.resample('A', on='timestamp').mean()
+        df = df.round(2)
+        df = df.dropna(axis=0, how='all', thresh=None,
+                       subset=list(df.columns), inplace=False)
+
     param_meta = StationParameter.objects.filter(station=site,
                                                  # allowed=True,
                                                  parameter__name__in=list(
@@ -943,7 +964,7 @@ def make_chart(**kwargs):
             parameter = Parameter.objects.get(name__icontains=param)
             clr = parameter.color_code or get_rgb()
             df[param] = df[param].apply(pd.to_numeric, args=('coerce',))
-            last_received_df = df[['timestamp', param]]
+            last_received_df = df[[param]]
             last_received_df = last_received_df.dropna(axis=0, how='all',
                                                        thresh=None,
                                                        subset=[param])
@@ -953,14 +974,14 @@ def make_chart(**kwargs):
                 'min': "{:.2f}".format(df[param].min()),
                 'max': "{:.2f}".format(df[param].max()),
                 'avg': "{:.2f}".format(df[param].mean()),
-                "last_received": last_received_df.timestamp.iloc[0],
+                "last_received": last_received_df.index.max(),
                 "last_value": "{0:.2f}".format(
                     last_received_df[param].iloc[0])
             }
             df[param] = df[param].fillna(0)
             df[param] = df[param].astype(float)
             trace = dict(type='scatter', mode='markers+lines',
-                         x=list(df.timestamp),
+                         x=list(df.index),
                          y=list(df[param]),
                          name=param.upper(),
                          text=param,
@@ -1062,6 +1083,7 @@ def plot_chart(request):
         'from_date': request.GET.get('from_date'),
         'to_date': request.GET.get('to_date'),
         'site': site,
+        'freq': request.GET.get('freq'),
         'update': True
     }
     context = make_chart(**kwargs)
@@ -1218,6 +1240,8 @@ class StationDataReportView(AuthorizedView):
         current_readings = Reading.objects.filter(station=station,
                                                   **q).values_list('reading',
                                                                    flat=True)
+
+
         readings = list(current_readings)
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = '%s_%s.xlsx' % (str(station.name).replace(' ', '_'), rdate)

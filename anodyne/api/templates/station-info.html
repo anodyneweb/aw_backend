@@ -67,8 +67,20 @@ background-image: linear-gradient(315deg, #007ea7 0%, #80ced7 74%);
                         onclick="redraw('{{details.uuid}}');" class="btn btn-primary btn-sm">
                     Update
                 </button>
+
                 &nbsp;
             </div>
+            <div class="btn-group mr-4" role="group" aria-label="Row Item 3">
+                <label id="fList_label" for="fList" style="padding-top: 8px;">Average:</label>
+            <select title="Report Type" id="fList" class="form-control select" onchange="redraw('{{details.uuid}}');">
+              <option value="">Realtime</option>
+              <option value="15Min">Per 15 Min</option>
+              <option value="hourly">Per Hour</option>
+              <option value="daily">Per Day</option>
+              <option value="monthly">Per Month</option>
+              <option value="yearly">Per Year</option>
+            </select>
+          </div>
             <span id="loader" style="visibility: hidden;">
                 <img src="/static/img/loader.gif" class="loader" height="20" width="20">
             </span>
@@ -340,10 +352,11 @@ function redraw(site_id){
     var cards = document.getElementById('cardsview');
     loader.style.visibility = "visible";
     var threshold = 'false';
+    var freq = $('#fList option:selected').val();
     if(($('input[name="threshold"]').is(':checked'))){
         threshold = 'true';
     }
-    var URL = '/dashboard/graphdata?site='+site_id+'&from_date='+fromDate+'&to_date='+toDate;
+    var URL = '/dashboard/graphdata?site='+site_id+'&from_date='+fromDate+'&to_date='+toDate+'&freq='+freq;
     $.ajax({
             url: URL,
             type: 'GET',
