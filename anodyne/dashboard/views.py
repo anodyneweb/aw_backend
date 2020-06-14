@@ -2190,7 +2190,7 @@ class RemoteCalibrationView(AuthorizedView):
             'tabular': df.to_html(classes="table table-bordered",
                                   table_id="dataTable", index=False,
                                   justify='left'),
-            'Calibration': calibration,
+            'calibration': calibration,
             'pk': pk,
             'form': CalibrationForm(instance=calibration)
         }
@@ -2204,6 +2204,7 @@ class RemoteCalibrationView(AuthorizedView):
             return self._get_calibration(request, pk)
 
         calibrations = Calibration.objects.all().values(
+            uuid=F('id'),
             Station=F('station__name'),
             Name=F('name'),
             Calibrator=F('calibrator'),
@@ -2216,6 +2217,11 @@ class RemoteCalibrationView(AuthorizedView):
 
         )
         df = pd.DataFrame(calibrations)
+        if not df.empty:
+            calib_href = "<a href='/dashboard/calibration-info/{uuid}'>{name}</a>"
+            df['Name'] = apply_func(calib_href, uuid=df['uuid'],
+                                    name=df['Name'])
+            df = df.drop(columns=['uuid'])
         content = {
             'form': CalibrationForm(),
             'tabular': df.to_html(classes="table table-bordered",
@@ -2223,6 +2229,7 @@ class RemoteCalibrationView(AuthorizedView):
                                   justify='left', escape=False),
 
         }
+
         info_template = get_template('calibration.html')
         html = info_template.render(content, request)
         return HttpResponse(html)

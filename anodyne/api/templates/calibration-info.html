@@ -3,10 +3,10 @@
 <!-- Begin Page Content -->
 <div class="container-fluid">
     <!-- Page Heading -->
-<!--    <h1 class="h3 mb-4 text-gray-800">{{ parameter.name }}</h1>-->
+<!--    <h1 class="h3 mb-4 text-gray-800">{{ calibration.name }}</h1>-->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
-            <h5 class="m-0 font-weight-bold text-primary">{{ parameter.name }}</h5>
+            <h5 class="m-0 font-weight-bold text-primary">{{ calibration.name }}</h5>
             {% if request.user.is_admin %}
             <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
@@ -15,10 +15,10 @@
             </a>
             <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
                 <div class="dropdown-header">Actions:</div>
-                <a href="#" data-placement="left" data-original-title="Parameter"
-                   data-target="#parameter-form" data-toggle="modal"
+                <a href="#" data-placement="left" data-original-title="Calibration"
+                   data-target="#calibration-form" data-toggle="modal"
                    class="dropdown-item" aria-hidden="true">Edit</a>
-                <a href="#" data-placement="left" data-original-title="Parameter"
+                <a href="#" data-placement="left" data-original-title="Calibration"
                    data-target="#delete-form" data-toggle="modal"
                    class="dropdown-item" aria-hidden="true">Delete</a>
                 <div class="dropdown-divider"></div>
@@ -37,7 +37,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 class='modal-title'>
-                        <b>Delete Parameter</b>
+                        <b>Delete Calibration</b>
                     </h3>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
@@ -56,21 +56,21 @@
         </div>
     </div>
 
-    <div class="modal fade" id="parameter-form">
+    <div class="modal fade" id="calibration-form">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 class='modal-title'>
-                        <b>Add Parameter</b>
+                        <b>Update Calibration</b>
                     </h3>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
 
                 <div class="modal-body">
-                    <form action="{% url 'dashboard:parameter-info' parameter.id %}" method="post" >
+                    <form action="{% url 'dashboard:calibration-info' calibration.id %}" method="post" >
                         {% csrf_token %}
                         {{ form|crispy }}
-                        <button type="submit" class="btn btn-warning">Update Parameter</button>
+                        <button type="submit" class="btn btn-warning">Update Calibration</button>
                     </form>
                 </div>
             </div>
@@ -81,22 +81,19 @@
 {% endblock %}
 {% block scripts %}
 <script>
-console.log('settings...')
-var color_code = document.getElementById('id_color_code');
-color_code.type = 'color';
 
 $('#delete-confirm').click(function () {
 // Sending as Delete request
     $('#delete-form').modal('hide');
     console.log('DELETING....');
     $.ajax({
-        url: "/dashboard/parameter-info/{{ pk }}",
+        url: "/dashboard/calibration-info/{{ pk }}",
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
         },
         success: function (response) {
-            window.location = "/dashboard/parameters/";
+            window.location = "/dashboard/calibration/";
         }
 });
 });
