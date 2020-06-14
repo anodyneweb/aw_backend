@@ -24,9 +24,10 @@ from anodyne.views import get_rgb
 from api import utils
 from api.GLOBAL import CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
-    Reading, Category, StationInfo, Exceedance, Maintenance, Device
+    Reading, Category, StationInfo, Exceedance, Maintenance, Device, \
+    Calibration
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
-    StationParameterForm, MaintenanceForm, DeviceForm
+    StationParameterForm, MaintenanceForm, DeviceForm, CalibrationForm
 
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
@@ -680,7 +681,7 @@ class ParameterView(AuthorizedView):
             for err in errors:
                 messages.info(request, err, extra_tags='danger')
 
-        return redirect(reverse('dashboard:users'))
+        return redirect(reverse('dashboard:parameters'))
 
     def _update_parameter(self, request, pk):
         parameter = self._get_object(pk)
@@ -2153,6 +2154,114 @@ class DeviceView(AuthorizedView):
         if request.user.is_admin:
             device = self._get_object(pk)
             device.delete()
+            message = 'Successfully Deleted'
+            messages.success(request, message, extra_tags="success")
+        else:
+            message = 'Only Admin Can Delete'
+            messages.info(request, message, extra_tags="warning")
+        return HttpResponse(request, message)
+
+
+class RemoteCalibrationView(AuthorizedView):
+
+    def _get_object(self, pk):
+        try:
+            return Calibration.objects.get(id=pk)
+        except Calibration.DoesNotExist:
+            raise Http404
+
+    def _get_calibration(self, request, pk):
+        calibration = self._get_object(pk)
+
+        calibration_row = [dict(
+            Station=calibration.station.name,
+            Name=calibration.name,
+            Calibrator=calibration.calibrator,
+            Monitoring_Label=calibration.monitoring_label,
+            Parameter=calibration.parameter,
+            Analyzer=calibration.analyzer,
+            Start_Time=calibration.start_time,
+            Frequency=calibration.frequency,
+            Frequency_Time=calibration.frequency_time,
+        )]
+
+        df = pd.DataFrame(calibration_row)
+        content = {
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='left'),
+            'Calibration': calibration,
+            'pk': pk,
+            'form': CalibrationForm(instance=calibration)
+        }
+        info_template = get_template('calibration-info.html')
+        # TODO: this render guy takes time
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def get(self, request, pk=None):
+        if pk:
+            return self._get_calibration(request, pk)
+
+        calibrations = Calibration.objects.all().values(
+            Station=F('station__name'),
+            Name=F('name'),
+            Calibrator=F('calibrator'),
+            Monitoring_Label=F('monitoring_label'),
+            Parameter=F('parameter'),
+            Analyzer=F('analyzer'),
+            Start_Time=F('start_time'),
+            Frequency=F('frequency'),
+            Frequency_Time=F('frequency_time'),
+
+        )
+        df = pd.DataFrame(calibrations)
+        content = {
+            'form': CalibrationForm(),
+            'tabular': df.to_html(classes="table table-bordered",
+                                  table_id="dataTable", index=False,
+                                  justify='left', escape=False),
+
+        }
+        info_template = get_template('calibration.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)
+
+    def post(self, request, pk=None):
+        if pk:
+            return self._update_calibration(request, pk)
+
+        form = CalibrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
+        else:
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
+        return redirect(reverse('dashboard:calibration'))
+
+    def _update_calibration(self, request, pk):
+        calibration = self._get_object(pk)
+        form = CalibrationForm(request.POST, instance=calibration)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Updated Successfully',
+                             extra_tags='success')
+        else:
+            errors = get_error(form.errors)
+            for err in errors:
+                messages.info(request, err, extra_tags='danger')
+
+        url = reverse('dashboard:calibration-info', kwargs={'pk': pk})
+        return redirect(url)
+
+    def delete(self, request, pk, format=None):
+        if request.user.is_admin:
+            calibration = self._get_object(pk)
+            calibration.delete()
             message = 'Successfully Deleted'
             messages.success(request, message, extra_tags="success")
         else:

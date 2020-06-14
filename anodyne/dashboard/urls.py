@@ -6,7 +6,7 @@ from dashboard.views import StationView, IndustryView, UserView, ParameterView, 
     DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
     plot_chart, ReportView, plot_table, StationDataReportView, \
     StationParameterView, ExceedanceDataReportView, SMSReportView, \
-    IndustryReportView, MaintenanceView, DeviceView
+    IndustryReportView, MaintenanceView, DeviceView, RemoteCalibrationView
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -45,6 +45,9 @@ urlpatterns = [
     url(r'^users/$', UserView.as_view(), name='users'),
     path('user-info/<uuid:uuid>', UserView.as_view(), name='user-info'),
 
+    url(r'^calibration/$', RemoteCalibrationView.as_view(), name='calibration'),
+path('calibration-info/<int:pk>', RemoteCalibrationView.as_view(),
+         name='calibration-info'),
     url(r'^parameters/$', ParameterView.as_view(), name='parameters'),
     path('parameter-info/<int:pk>', ParameterView.as_view(),
          name='parameter-info'),

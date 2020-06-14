@@ -643,7 +643,8 @@ class Registration(models.Model):
     #     verbose_name='Last Name',
     #     blank=True
     # )
-    phone = models.CharField(max_length=120, help_text="use semi-colon(;) for multiple numbers")
+    phone = models.CharField(max_length=120,
+                             help_text="use semi-colon(;) for multiple numbers")
     # industry = models.CharField(
     #     max_length=120,
     #     blank=True
@@ -785,4 +786,44 @@ class Maintenance(models.Model):
                                     on_delete=models.CASCADE,
                                     verbose_name='Send To')
     comments = models.TextField()
+
+
 ##############################################################################
+
+class Calibration(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Calibration Name')
+    calibrator = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Calibrator')
+    monitoring_label = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Monitoring Label')
+    parameter = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Parameter Name')
+    analyzer = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Analyzer')
+    start_time = models.DateTimeField(
+        blank=True,
+        verbose_name='Start Time'
+    )
+    frequency = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Frequecny')
+    frequency_time = models.TimeField(
+        blank=True,
+        verbose_name='Frequency Time')

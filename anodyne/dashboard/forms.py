@@ -13,7 +13,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 
 from api.models import Station, Industry, User, Parameter, State, City, \
-    StationParameter, Maintenance, Device, Registration
+    StationParameter, Maintenance, Device, Registration, Calibration
 
 ATTRS = {'class': 'textinput textInput form-control'}
 
@@ -251,3 +251,20 @@ class RegistrationForm(ModelForm):
         widgets = {
             'query': forms.Textarea(attrs={'rows': 3}),
         }
+
+
+class CalibrationForm(ModelForm):
+    class Meta:
+        model = Calibration
+        fields = '__all__'
+
+    start_time = forms.DateTimeField(
+        widget=forms.TextInput(
+            attrs={'type': 'date'}
+        )
+    )
+    frequency_time = forms.TimeField(
+        widget=forms.TextInput(
+            attrs={'type': 'time'}
+        )
+    )
