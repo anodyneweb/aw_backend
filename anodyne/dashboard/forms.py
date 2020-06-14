@@ -13,7 +13,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 
 from api.models import Station, Industry, User, Parameter, State, City, \
-    StationParameter, Maintenance, Device
+    StationParameter, Maintenance, Device, Registration
 
 ATTRS = {'class': 'textinput textInput form-control'}
 
@@ -242,3 +242,12 @@ class PasswordResetForm(forms.Form):
                 email,
                 html_email_template_name=html_email_template_name,
             )
+
+
+class RegistrationForm(ModelForm):
+    class Meta:
+        model = Registration
+        fields = '__all__'
+        widgets = {
+            'query': forms.Textarea(attrs={'rows': 3}),
+        }

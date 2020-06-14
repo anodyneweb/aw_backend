@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 
+import requests
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import SetPasswordForm, UserModel
@@ -210,7 +211,6 @@ def chartsview(request):
     return HttpResponse(html)
 
 
-
 def tablesview(request):
     """Show the login page.
 
@@ -302,6 +302,7 @@ def blankview(request):
     template = get_template('blank.html')
     html = template.render(context, request)
     return HttpResponse(html)
+
 
 @csrf_protect
 def reset_password(request,
@@ -417,3 +418,12 @@ def password_reset_confirm(request, uidb64=None, token=None,
         context.update(extra_context)
 
     return TemplateResponse(request, template_name, context)
+
+
+def send_sms(**kwargs):
+    numbers = kwargs.get('numbers')  # semicolon seperated string
+    content = kwargs.get('content')
+    URL = 'http://zipping.vispl.in/vapi/pushsms?user=Anodyne&authkey=010fW5J5000nt1A9cUPa&sender=SMSTST&mobile={numbers}&text={content}'
+    URL = URL.format(numbers=numbers.replace(';', ','), content=content)
+    response = requests.get(URL)
+    return response

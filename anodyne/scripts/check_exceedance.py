@@ -21,7 +21,7 @@ from django.db import IntegrityError
 from django.db.models import F
 
 from anodyne import settings
-from api.utils import send_mail
+from api.utils import send_mail, send_sms
 
 from api.models import Station, Reading, StationParameter, \
     Exceedance, SMSAlert
@@ -93,18 +93,16 @@ def check4exceedance(hours=3):
                                 col, len(exceed_df[col]))
                             log.info(msg)
                             # TODO: send sms here
-                            SMSAlert.objects.create(
-                                station=station,
-                                message=msg,
-                                contact=station.user_ph
-                            )
-                            email_id = station.industry.user.email
+
+                            email_id = station.user_email.split(';')
+                            # email_id = station.industry.user.email.split(';')
+
                             try:
                                 send_mail(subject='Alert From VepoLink',
                                           message=msg,
                                           from_email=settings.EMAIL_HOST_USER,
                                           # recipient_list=[station.industry.user.email],
-                                          recipient_list=[email_id],
+                                          recipient_list=email_id,
                                           # html_message=html_content,
                                           #                fail_silently=True
                                           )
@@ -112,6 +110,20 @@ def check4exceedance(hours=3):
                                 log.exception(
                                     'Failed to send exceedance email to %s due to %s' % (
                                         email_id,
+                                        err))
+                            SMSAlert.objects.create(
+                                station=station,
+                                message=msg,
+                                contact=station.user_ph
+                            )
+                            # numbers = station.industry.user.phone
+                            numbers = station.user_ph
+                            try:
+                                send_sms(numbers=numbers, content=msg)
+                            except Exception as err:
+                                log.exception(
+                                    'Failed to send exceedance sms to %s due to %s' % (
+                                        numbers,
                                         err))
 
 

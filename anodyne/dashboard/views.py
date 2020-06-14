@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import F, Value, CharField, Count
+from django.db.models import F, Value, CharField, Count, Func
 from django.db.models.functions import Concat
 from django.http import Http404, HttpResponse, JsonResponse, \
     HttpResponseBadRequest, FileResponse
@@ -22,6 +22,7 @@ from plotly.offline import plot
 from anodyne.settings import DATE_FMT, TMP_PATH
 from anodyne.views import get_rgb
 from api import utils
+from api.GLOBAL import CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
     Reading, Category, StationInfo, Exceedance, Maintenance, Device
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
@@ -101,6 +102,7 @@ class DashboardView(AuthorizedView):
             Status=F('status'),
             Industry_Code=F('industry__industry_code'),
             CPCB=F('is_cpcb'),
+            SPCB=F('pcb'),
             Active=F('active'),
             City=F('city__name'),
             Address=F('address'),
@@ -131,7 +133,7 @@ class DashboardView(AuthorizedView):
                 seen_on.append(records[0])
             else:
                 seen_on.append(' ')
-        df['Last Data Update'] = seen_on
+        df['Latest'] = seen_on
         df = df.drop(columns=['uuid', 'industry__uuid'])
 
         details = {
@@ -780,29 +782,31 @@ class CameraView(AuthorizedView):
 
 class GeographicalView(AuthorizedView):
 
-    def get(self, request):
+    def get(self, request, **kwargs):
+        industry = kwargs.get('industry', 'All')
+        category = kwargs.get('category', 'All')
         # Setup detailed view for each site
-        industries = request.user.assigned_industries.select_related()
-        industries_info = industries.values('name', 'type', 'uuid',
-                                            'industry_code', 'status',
-                                            'city', 'state'
-                                            )
-        context = dict(industries=industries)
-        tmplt = '<div class="card bg-primary shadow">' \
-                '<div class="card-body">  ' \
-                '<h3 class="text-white">{name}&nbsp;<sup>({type})</sup> ' \
-                '</h3><hr style="border-top: 1px solid black;">' \
-                ' <h4>{industry_code}&nbsp; | {status}</h4> ' \
-                '<h5>{state}</h5></div> ' \
-                '</div><a target="_blank" href="/dashboard/industry/{uuid}/site/{uuid}">More info...</a>'
-        tmplt = """ %s """ % tmplt
-        details = {
-            industry.get('uuid'): tmplt.format(**industry) for industry in
-            industries_info
+        industry_list = [('All', 'All')]
+        category_list = ['All']
+        if industry and industry != 'All':
+            industries = request.user.assigned_industries.filter(uuid=industry)
+        else:
+            industries = request.user.assigned_industries
+            if category and category != 'All':
+                industries = industries.filter(type__name=category)
+        industry_list.extend(
+            [(i.uuid, i.name) for i in request.user.assigned_industries])
+        category_list.extend(
+            Category.objects.all().values_list('name', flat=True))
+        sites = request.user.assigned_stations.filter(industry__in=industries)
+        context = {
+            'category': category_list,
+            'sites': sites,
+            'industries': industry_list,
+            'current_category': category,
+            'current_industry': industry
         }
-        context.update({
-            'details': details
-        })
+
         info_template = get_template('geographical.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
@@ -1240,7 +1244,6 @@ class StationDataReportView(AuthorizedView):
         current_readings = Reading.objects.filter(station=station,
                                                   **q).values_list('reading',
                                                                    flat=True)
-
 
         readings = list(current_readings)
         rdate = datetime.now().strftime('%d_%m_%Y')

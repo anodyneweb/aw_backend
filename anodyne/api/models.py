@@ -632,23 +632,22 @@ class Registration(models.Model):
     email = models.EmailField(
         verbose_name='email address',
         max_length=255,
-        unique=True
+        unique=True,
+        help_text="use semi-colon(;) for multiple emails"
     )
     fname = models.CharField(
-        max_length=120, verbose_name='First Name',
+        max_length=120, verbose_name='Contact Person Name',
     )
-    lname = models.CharField(
-        max_length=120,
-        verbose_name='Last Name',
-        blank=True
-    )
-    phone = models.CharField(
-        max_length=120,
-    )
-    industry = models.CharField(
-        max_length=120,
-        blank=True
-    )
+    # lname = models.CharField(
+    #     max_length=120,
+    #     verbose_name='Last Name',
+    #     blank=True
+    # )
+    phone = models.CharField(max_length=120, help_text="use semi-colon(;) for multiple numbers")
+    # industry = models.CharField(
+    #     max_length=120,
+    #     blank=True
+    # )
     query = models.TextField(
         default=None,
         blank=True

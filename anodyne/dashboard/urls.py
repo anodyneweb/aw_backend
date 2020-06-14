@@ -54,6 +54,8 @@ urlpatterns = [
     url(r'^cameras/$', CameraView.as_view(), name='cameras'),
     url(r'^management/$', CameraView.as_view(), name='management'),
     url(r'^geographical/$', GeographicalView.as_view(), name='geographical'),
+    url(r'^geographical/(?P<industry>[0-9a-f-]+)$', GeographicalView.as_view(), name='get-geographical'),
+    url(r'^geographical/(?P<category>[aA-zZ0-9]+)$', GeographicalView.as_view(), name='get-geographical-category'),
     url(r'^stationdata$', StationDataReportView.as_view(),
         name='station-data'),
     url(

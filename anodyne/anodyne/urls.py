@@ -13,13 +13,14 @@ urlpatterns = [
                   # views with context
                   url(r'^$', views.LoginView.as_view(), name='login'),
                   url(r'^login/$', views.LoginView.as_view(), name='login'),
-                  # path('login', views.LoginView.as_view(), name='login'),
                   url(r'^auth/$', views.auth_and_login, name='authenticate'),
                   url(r'^logout/$', logoutview, name='logout'),
                   url(r'^signup/$', public_views.SignUpView.as_view(),
                        name='signup'),
                   url(r'^forgot-password/$', public_views.ForgotPasswrodView.as_view(),
                        name='forgot-password'),
+                  # url(r'^submit-query/$', public_views.SubmitQueryView.as_view(),
+                  #      name='submit-query'),
 
                   url(r'^account/password-reset$', utils.reset_password,
                       name='reset-password'),
