@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}{% load crispy_forms_tags %}
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>VepoLink - Login</title>
+
+  <!-- Custom fonts for this template-->
+  <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+  <!-- Custom styles for this template-->
+  <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
+<style>
+.bg-login-image2 {
+  background: url(/static/img/vepolink_login.jpeg);
+  background-position: center;
+  background-size: cover;
+
+
+}
+.bg-gradient-login{
+background: url(/static/img/vepolink_login_2.jpeg);
+  background-position: center;
+  background-size: cover;
+
+}
+.sub_div {
+                position: fixed;
+    right: 15%;
+    left: 15%;
+    /* bottom: 35%; */
+            }
+
+</style>
+</head>
+
+<body class="bg-gradient-login">
+
+  <div class="container">
+
+    <!-- Outer Row -->
+    <div class="row justify-content-center">
+
+      <div class="col-xl-8 col-lg-10 col-md-7">
+        <div class="card o-hidden border-0 shadow-lg my-5">
+          <div class="card-body p-0">
+              <div class="col-lg-12">
+                <div class="p-3">
+                  <div class="text-center">
+                    <img src="/static/img/logo.png" style="max-width:20%;max-height:40%;display: block;">
+                    <h1 class="h4 text-gray-900 mb-2">Submit Your Query</h1>
+                    <p class="mb-4">Please enter your query here and we will get back to you.</p>
+                  </div>
+                  <form action="{% url 'submit-query' %}" method="post">
+                {% csrf_token %}
+                <div class="row">
+                  <div class="col-12">
+                        {{ form.query|as_crispy_field }}
+                    </div>
+                    <div class="col-6">
+                      {{ form.fname|as_crispy_field }}
+                        {{ form.phone|as_crispy_field }}
+                    </div>
+                    <div class="col-6">
+                      {{ form.email|as_crispy_field }}
+                      Reach Us At:<br>
+                        <small><i class="fas fa-phone fa-2x text-gray-300"></i>&nbsp; 9899033877, 7494965025, 7496969763</small>
+                        <br>
+                      <small><i class="fas fa-envelope fa-2x text-gray-300"></i>&nbsp; customercare@anodyne.in</small>
+                    </div>
+
+                </div>
+                    <div class="text-center">
+                      <button type="submit" class="btn btn-success">Submit Query</button>
+                    </div>
+            </form>
+                  <div class="text-center">
+                    <a class="small" href="{% url 'login' %}">Cancel!</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  <!-- Bootstrap core JavaScript-->
+  <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <!-- Core plugin JavaScript-->
+  <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
+
+  <!-- Custom scripts for all pages-->
+  <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+</body>
+
+</html>
