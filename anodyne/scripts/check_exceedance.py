@@ -118,10 +118,6 @@ def check4exceedance(hours=3):
                             )
                             # numbers = station.industry.user.phone
                             numbers = station.user_ph
-                            msg = """
-
-
-                            """
                             try:
                                 send_sms(numbers=numbers, content=msg)
                             except Exception as err:
