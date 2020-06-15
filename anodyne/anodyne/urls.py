@@ -19,8 +19,8 @@ urlpatterns = [
                        name='signup'),
                   url(r'^forgot-password/$', public_views.ForgotPasswrodView.as_view(),
                        name='forgot-password'),
-                  # url(r'^submit-query/$', public_views.SubmitQueryView.as_view(),
-                  #      name='submit-query'),
+                  url(r'^submit-query/$', public_views.SubmitQueryView.as_view(),
+                       name='submit-query'),
 
                   url(r'^account/password-reset$', utils.reset_password,
                       name='reset-password'),

@@ -8,7 +8,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from anodyne import settings
 from api.serializers import RegistrationSerializer
+from api.utils import send_mail
 from dashboard.forms import RegistrationForm
 from dashboard.views import get_error
 
@@ -65,6 +67,22 @@ class SubmitQueryView(View):
 
     def post(self, request):
         form = RegistrationForm(request.POST)
+        try:
+            query = request.GET.get('query')[0]
+            fname = request.GET.get('fname')[0]
+            phone = request.GET.get('phone')[0]
+            email = request.GET.get('email')[0]
+            send_mail(subject='Query Received From: %s %s %s' % (
+            fname, phone, email),
+                      message=query,
+                      from_email=settings.EMAIL_HOST_USER,
+                      recipient_list=[settings.EMAIL_HOST_USER],
+                      # html_message=html_content,
+                      #                fail_silently=True
+                      )
+        except:
+            pass
+
         if form.is_valid():
             form.save()
             messages.success(request, 'Query Submitted Successfully',

@@ -322,10 +322,10 @@ var start = moment().subtract(24, 'hour');
 var end = moment();
 
 function cb(start, end) {
-    $('#reportrange span').html(start.format('DD/MM/YYYY hh:mm A') + ' - ' + end.format('DD/MM/YYYY hh:mm A'));
+    $('#reportrange span').html(start.format('DD/MM/YYYY HH:mm') + ' - ' + end.format('DD/MM/YYYY HH:mm'));
 
-    fromDate = start.format('MM/DD/YYYY hh:mm A');
-    toDate = end.format('MM/DD/YYYY hh:mm A');
+    fromDate = start.format('DD/MM/YYYY HH:mm');
+    toDate = end.format('DD/MM/YYYY HH:mm');
 
     }
     $('#reportrange').daterangepicker({

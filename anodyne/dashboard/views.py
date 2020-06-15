@@ -233,7 +233,7 @@ class StationView(AuthorizedView):
             'form': StationForm(instance=station),
 
         }
-        content.update(**site_tabular_readings(station=station))
+        # content.update(**site_tabular_readings(station=station))
         graph_details = make_chart(site=station, freq='15Min')
         content.update(**graph_details)
 
@@ -882,8 +882,8 @@ def make_chart(**kwargs):
         except Reading.DoesNotExist:
             from_date = datetime.now() - timedelta(days=13, hours=10)
     else:
-        from_date = datetime.strptime(from_date, "%m/%d/%Y %H:%M %p")
-        to_date = datetime.strptime(to_date, "%m/%d/%Y %H:%M %p")
+        from_date = datetime.strptime(from_date, "%d/%m/%Y %H:%M")
+        to_date = datetime.strptime(to_date, "%d/%m/%Y %H:%M")
     status = site.status
     if status.lower() == 'live':
         status = 'success', 'Live'
@@ -908,6 +908,7 @@ def make_chart(**kwargs):
     readings = Reading.objects.filter(
         station=site, **q).values_list(
         'reading', flat=True).order_by('-reading__timestamp')
+
     # Join both database
     df = pd.DataFrame(readings)
     xaxis = dict(showgrid=True, title_text='Time', linecolor='grey')
@@ -973,15 +974,16 @@ def make_chart(**kwargs):
             last_received_df = last_received_df.dropna(axis=0, how='all',
                                                        thresh=None,
                                                        subset=[param])
+            # sort to get latest value
+            last_received_df.sort_index(ascending=False, inplace=True)
             cards[param] = {
                 'color': clr,
                 'unit': parameter.unit,
                 'min': "{:.2f}".format(df[param].min()),
                 'max': "{:.2f}".format(df[param].max()),
                 'avg': "{:.2f}".format(df[param].mean()),
-                "last_received": last_received_df.index.max(),
-                "last_value": "{0:.2f}".format(
-                    last_received_df[param].iloc[0])
+                "last_received": last_received_df.index[0],
+                "last_value": "{0:.2f}".format(last_received_df[param].iloc[0])
             }
             df[param] = df[param].fillna(0)
             df[param] = df[param].astype(float)
@@ -1109,6 +1111,7 @@ def plot_table(request):
 
 
 def site_tabular_readings(**kwargs):
+
     site = kwargs.get('station')
     # TODO: this is causing trouble on server
     from_date = kwargs.get('from_date')
@@ -1120,12 +1123,12 @@ def site_tabular_readings(**kwargs):
                 station=site).latest('reading__timestamp').reading.get(
                 'timestamp')
             last_seen = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
-            from_date = last_seen - timedelta(hours=10)
+            from_date = last_seen - timedelta(hours=24)
         except Reading.DoesNotExist:
-            from_date = datetime.now() - timedelta(days=13, hours=10)
+            from_date = datetime.now() - timedelta(days=30)
     else:
-        from_date = datetime.strptime(from_date, "%m/%d/%Y %H:%M %p")
-        to_date = datetime.strptime(to_date, "%m/%d/%Y %H:%M %p")
+        from_date = datetime.strptime(from_date, "%d/%m/%Y %H:%M")
+        to_date = datetime.strptime(to_date, "%d/%m/%Y %H:%M")
 
     q = {
         'reading__timestamp__gte': from_date,
@@ -1145,6 +1148,7 @@ def site_tabular_readings(**kwargs):
             df.sort_values(by='timestamp', ascending=False, inplace=True)
             df.columns = [a.upper() for a in list(df.columns.values)]
             df.set_index('timestamp'.upper(), inplace=True)
+            df.sort_index(ascending=False, inplace=True)
             df = df.loc[~df.index.duplicated(keep='first')]
         df.reset_index(level=0, inplace=True)
         tabl = df.to_html(

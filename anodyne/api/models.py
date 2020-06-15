@@ -397,22 +397,22 @@ class Station(models.Model):
     # emails/phone of customer
     user_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='Customer Alert Email',
-                                  help_text='for multiple emails user semi-colon(;)',
+                                  help_text='for multiple emails use semi-colon(;)',
                                   blank=True)
     user_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='Customer Alert Contact',
-                               help_text='for multiple emails user semi-colon(;)',
+                               help_text='for multiple contacts use semi-colon(;)',
                                blank=True)
     is_cpcb = models.BooleanField(default=False, verbose_name='Is CPCB',
                                   help_text='send data to cpcb also',
                                   blank=True)
     cpcb_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='CPCB Alert Email',
-                                  help_text='for multiple emails user semi-colon(;)',
+                                  help_text='for multiple emails use semi-colon(;)',
                                   blank=True)
     cpcb_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='CPCB Alert Contacts',
-                               help_text='for multiple emails user semi-colon(;)',
+                               help_text='for multiple contacts use semi-colon(;)',
                                blank=True)
     closure_status = models.TextField(max_length=255,
                                       verbose_name='Offline Reason',
