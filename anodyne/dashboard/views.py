@@ -308,7 +308,7 @@ class IndustryView(AuthorizedView):
     def _get_industry(self, request, uuid):
         content = {}
         industry = self._get_object(uuid)
-        stations = request.user.assigned_stations
+        stations = request.user.assigned_stations.filter(industry__uuid=uuid)
         stations = stations.values('uuid',
                                    'industry__uuid',
                                    Name=F('name'),
@@ -1154,6 +1154,7 @@ def site_tabular_readings(**kwargs):
         tabl = df.to_html(
             classes="table table-bordered",
             justify='left',
+            col_space=30,
             index=False
         )
     else:

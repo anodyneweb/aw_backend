@@ -55,11 +55,15 @@ th {
         color: white;
 }
 
- tr:hover {
+tr:hover {
         background-color: #d4418e;
         background-image: linear-gradient(315deg, #d4418e 80%, #0652c5 74%);
         color: white;
 }
+tr:hover > td > * {
+        color: white;
+}
+
 </style>
 
 </head>
@@ -97,11 +101,19 @@ th {
           <i class="fas fa-fw fa-industry"></i>
           <span>Industries</span></a>
       </li>
+        {% if request.user.is_admin %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'dashboard:stations' %}">
           <i class="fas fa-fw fa-broadcast-tower"></i>
           <span>Stations</span></a>
       </li>
+        {% else %}
+        <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard:maintenance' %}">
+          <i class="fas fa-fw fa-cog"></i>
+          <span>Maintenance</span></a>
+      </li>
+        {% endif %}
       <li class="nav-item">
         <a class="nav-link" href="{% url 'dashboard:geographical' %}">
           <i class="fas fa-fw fa-globe"></i>
@@ -124,9 +136,9 @@ th {
             <h6 class="collapse-header">Type:</h6>
             <a class="collapse-item" href="{% url 'dashboard:station-data' %}">Station Data Report</a>
             <a class="collapse-item" href="{% url 'dashboard:exceedance' %}">Exceedance Count Report</a>
-
+            {% if request.user.is_admin %}
             <a class="collapse-item" href="{% url 'dashboard:industryreport' %}">Industry Report</a>
-              {% if request.user.is_admin %}
+
               <a class="collapse-item" href="{% url 'dashboard:smsreport' %}">SMS Report</a>
             <a class="collapse-item" href="{% url 'dashboard:reports' %}">Other Reports</a>
               {% endif %}
@@ -249,8 +261,6 @@ th {
         {% endblock %}
         <!-- End of Main Content -->
       </div>
-
-
       <!-- Footer -->
       <footer class="sticky-footer bg-white">
         <div class="container my-auto">
@@ -258,7 +268,8 @@ th {
             <marquee  class="marquee" behavior="scroll" direction="left">
               Information:&nbsp;&nbsp;All the data represented on VepoLink is as per CPCB.
             </marquee>
-            <span><b>VepoLink</b> by <sub><a href="https://anodyne.in/">Anodyne Water Engineering Co. Pvt. Ltd</a> </sub></span>
+<!--            <span><b>VepoLink</b> by <sub><a href="https://anodyne.in/">Anodyne Water Engineering Co. Pvt. Ltd</a> </sub></span>-->
+              <img src="/static/img/small_logo.png" style="max-width:5%;max-height:5%">
           </div>
         </div>
       </footer>
