@@ -58,19 +58,22 @@ def check4exceedance(hours=3):
                 'param': F('parameter__name'),
                 'max': F('maximum'),
                 'min': F('minimum'),
+                'unit': F('parameter__unit'),
             }
             params = StationParameter.objects.filter(station=station,
                                                      parameter__name__in=cols
                                                      ).values(**qry)
+            params_message = []
             pmeta = {}
             for p in params:
                 param = p.get('param')
-                max, min = p.get('max'), p.get('min')
-                pmeta[param] = (max, min)
+                max, min, unit = p.get('max'), p.get('min'), p.get('unit')
+                pmeta[param] = (max, min, unit)
             for col in cols:
                 if pmeta.get(col):
                     max = pmeta.get(col)[0]
                     min = pmeta.get(col)[1]
+                    unit = pmeta.get(col)[2]
                     exceed_df = df[(df[col] > max) | (df[col] < min)]
                     if not exceed_df.empty:
                         exceedances = []
@@ -82,6 +85,20 @@ def check4exceedance(hours=3):
                                 "value": value,
                                 "timestamp": tstamp
                             }
+
+                            sms_details = {
+                                "industry": station.industry.name,
+                                "industry_address": station.industry.address,
+                                "industry_category": station.industry.type,
+                                "parameter": col,
+                                "current_value": value,
+                                "param_threshold": max,
+                                "param_unit": 'unit',
+                                "monitoring_type": p.get('monitoring_type'),
+                                "monitoring_id": p.get('monitoring_id'),
+                                "timestamp": tstamp
+                            }
+
                             exceedances.append(tmp)
                         if exceedances:
                             try:
@@ -89,6 +106,19 @@ def check4exceedance(hours=3):
                                     [Exceedance(**q) for q in exceedances])
                             except IntegrityError:
                                 pass
+                            # tstamp format Mon, 17-Jun-2020 12:15
+                            msg = """
+SMS ALERT FROM VEPOLINK
+ALERT:{monitoring_type}
+Industry Name:{industry} {industry_address}
+CATEGORY:{industry_category}
+LOCATION:{monitoring_id}
+EXCEEDING PARAMETER:{param}
+VALUE: {current_val} {param_unit} against Pres. Stand. {param_threshold}
+{timestamp}
+
+Avg Value for last 15 Min
+Respond at customercare@anodyne.in"""
                             msg = '%s exceeds %s times in last 3 hours.' % (
                                 col, len(exceed_df[col]))
                             log.info(msg)

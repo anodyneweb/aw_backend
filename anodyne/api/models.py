@@ -827,3 +827,39 @@ class Calibration(models.Model):
     frequency_time = models.TimeField(
         blank=True,
         verbose_name='Frequency Time')
+
+
+class Diagnostic(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    timestamp = models.DateTimeField(auto_now_add=True,
+                                     blank=True)
+    no_signal = models.BooleanField(default=True,
+                                    verbose_name='FAULT ALARM:No Signal (No '
+                                                 'signal from spectograph)')
+    light_high = models.BooleanField(default=True,
+                                     verbose_name='FAULT ALARM:Light Too High'
+                                                  '(Bubble inside the flow'
+                                                  ' cell or No sample)')
+    light_low = models.BooleanField(default=True,
+                                    verbose_name='FAULT ALARM:Light Too '
+                                                 'High(Deposit or dirty on '
+                                                 'the flow cell)')
+    maintenance = models.BooleanField(default=True,
+                                       verbose_name='Maintenance Status')
+    cleaning = models.BooleanField(default=True,
+                                   verbose_name='Cleaning')
+    in_config = models.BooleanField(default=True,
+                                    verbose_name='In Configuration')
+    in_calibration = models.BooleanField(default=True,
+                                         verbose_name='In Calibration')
+    no_measurement = models.BooleanField(default=False,
+                                         verbose_name='No Measurement'
+                                                      ' Available')
+    sample_mode = models.BooleanField(default=True, verbose_name='Sample Mode')
+
+    def __str__(self):
+        return self.station.name

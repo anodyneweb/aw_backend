@@ -151,7 +151,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'vepolink@anodyne.in'
-EMAIL_HOST_PASSWORD = 'awecdelhi340@'
+EMAIL_HOST_PASSWORD = 'awecdelhi@340'
 APP_NAME = 'VepoLink'
 #https://myaccount.google.com/security
 # https://myaccount.google.com/lesssecureapps

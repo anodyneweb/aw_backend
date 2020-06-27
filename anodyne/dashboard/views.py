@@ -25,7 +25,7 @@ from api import utils
 from api.GLOBAL import CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
     Reading, Category, StationInfo, Exceedance, Maintenance, Device, \
-    Calibration
+    Calibration, Diagnostic
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
     StationParameterForm, MaintenanceForm, DeviceForm, CalibrationForm
 
@@ -51,6 +51,20 @@ def yes_no(flag):
     if flag:
         return 'Yes'
     return 'No'
+
+
+def red_green(flag):
+    green = "<i class='fa fa-circle' style='color:green'></i>"
+    red = "<i class='fa fa-circle'  style='color:red'></i>"
+    if flag:
+        return green
+    else:
+        return red
+
+
+def get_station_params(uuid):
+    station = Station.objects.get(uuid=uuid)
+    return ','.join(station.parameters)
 
 
 def get_status_label(status):
@@ -1111,7 +1125,6 @@ def plot_table(request):
 
 
 def site_tabular_readings(**kwargs):
-
     site = kwargs.get('station')
     # TODO: this is causing trouble on server
     from_date = kwargs.get('from_date')
@@ -1781,7 +1794,7 @@ class SMSReportView(AuthorizedView):
             'Station': F('station__name'),
             'Ganga Basin': F('station__industry__ganga'),
             'uid': F('station__uuid'),
-            'Parameter': F('parameter')
+            'Parameter': F('parameter'),
         }
         records = Exceedance.objects.filter(**query
                                             ).values(**columns).annotate(
@@ -1791,7 +1804,7 @@ class SMSReportView(AuthorizedView):
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = 'sms_report_%s.xlsx' % rdate
         if not df.empty:
-            df["Parameter Standard Limit"] = ['' for a in df['Parameter']]
+            df["Parameter Standard Limit"] = ['' for _ in df['Parameter']]
             df["Total SMS"] = [a for a in df['Exceedance']]
             df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
             apply_yes_no = np.vectorize(yes_no)
@@ -2280,3 +2293,102 @@ class RemoteCalibrationView(AuthorizedView):
             message = 'Only Admin Can Delete'
             messages.info(request, message, extra_tags="warning")
         return HttpResponse(request, message)
+
+
+class DiagnosticView(AuthorizedView):
+
+    def get(self, request, pk=None, dwld=None):
+        stations = request.user.assigned_stations.order_by(
+            'name').values(**{
+            "uid": F('uuid'),
+            "sname": Concat(F('name'), Value(': '),
+                            F('industry__name'),
+                            output_field=CharField())
+        })
+
+        df = pd.DataFrame(stations)
+        station_options = list(zip(df.uid, df.sname))
+        content = {
+            'station_options': station_options,
+            'monitoring_type_options': Station.MONITORING_TYPE_CHOICES
+        }
+        if pk:
+            diagnostics = Diagnostic.objects.filter(station__uuid=pk).values(**{
+                'uuid': F('station__uuid'),
+                'Station Name': F('station__name'),
+                'Date and Time': F('timestamp'),
+                'FAULT ALARM:No Signal (No signal from spectograph)': F(
+                    'no_signal'),
+                'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)': F(
+                    'light_high'),
+                'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)': F(
+                    'light_low'),
+                'Maintenance Status': F('maintenance'),
+                'Cleaning': F('cleaning'),
+                'In Configuration': F('in_config'),
+                'In Calibration': F('in_calibration'),
+                'No Measurement Available': F('no_measurement'),
+                'Sample Mode': F('sample_mode')
+            })
+            diag_df = pd.DataFrame(diagnostics)
+            fname = 'diagnostic_report.xlsx'
+            if not diag_df.empty:
+                diag_df['S No.'] = [sno + 1 for sno in range(len(diag_df.index))]
+                get_params = np.vectorize(get_station_params)
+                diag_df['Parameters'] = get_params(diag_df['uuid'])
+                diag_df = diag_df[[
+                    'S No.',
+                    'Station Name',
+                    'Date and Time',
+                    'Parameters',
+                    'FAULT ALARM:No Signal (No signal from spectograph)',
+                    'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)',
+                    'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)',
+                    'Maintenance Status',
+                    'Cleaning',
+                    'In Configuration',
+                    'In Calibration',
+                    'No Measurement Available',
+                    'Sample Mode'
+                ]]
+                if dwld:
+                    apply_yes_no = np.vectorize(yes_no)
+                    for col in list(diag_df.columns):
+                        if col in ['Station Name', 'Date and Time', 'uuid', 'S No.', 'Parameters']:
+                            continue
+                        diag_df[col] = apply_yes_no(diag_df[col])
+                    fpath = os.path.join(TMP_PATH, fname)
+                    writer = ExcelWriter(fpath, engine='xlsxwriter',
+                                         datetime_format='mm-dd-yyyy hh:mm:ss',
+                                         date_format='mm-dd-yyyy')
+                    diag_df.to_excel(writer, index=False)
+                    writer.save()
+                    fl = open(fpath, 'rb')
+                    response = FileResponse(fl,
+                                            filename=fname)
+                    return response
+                apply_red_green = np.vectorize(red_green)
+                diag_df['Date and Time'] = diag_df['Date and Time'].dt.strftime(
+                    '%Y-%m-%d %H:%M:%S')
+                for col in list(diag_df.columns):
+                    if col in ['Station Name', 'Date and Time', 'uuid',
+                               'S No.', 'Parameters']:
+                        continue
+                    diag_df[col] = apply_red_green(diag_df[col])
+
+
+
+                tabular = diag_df.to_html(classes="table table-bordered",
+                                          index=False,
+                                          justify='left',
+                                          escape=False)
+                content.update({'can_download': True,
+                                'current_station': pk,
+                                'reportname': fname})
+            else:
+                tabular = '<h3> No Records found</h3>'
+            content.update({'tabular': tabular})
+
+        info_template = get_template('diagnostic.html')
+        html = info_template.render(content, request)
+        return HttpResponse(html)

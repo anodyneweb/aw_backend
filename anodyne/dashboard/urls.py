@@ -6,7 +6,8 @@ from dashboard.views import StationView, IndustryView, UserView, ParameterView, 
     DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
     plot_chart, ReportView, plot_table, StationDataReportView, \
     StationParameterView, ExceedanceDataReportView, SMSReportView, \
-    IndustryReportView, MaintenanceView, DeviceView, RemoteCalibrationView
+    IndustryReportView, MaintenanceView, DeviceView, RemoteCalibrationView, \
+    DiagnosticView
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -45,8 +46,9 @@ urlpatterns = [
     url(r'^users/$', UserView.as_view(), name='users'),
     path('user-info/<uuid:uuid>', UserView.as_view(), name='user-info'),
 
-    url(r'^calibration/$', RemoteCalibrationView.as_view(), name='calibration'),
-path('calibration-info/<int:pk>', RemoteCalibrationView.as_view(),
+    url(r'^calibration/$', RemoteCalibrationView.as_view(),
+        name='calibration'),
+    path('calibration-info/<int:pk>', RemoteCalibrationView.as_view(),
          name='calibration-info'),
     url(r'^parameters/$', ParameterView.as_view(), name='parameters'),
     path('parameter-info/<int:pk>', ParameterView.as_view(),
@@ -57,8 +59,10 @@ path('calibration-info/<int:pk>', RemoteCalibrationView.as_view(),
     url(r'^cameras/$', CameraView.as_view(), name='cameras'),
     url(r'^management/$', CameraView.as_view(), name='management'),
     url(r'^geographical/$', GeographicalView.as_view(), name='geographical'),
-    url(r'^geographical/(?P<industry>[0-9a-f-]+)$', GeographicalView.as_view(), name='get-geographical'),
-    url(r'^geographical/(?P<category>[aA-zZ0-9]+)$', GeographicalView.as_view(), name='get-geographical-category'),
+    url(r'^geographical/(?P<industry>[0-9a-f-]+)$', GeographicalView.as_view(),
+        name='get-geographical'),
+    url(r'^geographical/(?P<category>[aA-zZ0-9]+)$',
+        GeographicalView.as_view(), name='get-geographical-category'),
     url(r'^stationdata$', StationDataReportView.as_view(),
         name='station-data'),
     url(
@@ -111,7 +115,7 @@ path('calibration-info/<int:pk>', RemoteCalibrationView.as_view(),
     path('maintenance-info/<int:pk>', MaintenanceView.as_view(),
          name='maintenance-info'),
 
-url(r'^device/$', DeviceView.as_view(), name='device'),
+    url(r'^device/$', DeviceView.as_view(), name='device'),
     path('device-info/<int:pk>', DeviceView.as_view(),
          name='device-info'),
 
@@ -122,4 +126,10 @@ url(r'^device/$', DeviceView.as_view(), name='device'),
     url(r'^GetSites/', industry_sites),
     url(r'^GetSiteDetails/', site_details),
 
+    url(r'^diagnostic/$', DiagnosticView.as_view(), name='diagnostic'),
+    path('diagnostic-info/<uuid:pk>', DiagnosticView.as_view(),
+         name='diagnostic-info'),
+    url(
+        r'^diagnostic-info/(?P<pk>[0-9a-f-]+)/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
+        DiagnosticView.as_view(), name='dwld-diagnostic'),
 ]

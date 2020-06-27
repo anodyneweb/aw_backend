@@ -76,7 +76,7 @@ class SubmitQueryView(View):
             fname, phone, email),
                       message=query,
                       from_email=settings.EMAIL_HOST_USER,
-                      recipient_list=[settings.EMAIL_HOST_USER],
+                      recipient_list=['info@anodyne.in'],
                       # html_message=html_content,
                       #                fail_silently=True
                       )

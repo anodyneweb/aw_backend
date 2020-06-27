@@ -126,7 +126,6 @@ function myMap() {
         // creating map object
         map = new google.maps.Map(document.getElementById("sitesMap"), mapProp);
     {% for site in sites %}
-        console.log('{{site.latitude}}');
         var lat = '{{ site.latitude }}' ;
         var lng = '{{ site.longitude }}' ;
 
@@ -135,8 +134,8 @@ function myMap() {
         '<div class="card-body">  ' +
         '<h3 class="text-white">{{site.industry.name}}&nbsp;<sup>({{site.industry.type}})</sup> ' +
         '</h3><hr style="border-top: 1px solid black;">' +
-        ' <h4>{{site.industry.industry_code}}&nbsp; | {{site.industry.status}}</h4> ' +
-        '<h5>{{site.industry.state}}</h5></div> ' +
+        ' <h4 class="text-white">{{site.industry.industry_code}}&nbsp; | {{site.industry.status}}</h4> ' +
+        '<h5 class="text-white">{{site.industry.state}}</h5></div> ' +
         '</div><a href="/dashboard/station-info/{{site.uuid}}">More info...</a>'
 
 
