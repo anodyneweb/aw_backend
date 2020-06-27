@@ -67,6 +67,14 @@ def get_station_params(uuid):
     return ','.join(station.parameters)
 
 
+def get_params_lmt(station, param):
+    sp = StationParameter.objects.get(station__uuid=station,
+                                      parameter__name=param)
+    if param == 'pH':
+        return '%s - %s %s' % (sp.minimum, sp.maximum, sp.parameter.unit)
+    return '%s %s' % (sp.maximum, sp.parameter.unit)
+
+
 def get_status_label(status):
     if status == 'Live':
         label = 'success'
@@ -1785,6 +1793,7 @@ class SMSReportView(AuthorizedView):
             })
 
         columns = {
+            'uuid': F('station__uuid'),
             'Category': F('station__industry__type'),
             'Industry Code': F('station__industry__industry_code'),
             'Industry Name': F('station__industry__name'),
@@ -1804,7 +1813,9 @@ class SMSReportView(AuthorizedView):
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = 'sms_report_%s.xlsx' % rdate
         if not df.empty:
-            df["Parameter Standard Limit"] = ['' for _ in df['Parameter']]
+            get_p_limit = np.vectorize(get_params_lmt)
+            df["Parameter Standard Limit"] = get_p_limit(station=df['uuid'],
+                                                         param=df['Parameter'])
             df["Total SMS"] = [a for a in df['Exceedance']]
             df['S No.'] = [sno + 1 for sno in range(len(df.uid))]
             apply_yes_no = np.vectorize(yes_no)
@@ -2313,27 +2324,29 @@ class DiagnosticView(AuthorizedView):
             'monitoring_type_options': Station.MONITORING_TYPE_CHOICES
         }
         if pk:
-            diagnostics = Diagnostic.objects.filter(station__uuid=pk).values(**{
-                'uuid': F('station__uuid'),
-                'Station Name': F('station__name'),
-                'Date and Time': F('timestamp'),
-                'FAULT ALARM:No Signal (No signal from spectograph)': F(
-                    'no_signal'),
-                'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)': F(
-                    'light_high'),
-                'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)': F(
-                    'light_low'),
-                'Maintenance Status': F('maintenance'),
-                'Cleaning': F('cleaning'),
-                'In Configuration': F('in_config'),
-                'In Calibration': F('in_calibration'),
-                'No Measurement Available': F('no_measurement'),
-                'Sample Mode': F('sample_mode')
-            })
+            diagnostics = Diagnostic.objects.filter(station__uuid=pk).values(
+                **{
+                    'uuid': F('station__uuid'),
+                    'Station Name': F('station__name'),
+                    'Date and Time': F('timestamp'),
+                    'FAULT ALARM:No Signal (No signal from spectograph)': F(
+                        'no_signal'),
+                    'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)': F(
+                        'light_high'),
+                    'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)': F(
+                        'light_low'),
+                    'Maintenance Status': F('maintenance'),
+                    'Cleaning': F('cleaning'),
+                    'In Configuration': F('in_config'),
+                    'In Calibration': F('in_calibration'),
+                    'No Measurement Available': F('no_measurement'),
+                    'Sample Mode': F('sample_mode')
+                })
             diag_df = pd.DataFrame(diagnostics)
             fname = 'diagnostic_report.xlsx'
             if not diag_df.empty:
-                diag_df['S No.'] = [sno + 1 for sno in range(len(diag_df.index))]
+                diag_df['S No.'] = [sno + 1 for sno in
+                                    range(len(diag_df.index))]
                 get_params = np.vectorize(get_station_params)
                 diag_df['Parameters'] = get_params(diag_df['uuid'])
                 diag_df = diag_df[[
@@ -2354,7 +2367,8 @@ class DiagnosticView(AuthorizedView):
                 if dwld:
                     apply_yes_no = np.vectorize(yes_no)
                     for col in list(diag_df.columns):
-                        if col in ['Station Name', 'Date and Time', 'uuid', 'S No.', 'Parameters']:
+                        if col in ['Station Name', 'Date and Time', 'uuid',
+                                   'S No.', 'Parameters']:
                             continue
                         diag_df[col] = apply_yes_no(diag_df[col])
                     fpath = os.path.join(TMP_PATH, fname)
@@ -2368,15 +2382,14 @@ class DiagnosticView(AuthorizedView):
                                             filename=fname)
                     return response
                 apply_red_green = np.vectorize(red_green)
-                diag_df['Date and Time'] = diag_df['Date and Time'].dt.strftime(
+                diag_df['Date and Time'] = diag_df[
+                    'Date and Time'].dt.strftime(
                     '%Y-%m-%d %H:%M:%S')
                 for col in list(diag_df.columns):
                     if col in ['Station Name', 'Date and Time', 'uuid',
                                'S No.', 'Parameters']:
                         continue
                     diag_df[col] = apply_red_green(diag_df[col])
-
-
 
                 tabular = diag_df.to_html(classes="table table-bordered",
                                           index=False,
