@@ -26,11 +26,11 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-group col-md-3">
-            <label id="sList_label" for="sList">Station</label>
-            <select title="Report Type" id="sList" class="form-control select">
-              <option value=''>Select Station</option>
-              {% for uuid, station in station_options %}
-              <option value={{uuid}}>{{station}}</option>
+            <label id="iList_label" for="iList">Site</label>
+            <select title="Report Type" id="iList" class="form-control select">
+              <option value=''>Select Industry</option>
+              {% for uuid, industry in industry_options %}
+              <option value={{uuid}}>{{industry}}</option>
               {% endfor %}
             </select>
           </div>
@@ -112,7 +112,9 @@
 <!-- Bootstrap core Table View JavaScript Ends-->
 <script>
 $(document).ready(function() {
-    $('#sList').val("{{current_station}}");
+if ('{{current_industry}}') {
+    $('#iList').val("{{current_industry}}");
+    }
 });
 
 var fromDate = null;
@@ -150,16 +152,16 @@ var end = moment();
 
 function get_data2(){
     var rtype = $('#rList option:selected').val();
-    var site = $('#sList option:selected').val();
-    if (site) {
-      var URL  = '/dashboard/diagnostic-info/'+site;
+    var industry = $('#iList option:selected').val();
+    if (industry) {
+      var URL  = '/dashboard/diagnostic-info/'+industry;
       console.log(URL);
       document.location.href = URL;
       }
 }
 function fnExcelReport(fname){
-    var site = $('#sList option:selected').val();
-    var URL  = '/dashboard/diagnostic-info/'+site+'/'+fname;
+    var industry = $('#iList option:selected').val();
+    var URL  = '/dashboard/diagnostic-info/'+industry+'/'+fname;
     window.open(URL, '_blank');
 }
 

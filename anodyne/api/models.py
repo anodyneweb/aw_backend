@@ -343,6 +343,7 @@ class Station(models.Model):
     MONITORING_TYPE_CHOICES = (
         ('Effluent', 'Effluent'),
         ('Emission', 'Emission'),
+        ('Ambient', 'Ambient'),
         ('CAAQMS', 'CAAQMS'),
     )
 

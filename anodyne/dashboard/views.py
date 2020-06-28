@@ -2309,31 +2309,32 @@ class RemoteCalibrationView(AuthorizedView):
 class DiagnosticView(AuthorizedView):
 
     def get(self, request, pk=None, dwld=None):
-        stations = request.user.assigned_stations.order_by(
+        industries = request.user.assigned_industries.values(
             'name').values(**{
             "uid": F('uuid'),
-            "sname": Concat(F('name'), Value(': '),
-                            F('industry__name'),
-                            output_field=CharField())
+            "sname": F('name'),
         })
 
-        df = pd.DataFrame(stations)
-        station_options = list(zip(df.uid, df.sname))
+        idf = pd.DataFrame(industries)
+        industry_option = list(zip(idf.uid, idf.sname))
         content = {
-            'station_options': station_options,
+            'industry_options': industry_option,
             'monitoring_type_options': Station.MONITORING_TYPE_CHOICES
         }
         if pk:
-            diagnostics = Diagnostic.objects.filter(station__uuid=pk).values(
+            s = request.user.assigned_stations.filter(industry__uuid=pk)
+            diagnostics = Diagnostic.objects.filter(station__in=s).values(
                 **{
                     'uuid': F('station__uuid'),
                     'Station Name': F('station__name'),
                     'Date and Time': F('timestamp'),
                     'FAULT ALARM:No Signal (No signal from spectograph)': F(
                         'no_signal'),
-                    'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)': F(
+                    'FAULT ALARM:Light Too High(Bubble inside the flow cell '
+                    'or No sample)': F(
                         'light_high'),
-                    'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)': F(
+                    'FAULT ALARM:Light Too High(Deposit or dirty on the flow '
+                    'cell)': F(
                         'light_low'),
                     'Maintenance Status': F('maintenance'),
                     'Cleaning': F('cleaning'),
@@ -2396,7 +2397,7 @@ class DiagnosticView(AuthorizedView):
                                           justify='left',
                                           escape=False)
                 content.update({'can_download': True,
-                                'current_station': pk,
+                                'current_industry': pk,
                                 'reportname': fname})
             else:
                 tabular = '<h3> No Records found</h3>'
