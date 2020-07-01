@@ -850,7 +850,7 @@ class Diagnostic(models.Model):
                                                  'High(Deposit or dirty on '
                                                  'the flow cell)')
     maintenance = models.BooleanField(default=True,
-                                       verbose_name='Maintenance Status')
+                                      verbose_name='Maintenance Status')
     cleaning = models.BooleanField(default=True,
                                    verbose_name='Cleaning')
     in_config = models.BooleanField(default=True,
@@ -861,6 +861,23 @@ class Diagnostic(models.Model):
                                          verbose_name='No Measurement'
                                                       ' Available')
     sample_mode = models.BooleanField(default=True, verbose_name='Sample Mode')
+    # Emission
+    usable = models.BooleanField(default=False, verbose_name='Usable')
+    calibration = models.BooleanField(default=True, verbose_name='Calibration')
+    faulty = models.BooleanField(default=True, verbose_name='Faulty')
+    zero = models.BooleanField(default=True, verbose_name='Zero')
+    calibration_drift = models.BooleanField(default=True,
+                                            verbose_name='Calibration Drift')
 
     def __str__(self):
         return self.station.name
+
+
+class Analyzer(models.Model):
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Analyzer')
+
+    def __str__(self):
+        return self.name

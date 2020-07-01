@@ -25,7 +25,7 @@ from api import utils
 from api.GLOBAL import CATEGORIES
 from api.models import Station, Industry, User, Parameter, StationParameter, \
     Reading, Category, StationInfo, Exceedance, Maintenance, Device, \
-    Calibration, Diagnostic
+    Calibration, Diagnostic, Analyzer
 from dashboard.forms import StationForm, IndustryForm, UserForm, ParameterForm, \
     StationParameterForm, MaintenanceForm, DeviceForm, CalibrationForm
 
@@ -2317,17 +2317,34 @@ class DiagnosticView(AuthorizedView):
 
         idf = pd.DataFrame(industries)
         industry_option = list(zip(idf.uid, idf.sname))
+        analyzer_type_options = Analyzer.objects.all().values_list('name', flat=True)
         content = {
             'industry_options': industry_option,
-            'monitoring_type_options': Station.MONITORING_TYPE_CHOICES
+            'monitoring_type_options': Station.MONITORING_TYPE_CHOICES,
+            'analyzer_type_options': analyzer_type_options
         }
         if pk:
             s = request.user.assigned_stations.filter(industry__uuid=pk)
-            diagnostics = Diagnostic.objects.filter(station__in=s).values(
-                **{
+            stype = s.values_list('monitoring_type', flat=True)
+            if 'Emission' in stype:
+                columns = {
                     'uuid': F('station__uuid'),
                     'Station Name': F('station__name'),
                     'Date and Time': F('timestamp'),
+                    'Parameters': F('timestamp'),
+                    'Maintenance': F('maintenance'),
+                    'Usable': F('usable'),
+                    'Calibration': F('calibration'),
+                    'Faulty': F('faulty'),
+                    'Zero': F('zero'),
+                    'Calibration Drift': F('calibration_drift')
+                }
+            else:
+                columns = {
+                    'uuid': F('station__uuid'),
+                    'Station Name': F('station__name'),
+                    'Date and Time': F('timestamp'),
+                    'Parameters': F('timestamp'),
                     'FAULT ALARM:No Signal (No signal from spectograph)': F(
                         'no_signal'),
                     'FAULT ALARM:Light Too High(Bubble inside the flow cell '
@@ -2342,7 +2359,11 @@ class DiagnosticView(AuthorizedView):
                     'In Calibration': F('in_calibration'),
                     'No Measurement Available': F('no_measurement'),
                     'Sample Mode': F('sample_mode')
-                })
+                }
+
+            diagnostics = Diagnostic.objects.filter(station__in=s).values(
+                **columns
+            )
             diag_df = pd.DataFrame(diagnostics)
             fname = 'diagnostic_report.xlsx'
             if not diag_df.empty:
@@ -2350,21 +2371,6 @@ class DiagnosticView(AuthorizedView):
                                     range(len(diag_df.index))]
                 get_params = np.vectorize(get_station_params)
                 diag_df['Parameters'] = get_params(diag_df['uuid'])
-                diag_df = diag_df[[
-                    'S No.',
-                    'Station Name',
-                    'Date and Time',
-                    'Parameters',
-                    'FAULT ALARM:No Signal (No signal from spectograph)',
-                    'FAULT ALARM:Light Too High(Bubble inside the flow cell or No sample)',
-                    'FAULT ALARM:Light Too High(Deposit or dirty on the flow cell)',
-                    'Maintenance Status',
-                    'Cleaning',
-                    'In Configuration',
-                    'In Calibration',
-                    'No Measurement Available',
-                    'Sample Mode'
-                ]]
                 if dwld:
                     apply_yes_no = np.vectorize(yes_no)
                     for col in list(diag_df.columns):
@@ -2391,6 +2397,12 @@ class DiagnosticView(AuthorizedView):
                                'S No.', 'Parameters']:
                         continue
                     diag_df[col] = apply_red_green(diag_df[col])
+                cols = list(diag_df.columns)
+                new_cols = ['S No.']
+                for c in cols:
+                    if c not in ['S No.', 'uuid']:
+                        new_cols.append(c)
+                diag_df = diag_df[new_cols]
 
                 tabular = diag_df.to_html(classes="table table-bordered",
                                           index=False,
