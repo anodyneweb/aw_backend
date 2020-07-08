@@ -788,8 +788,7 @@ class Maintenance(models.Model):
                                     verbose_name='Send To')
     comments = models.TextField()
 
-
-##############################################################################
+    ##############################################################################
 
 class Calibration(models.Model):
     station = models.ForeignKey(

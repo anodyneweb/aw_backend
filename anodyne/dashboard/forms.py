@@ -153,6 +153,7 @@ class MaintenanceForm(ModelForm):
     )
 
 
+
 class DeviceForm(ModelForm):
     class Meta:
         model = Device

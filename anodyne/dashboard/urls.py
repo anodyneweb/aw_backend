@@ -5,9 +5,9 @@ from django.urls import path
 from dashboard.views import StationView, IndustryView, UserView, ParameterView, \
     DashboardView, CameraView, industry_sites, site_details, GeographicalView, \
     plot_chart, ReportView, plot_table, StationDataReportView, \
-    StationParameterView, ExceedanceDataReportView, SMSReportView, \
+    StationParameterView, ExceedanceCountReportView, SMSReportView, \
     IndustryReportView, MaintenanceView, DeviceView, RemoteCalibrationView, \
-    DiagnosticView
+    DiagnosticView, ExceedanceReportView
 from api.utils import *
 
 # Wire up our API using automatic URL routing.
@@ -74,14 +74,15 @@ urlpatterns = [
         r'^stationdata/(?P<pk>[0-9a-f-]+)/(?P<freq>[aA-zZ0-9]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
         StationDataReportView.as_view(), name='dwld-station-data'),
 
-    url(r'^exceedancedata$', ExceedanceDataReportView.as_view(),
+    # url(r'^exceedancedata$', ExceedanceCountReportView.as_view(),
+    url(r'^exceedancedata$', ExceedanceReportView.as_view(),
         name='exceedance'),
     url(
         r'^exceedancedata/(?P<pk>[0-9a-f-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})$',
-        ExceedanceDataReportView.as_view(), name='exceedance-details'),
+        ExceedanceReportView.as_view(), name='exceedance-details'),
     url(
         r'^exceedancedata/(?P<pk>[0-9a-f-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
-        ExceedanceDataReportView.as_view(), name='dwld-exceedance'),
+        ExceedanceReportView.as_view(), name='dwld-exceedance'),
 
     url(r'^reports/$', ReportView.as_view(), name='reports'),
     url(

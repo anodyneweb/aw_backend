@@ -357,7 +357,7 @@ class IndustryView(AuthorizedView):
             })
         industry_row = [dict(
             Name=industry.name,
-            Industry_Code=industry.industry_id,
+            Industry_Code=industry.industry_code,
             Status=industry.status,
             Category=industry.type,
             City=industry.city,
@@ -383,10 +383,16 @@ class IndustryView(AuthorizedView):
             label = 'warning'
         else:
             label = 'danger'
+        to_date = datetime.now()
+        from_date = to_date - timedelta(hours=24)
+        exceedances = Exceedance.objects.filter(station__industry=industry,
+                                                   timestamp__gte=from_date,
+                                                   timestamp__lte=to_date
+                                                   )
         details = {
             'parameters': parameters.count(),
             'last_seen': last_seen,
-            'exceedance': 20,
+            'exceedance': exceedances.count(),
             'stations': len(stations),
             'label': label
 
@@ -409,7 +415,7 @@ class IndustryView(AuthorizedView):
     def get(self, request, uuid=None):
         # Sr. No, industry name, industry code, STATUS, industry address, city, state,
         # industry category, PCB, Ganga Basin, Added on date, Last Data Received date.
-        context = {}
+        content = {}
         if uuid:
             return self._get_industry(request, uuid)
         #
@@ -417,7 +423,7 @@ class IndustryView(AuthorizedView):
             **{
                 'S No.': F('uuid'),
                 'Industry Name': F('name'),
-                'Industry Code': F('industry_id'),
+                'Industry Code': F('industry_code'),
                 'Address': F('address'),
                 'City': F('city__name'),
                 'State': F('state'),
@@ -1343,7 +1349,7 @@ class StationDataReportView(AuthorizedView):
         return context
 
 
-class ExceedanceDataReportView(AuthorizedView):
+class ExceedanceCountReportView(AuthorizedView):
     def get(self, request, **kwargs):
         pk = kwargs.get('pk')
         from_date = kwargs.get('from_date')
@@ -1446,6 +1452,150 @@ class ExceedanceDataReportView(AuthorizedView):
                 adict[col] = df[col].count()
 
             newdf = pd.DataFrame([adict])
+            if dwld:
+                fpath = os.path.join(TMP_PATH, fname)
+                writer = ExcelWriter(fpath, engine='xlsxwriter',
+                                     datetime_format='mm-dd-yyyy hh:mm:ss',
+                                     date_format='mm-dd-yyyy')
+                newdf.to_excel(writer)
+                writer.save()
+                return fpath
+
+            records2html = newdf.to_html(
+                classes="table table-bordered",
+                index=False,
+                max_rows=50,
+                justify='left'
+            )
+            can_download = True
+        else:
+
+            records2html = '<br><h3> No Records in range: %s - %s</h1>' % (
+                from_date.date(), to_date.date())
+            can_download = False
+        context = {
+            'can_download': can_download,
+            'tabular': records2html,
+            'reportname': fname
+        }
+        return context
+
+
+class ExceedanceReportView(AuthorizedView):
+    def get(self, request, **kwargs):
+        pk = kwargs.get('pk')
+        from_date = kwargs.get('from_date')
+        to_date = kwargs.get('to_date')
+        dwld = kwargs.get('dwld')
+
+        industries = request.user.assigned_industries.order_by(
+            'name').values(**{
+            "uid": F('uuid'),
+            "sname": F('name'),
+        })
+        df = pd.DataFrame(industries)
+        industry_options = list(zip(df.uid, df.sname))
+        # we will give time frame for month wise and all
+        context = {
+            'industry_options': industry_options,
+        }
+        if not (from_date and to_date):  # '%d/%m/%Y'
+            from_date = datetime.now() - timedelta(days=90)
+            to_date = datetime.now()
+        else:
+            from_date = datetime.strptime(from_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+        if pk:
+            industry = Industry.objects.get(uuid=pk)
+            context.update({
+                'industry_name': industry.name,
+                'current_industry': pk
+            })
+
+            q = {
+                'reading__timestamp__gte': from_date,
+                'reading__timestamp__lte': to_date,
+                'industry': industry,
+                'dwld': dwld  # this will come via ajax,
+            }
+            if dwld:
+                report = self.get_exceedance(**q)
+                fl = open(report, 'rb')
+                response = FileResponse(fl,
+                                        filename=os.path.basename(report))
+                return response
+            else:
+                context.update(self.get_exceedance(**q))
+
+            context.update({
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+                # 'tabular': tabular,
+                'industry_name': industry.name,
+                'industry_type': industry.type,
+                'current_industry': pk,
+            })
+        else:
+            context.update({
+                'current_industry': industry_options[0][0],
+                'from_date': from_date.date(),
+                'to_date': to_date.date(),
+            })
+
+        info_template = get_template('exceedance-data-report.html')
+        html = info_template.render(context, request)
+        return HttpResponse(html)
+
+    def get_exceedance(self, **q):
+        industry = q.pop('industry')
+        dwld = q.pop('dwld')
+        from_date = q.pop('reading__timestamp__gte')
+        to_date = q.pop('reading__timestamp__lte')
+        current_readings = Reading.objects.filter(station__industry=industry,
+                                                  **q).values('station__name',
+                                                              'reading'
+                                                              )
+        readings = list(current_readings)
+
+        rdate = datetime.now().strftime('%d_%m_%Y')
+        fname = '%s_%s.xlsx' % (str(industry.name).replace(' ', '_'), rdate)
+        df = pd.DataFrame(readings)
+        df = pd.concat(
+            [df.drop(['reading'], axis=1), df['reading'].apply(pd.Series)],
+            axis=1)
+        print(df.head())
+        adict = {'Between Date': '%s to %s' % (from_date.strftime('%d-%B-%Y'),
+                                               to_date.strftime('%d-%B-%Y'))
+                 }
+        records = []
+        if not df.empty:
+            cols = df.columns.drop('timestamp')
+            spmeta = StationParameter.objects.filter(
+                station__industry=industry).distinct('parameter__name').values(
+                **{
+                    'name': F('parameter__name'),
+                    'max': F('maximum'),
+                    'min': F('minimum'),
+                }
+            )
+            pmeta = {}
+            for p in spmeta:
+                pmeta[p.get('name')] = p.get('min'), p.get('max')
+
+            for col in cols:
+                newdf = df[[col, 'timestamp']]
+                param_val = pmeta.get(col) or (0, 0)
+                col_min, col_max = param_val
+                # current_val > pmax
+                newdf[col] = newdf[col].apply(pd.to_numeric, errors='coerce')
+                # cdf = newdf[(newdf < col_min) | (newdf > col_max)]
+                cdf = newdf[(newdf[col] > col_max)]
+                cdf.fillna(' ', inplace=True)
+                records.extend(cdf.head().to_dict('records'))
+                # adict['Param'] = col
+                # df = df.loc[exceed_mask]
+                # exceed_mask = df[(df[col] < col_min) | (df[col] > col_max)]
+            newdf = pd.DataFrame(records)
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
@@ -2317,7 +2467,8 @@ class DiagnosticView(AuthorizedView):
 
         idf = pd.DataFrame(industries)
         industry_option = list(zip(idf.uid, idf.sname))
-        analyzer_type_options = Analyzer.objects.all().values_list('name', flat=True)
+        analyzer_type_options = Analyzer.objects.all().values_list('name',
+                                                                   flat=True)
         content = {
             'industry_options': industry_option,
             'monitoring_type_options': Station.MONITORING_TYPE_CHOICES,

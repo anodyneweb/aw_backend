@@ -5,6 +5,8 @@ from django.db import IntegrityError
 from django.db.models import F
 from datetime import datetime, timedelta
 
+from django.template.loader import render_to_string
+
 from anodyne import settings
 from api.models import Reading, Station, StationInfo, StationParameter, \
     Exceedance, SMSAlert
@@ -17,6 +19,85 @@ class ToDatabase:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
+    def send_alert(self, exceedances):
+        for exceedance in exceedances:
+            station = exceedance.get('station')
+            parameter= exceedance.get('parameter')
+            param = StationParameter.objects.get(
+                station=station,
+                allowed=True,
+                parameter__name=parameter
+            )
+            context = {
+                'param': parameter,
+                'value': '%s %s against Pres. Stand. %s %s' % (exceedance.get('value'), parameter, param.maximum, parameter),
+                'category': station.industry.type,
+                'industry': '%s, %s, %s' % (station.industry, station.industry.city, station.industry.state),
+                'timestamp' : exceedance.get('timestamp').strftime('%a, %d-%b-%Y %H:%M'),
+                'alert_type': station.monitoring_type,
+                'location': param.monitoring_id
+            }
+            receipients = station.industry.user.email.split(';')
+            try:
+                html_content = render_to_string(
+                    'alerts-mail/exceedance.html', context)
+                send_mail(subject='Exceedance Alert',
+                          recipient_list=receipients,
+                          cc=['info@anodyne.in', 'incompletesagar@gmail.com'],
+                          html_message=html_content,
+                          message='',
+                          from_email=settings.EMAIL_HOST_USER
+                          )
+            except:
+                log.exception('Failing to send alert')
+                pass
+
+
+
+
+    def check_exceedance(self, station, reading):
+        log.info('Checking exceedance %s' % station)
+        q = {
+            'param': F('parameter__name'),
+            'min': F('minimum'),
+            'max': F('maximum')
+
+        }
+        params = StationParameter.objects.filter(
+            station=station,
+            allowed=True
+        ).values(**q)
+        exceedances_rec = []
+        for meta in params:
+            exceedances = {'timestamp': reading.get('timestamp'), 'station': station}
+            param = meta.get('param')
+            pmax = float(meta.get('max', 0))
+            pmin = float(meta.get('min', 0))
+            if pmin == pmax or pmax == 0:
+                continue
+            else:
+                current_val = float(reading.get(param, 0))
+                if current_val > pmax:
+                    exceedances.update({
+                        'parameter': param,
+                        'value': current_val,
+                    })
+                if param.lower() == 'ph' and pmin > current_val > pmax:
+                    exceedances.update({
+                        'parameter': param,
+                        'value': current_val,
+                    })
+                exceedances_rec.append(exceedances)
+        try:
+            Exceedance.objects.bulk_create(
+                [Exceedance(**q) for q in exceedances_rec])
+            log.info('Exceedance observed %s' % station)
+        except IntegrityError:
+            pass
+        if exceedances_rec:
+            self.send_alert(exceedances_rec)
+
+
     def _clean_reading(self, reading):
         if reading:
             clean_reading = {}
@@ -28,7 +109,7 @@ class ToDatabase:
                     try:
                         value = float(v)
                         if not math.isnan(value):
-                            clean_reading[k] = '{0:.2f}'.format(value)
+                            clean_reading[k] = float('{0:.2f}'.format(value))
                     except ValueError:
                         pass
             if len(clean_reading.keys()) > 1:
@@ -48,6 +129,7 @@ class ToDatabase:
             readings = self._clean_reading(self.kwargs.get('readings'))
             if readings:
                 station = Station.objects.get(prefix=self.kwargs.get('prefix'))
+                self.check_exceedance(station, readings)
                 Reading.objects.create(
                     station=station,
                     reading=readings
@@ -80,5 +162,3 @@ class ToDatabase:
             log.exception('DB ERROR')
 
         return db_status
-
-

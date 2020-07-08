@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+font-family: 'Open Sans', sans-serif;
+}
+
+#report-email th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+}
+body.center {
+    margin-left:5%;
+    margin-right:35%;
+  }
+#report-email {
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+ border-collapse: collapse;
+  width: 50%;
+}
+</style>
+</head>
+<body class="center">
+<table id="report-email">
+  <tr bgcolor="#FADFE0">
+      <th colspan="3"><center>EMAIL ALERT FROM VEPOLINK</center></th>
+  </tr>
+  <tr>
+    <td>Alert Type:</td>
+    <td>{{alert_type}}</td>
+  </tr>
+  <tr bgcolor="#FADFE0">
+    <td>Category:</td>
+    <td>{{category}}</td>
+  </tr>
+  <tr>
+    <td>Industry:</td>
+    <td>{{industry}}</td>
+  </tr>
+    <tr bgcolor="#FADFE0">
+    <td>Location:</td>
+    <td>{{location}}</td>
+  </tr>
+    <tr>
+    <td>EXCEEDING PARAMETER:</td>
+    <td>{{param}}</td>
+  </tr>
+    <tr bgcolor="#FADFE0">
+    <td>Value:</td>
+    <td>{{value}}</td>
+  </tr>
+    <tr bgcolor="#FADFE0">
+    <td>Time:</td>
+    <td>{{timestamp}}</td>
+  </tr>
+    <tr>
+    <td colspan="3">Avg Value for last 15 Min</td>
+  </tr>
+    <tr bgcolor="#FADFE0">
+    <td  colspan="3">Respond at   <a href="mailto:customercare@anodyne.in" target="_blank">customercare@anodyne.in</a></td>
+  </tr>
+
+</table>
+<p>Thanks</p>
+    <b>Team VepoLink</b>
+</body>
+</html>
