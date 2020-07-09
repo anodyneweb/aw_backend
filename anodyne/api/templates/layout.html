@@ -136,6 +136,7 @@ tr:hover > td > * {
             <h6 class="collapse-header">Type:</h6>
             <a class="collapse-item" href="{% url 'dashboard:station-data' %}">Station Data Report</a>
             <a class="collapse-item" href="{% url 'dashboard:exceedance' %}">Exceedance Count Report</a>
+            <a class="collapse-item" href="{% url 'dashboard:exceedance-report' %}">Exceedance Detailed Report</a>
             {% if request.user.is_admin %}
             <a class="collapse-item" href="{% url 'dashboard:industryreport' %}">Industry Report</a>
 

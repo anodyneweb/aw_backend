@@ -421,9 +421,13 @@ def password_reset_confirm(request, uidb64=None, token=None,
 
 
 def send_sms(**kwargs):
-    numbers = kwargs.get('numbers')  # semicolon seperated string
-    content = kwargs.get('content')
-    URL = 'http://zipping.vispl.in/vapi/pushsms?user=Anodyne&authkey=010fW5J5000nt1A9cUPa&sender=SMSTST&mobile={numbers}&text={content}'
-    URL = URL.format(numbers=numbers.replace(';', ','), content=content)
-    response = requests.get(URL)
-    return response
+    try:
+        numbers = kwargs.get('numbers')  # semicolon separated string
+        content = kwargs.get('content')
+        URL = 'http://zipping.vispl.in/vapi/pushsms?user=Anodyne&authkey=010fW5J5000nt1A9cUPa&sender=SMSTST&mobile={numbers}&text={content}'
+        URL = URL.format(numbers=numbers.replace(';', ','), content=content)
+        log.info('SMS Initiated: %s' % URL)
+        response = requests.get(URL)
+        return response
+    except:
+        log.exception('Failed too send sms %s' % kwargs)

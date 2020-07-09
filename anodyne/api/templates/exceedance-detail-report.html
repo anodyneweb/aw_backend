@@ -113,7 +113,7 @@ function get_data2(){
     var industry = $('#iList option:selected').val();
     var freq = $('#fList option:selected').val();
     var siteTable = document.getElementById('tabular');
-    var URL  = '/dashboard/exceedancedata/'+industry+'/'+fromDate+'/'+toDate;
+    var URL  = '/dashboard/exceedancedetail/'+industry+'/'+fromDate+'/'+toDate;
     console.log(URL);
     document.location.href = URL;
 }
@@ -121,7 +121,7 @@ function get_data2(){
 function fnExcelReport(fname){
     var industry = $('#iList option:selected').val();
     var freq = $('#fList option:selected').val();
-    var URL  = '/dashboard/exceedancedata/'+industry+'/'+fromDate+'/'+toDate+'/'+fname;
+    var URL  = '/dashboard/exceedancedetail/'+industry+'/'+fromDate+'/'+toDate+'/'+fname;
     window.open(URL, '_blank');
 }
 

@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from anodyne import settings
 from api.models import Reading, Station, StationInfo, StationParameter, \
     Exceedance, SMSAlert
-from api.utils import send_mail
+from api.utils import send_mail, send_sms
 
 log = logging.getLogger('vepolink')
 
@@ -20,40 +20,54 @@ class ToDatabase:
         self.kwargs = kwargs
 
     def send_alert(self, exceedances):
-        for exceedance in exceedances:
-            station = exceedance.get('station')
-            parameter= exceedance.get('parameter')
-            param = StationParameter.objects.get(
-                station=station,
-                allowed=True,
-                parameter__name=parameter
-            )
-            context = {
-                'param': parameter,
-                'value': '%s %s against Pres. Stand. %s %s' % (exceedance.get('value'), parameter, param.maximum, parameter),
-                'category': station.industry.type,
-                'industry': '%s, %s, %s' % (station.industry, station.industry.city, station.industry.state),
-                'timestamp' : exceedance.get('timestamp').strftime('%a, %d-%b-%Y %H:%M'),
-                'alert_type': station.monitoring_type,
-                'location': param.monitoring_id
-            }
-            receipients = station.industry.user.email.split(';')
-            try:
+        log.info('Sending Alert')
+        log.info(exceedances)
+        try:
+            for exceedance in exceedances:
+                station = exceedance.get('station')
+                parameter = exceedance.get('parameter')
+                param = StationParameter.objects.get(
+                    station=station,
+                    allowed=True,
+                    parameter__name=parameter
+                )
+                context = {
+                    'param': parameter,
+                    'value': '%s %s against Pres. Stand. %s %s' % (
+                        exceedance.get('value'), param.parameter.unit,
+                        param.maximum, parameter),
+                    'category': station.industry.type,
+                    'industry': '%s, %s, %s' % (
+                        station.industry, station.industry.city,
+                        station.industry.state),
+                    'timestamp': exceedance.get('timestamp').strftime(
+                        '%a, %d-%b-%Y %H:%M'),
+                    'alert_type': station.monitoring_type,
+                    'location': param.monitoring_id
+                }
+
+                mail_receipients = station.industry.user.email.split(';')
+
                 html_content = render_to_string(
                     'alerts-mail/exceedance.html', context)
                 send_mail(subject='Exceedance Alert',
-                          recipient_list=receipients,
+                          recipient_list=mail_receipients,
                           cc=['info@anodyne.in', 'incompletesagar@gmail.com'],
                           html_message=html_content,
                           message='',
                           from_email=settings.EMAIL_HOST_USER
                           )
-            except:
-                log.exception('Failing to send alert')
-                pass
-
-
-
+                phone_receipients = station.industry.user.phone
+                sms_context = "SMS ALERT FROM VEPOLINK\n" \
+                              "ALERT:{alert_type}\nIndustry Name:{industry}\n" \
+                              "CATEGORY:{category}\nLOCATION:{location}\n" \
+                              "EXCEEDING PARAMETER:{param}\nVALUE: {value}\n{timestamp}\n" \
+                              "Avg Value for last 15 Min\n" \
+                              "Respond at customercare@anodyne.in".format(**context)
+                log.info('Initiating Exceedance SMS')
+                send_sms(numbers=phone_receipients, content=sms_context)
+        except:
+            log.exception('Failing to Send Mail alert')
 
     def check_exceedance(self, station, reading):
         log.info('Checking exceedance %s' % station)
@@ -69,7 +83,7 @@ class ToDatabase:
         ).values(**q)
         exceedances_rec = []
         for meta in params:
-            exceedances = {'timestamp': reading.get('timestamp'), 'station': station}
+            exceedances = {}
             param = meta.get('param')
             pmax = float(meta.get('max', 0))
             pmin = float(meta.get('min', 0))
@@ -87,16 +101,21 @@ class ToDatabase:
                         'parameter': param,
                         'value': current_val,
                     })
-                exceedances_rec.append(exceedances)
-        try:
-            Exceedance.objects.bulk_create(
-                [Exceedance(**q) for q in exceedances_rec])
-            log.info('Exceedance observed %s' % station)
-        except IntegrityError:
-            pass
-        if exceedances_rec:
-            self.send_alert(exceedances_rec)
+                if exceedances:
+                    log.info('Exceedances %s' % exceedances)
+                    exceedances.update({'timestamp': reading.get('timestamp'),
+                                        'station': station})
+                    exceedances_rec.append(exceedances)
 
+        if exceedances_rec:
+            try:
+                Exceedance.objects.bulk_create(
+                    [Exceedance(**q) for q in exceedances_rec])
+                log.info('Exceedance observed %s' % station)
+            except IntegrityError:
+                pass
+
+            self.send_alert(exceedances_rec)
 
     def _clean_reading(self, reading):
         if reading:

@@ -68,11 +68,13 @@ def get_station_params(uuid):
 
 
 def get_params_lmt(station, param):
-    sp = StationParameter.objects.get(station__uuid=station,
-                                      parameter__name=param)
-    if param == 'pH':
-        return '%s - %s %s' % (sp.minimum, sp.maximum, sp.parameter.unit)
-    return '%s %s' % (sp.maximum, sp.parameter.unit)
+    if param:
+        sp = StationParameter.objects.get(station__uuid=station,
+                                          parameter__name=param)
+        if param == 'pH':
+            return '%s - %s %s' % (sp.minimum, sp.maximum, sp.parameter.unit)
+        return '%s %s' % (sp.maximum, sp.parameter.unit)
+    return ''
 
 
 def get_status_label(status):
@@ -386,9 +388,9 @@ class IndustryView(AuthorizedView):
         to_date = datetime.now()
         from_date = to_date - timedelta(hours=24)
         exceedances = Exceedance.objects.filter(station__industry=industry,
-                                                   timestamp__gte=from_date,
-                                                   timestamp__lte=to_date
-                                                   )
+                                                timestamp__gte=from_date,
+                                                timestamp__lte=to_date
+                                                )
         details = {
             'parameters': parameters.count(),
             'last_seen': last_seen,
@@ -1410,7 +1412,7 @@ class ExceedanceCountReportView(AuthorizedView):
                 'to_date': to_date.date(),
             })
 
-        info_template = get_template('exceedance-data-report.html')
+        info_template = get_template('exceedance-detail-report.html')
         html = info_template.render(context, request)
         return HttpResponse(html)
 
@@ -1419,49 +1421,38 @@ class ExceedanceCountReportView(AuthorizedView):
         dwld = q.pop('dwld')
         from_date = q.get('reading__timestamp__gte')
         to_date = q.get('reading__timestamp__lte')
-        current_readings = Reading.objects.filter(station__industry=industry,
-                                                  **q).values_list('reading',
-                                                                   flat=True)
-        readings = list(current_readings)
-
+        current_readings = Exceedance.objects.filter(
+            station__industry=industry,
+            timestamp__gte=from_date,
+            timestamp__lte=to_date
+            ).values(
+            **{
+                "uuid": F('station__uuid'),
+                "Stations": F('station__name'),
+                "Parameter": F('parameter'),
+                "Value": F('value'),
+                "Timestamp": F('timestamp'),
+            }
+        )
+        df = pd.DataFrame(current_readings)
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = '%s_%s.xlsx' % (str(industry.name).replace(' ', '_'), rdate)
-        df = pd.DataFrame(readings)
-        adict = {'Between Date': '%s to %s' % (from_date.strftime('%d-%B-%Y'),
-                                               to_date.strftime('%d-%B-%Y'))
-                 }
+
         if not df.empty:
-            cols = df.columns.drop('timestamp')
-            spmeta = StationParameter.objects.filter(
-                station__industry=industry).distinct('parameter__name').values(
-                **{
-                    'name': F('parameter__name'),
-                    'max': F('maximum'),
-                    'min': F('minimum'),
-                }
-            )
-            pmeta = {}
-            for p in spmeta:
-                pmeta[p.get('name')] = p.get('min'), p.get('max')
-
-            for col in cols:
-                param_val = pmeta.get(col) or (0, 0)
-                col_min, col_max = param_val
-                df[col] = df[col].apply(pd.to_numeric, errors='coerce')
-                df = df[(df[col] > col_min) & (df[col] < col_max)]
-                adict[col] = df[col].count()
-
-            newdf = pd.DataFrame([adict])
+            get_p_limit = np.vectorize(get_params_lmt)
+            df["Parameter Standard Limit"] = get_p_limit(station=df['uuid'],
+                                                         param=df['Parameter'])
+            df = df[['Stations', 'Timestamp', 'Parameter', 'Value', 'Parameter Standard Limit']]
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
-                newdf.to_excel(writer)
+                df.to_excel(writer)
                 writer.save()
                 return fpath
 
-            records2html = newdf.to_html(
+            records2html = df.to_html(
                 classes="table table-bordered",
                 index=False,
                 max_rows=50,
@@ -1549,8 +1540,8 @@ class ExceedanceReportView(AuthorizedView):
     def get_exceedance(self, **q):
         industry = q.pop('industry')
         dwld = q.pop('dwld')
-        from_date = q.pop('reading__timestamp__gte')
-        to_date = q.pop('reading__timestamp__lte')
+        from_date = q.get('reading__timestamp__gte')
+        to_date = q.get('reading__timestamp__lte')
         current_readings = Reading.objects.filter(station__industry=industry,
                                                   **q).values('station__name',
                                                               'reading'
@@ -1563,7 +1554,6 @@ class ExceedanceReportView(AuthorizedView):
         df = pd.concat(
             [df.drop(['reading'], axis=1), df['reading'].apply(pd.Series)],
             axis=1)
-        print(df.head())
         adict = {'Between Date': '%s to %s' % (from_date.strftime('%d-%B-%Y'),
                                                to_date.strftime('%d-%B-%Y'))
                  }
@@ -1583,7 +1573,7 @@ class ExceedanceReportView(AuthorizedView):
                 pmeta[p.get('name')] = p.get('min'), p.get('max')
 
             for col in cols:
-                newdf = df[[col, 'timestamp']]
+                newdf = df[['timestamp', col]]
                 param_val = pmeta.get(col) or (0, 0)
                 col_min, col_max = param_val
                 # current_val > pmax
@@ -1936,10 +1926,11 @@ class SMSReportView(AuthorizedView):
             "timestamp__lte": to_date,
 
         }
+        records = None
         if 'industry' in q:
             industry = q.pop('industry')
             query.update({
-                "station__industry": industry
+                "station__industry": industry,
             })
 
         columns = {
@@ -1955,10 +1946,10 @@ class SMSReportView(AuthorizedView):
             'uid': F('station__uuid'),
             'Parameter': F('parameter'),
         }
-        records = Exceedance.objects.filter(**query
-                                            ).values(**columns).annotate(
-            Exceedance=Count('parameter')).order_by('Exceedance')
-
+        records = Exceedance.objects.filter(**query)
+        if records:
+            records = records.values(**columns).annotate(
+                Exceedance=Count('parameter')).order_by('Exceedance')
         df = pd.DataFrame(records)
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = 'sms_report_%s.xlsx' % rdate
@@ -2206,16 +2197,22 @@ class MaintenanceView(AuthorizedView):
             Comment=F('comments'),
         )
         df = pd.DataFrame(maintenance)
-        mntnc_href = "<a href='/dashboard/maintenance-info/{id}'>{name}</a>"
-        df['Name'] = apply_func(mntnc_href, id=df['ID'], name=df['Name'])
-        df = df.drop(columns=['ID'])
+        if not df.empty:
+            mntnc_href = "<a href='/dashboard/maintenance-info/{id}'>{name}</a>"
+            df['Name'] = apply_func(mntnc_href, id=df['ID'], name=df['Name'])
+            df = df.drop(columns=['ID'])
 
-        content = {
-            'tabular': df.to_html(classes="table table-bordered",
-                                  table_id="dataTable", index=False,
-                                  justify='left', escape=False),
-            'form': MaintenanceForm()
-        }
+            content = {
+                'tabular': df.to_html(classes="table table-bordered",
+                                      table_id="dataTable", index=False,
+                                      justify='left', escape=False),
+                'form': MaintenanceForm()
+            }
+        else:
+            content = {
+                'tabular': '<a>No Records</a>',
+                'form': MaintenanceForm()
+            }
         info_template = get_template('maintenance.html')
         html = info_template.render(content, request)
         return HttpResponse(html)
@@ -2230,7 +2227,7 @@ class MaintenanceView(AuthorizedView):
             url = reverse('dashboard:maintenance-info', kwargs={'pk': pk})
         else:
             form = MaintenanceForm(request.POST)
-            url = reverse('dashboard:maintenance-info', kwargs={'pk': pk})
+            url = reverse('dashboard:maintenance')
 
         if form.is_valid():
             form.save()

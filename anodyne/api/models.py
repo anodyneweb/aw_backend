@@ -655,7 +655,6 @@ class Registration(models.Model):
         blank=True
     )
 
-
 class Exceedance(models.Model):
     station = models.ForeignKey(Station,
                                 null=True,
@@ -773,19 +772,18 @@ class Maintenance(models.Model):
         on_delete=models.CASCADE,
         db_index=True
     )
-    parameter = models.ForeignKey(
-        Parameter,
-        on_delete=models.CASCADE,
-    )
+    parameter = models.ManyToManyField(Parameter)
     start_date = models.DateField(default=django.utils.timezone.now,
                                   blank=True,
                                   verbose_name='Start Date')
     end_date = models.DateField(default=django.utils.timezone.now,
                                 blank=True,
                                 verbose_name='End Date')
-    send_to_pcb = models.ForeignKey(PCB,
-                                    on_delete=models.CASCADE,
+    send_to_pcb = models.ManyToManyField(PCB,
                                     verbose_name='Send To')
+    # send_to_pcb = models.ForeignKey(PCB,
+    #                                 on_delete=models.CASCADE,
+    #                                 verbose_name='Send To')
     comments = models.TextField()
 
     ##############################################################################

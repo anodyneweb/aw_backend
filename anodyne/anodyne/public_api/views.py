@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -13,6 +15,7 @@ from api.serializers import RegistrationSerializer
 from api.utils import send_mail
 from dashboard.forms import RegistrationForm
 from dashboard.views import get_error
+log = logging.getLogger('vepolink')
 
 
 class SignUpView(APIView):
@@ -68,20 +71,19 @@ class SubmitQueryView(View):
     def post(self, request):
         form = RegistrationForm(request.POST)
         try:
-            query = request.GET.get('query')[0]
-            fname = request.GET.get('fname')[0]
-            phone = request.GET.get('phone')[0]
-            email = request.GET.get('email')[0]
-            send_mail(subject='Query Received From: %s %s %s' % (
-            fname, phone, email),
+            query = 'Thanks for your query, our team will get back to you soon.\n'
+            query += request.POST.get('query')
+            fname = request.POST.get('fname')
+            phone = request.POST.get('phone')
+            email = request.POST.get('email')
+            send_mail(subject='Query Has been received: %s %s %s' % (fname, phone, email),
                       message=query,
                       from_email=settings.EMAIL_HOST_USER,
-                      recipient_list=['info@anodyne.in'],
-                      # html_message=html_content,
-                      #                fail_silently=True
+                      cc=['customercare@anodyne.in', settings.EMAIL_HOST_USER],
+                      recipient_list=[email],
                       )
         except:
-            pass
+            log.exception('Email Error')
 
         if form.is_valid():
             form.save()

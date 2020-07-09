@@ -133,4 +133,14 @@ urlpatterns = [
     url(
         r'^diagnostic-info/(?P<pk>[0-9a-f-]+)/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
         DiagnosticView.as_view(), name='dwld-diagnostic'),
+
+    url(r'^exceedancedetail$', ExceedanceCountReportView.as_view(),
+        name='exceedance-report'),
+    url(
+        r'^exceedancedetail/(?P<pk>[0-9a-f-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})$',
+        ExceedanceCountReportView.as_view(), name='exceedance-report-details'),
+    url(
+        r'^exceedancedetail/(?P<pk>[0-9a-f-]+)/(?P<from_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<to_date>[0-9]{2}/[0-9]{2}/[0-9]{4})/(?P<dwld>[aA-zZ0-9.xlsx]+)$',
+        ExceedanceCountReportView.as_view(), name='dwld-exceedance-report'),
+
 ]
