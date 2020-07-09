@@ -140,8 +140,8 @@ var end = moment();
         ranges: {
            //'Today': [moment().startOf('day'), moment()],
            //'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
-           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
-           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
+           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
+           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
            'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
            'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
         },

@@ -4,7 +4,7 @@
 </style>
 <div class="container-fluid">
   <!-- Page Heading -->
-  <h1 class="h3 mb-2 text-gray-800">Exceedance Count Report</h1>
+  <h1 class="h3 mb-2 text-gray-800">Exceedance Detail Report</h1>
   <div class="card shadow mb-4">
     <!-- Card Header - Dropdown -->
     <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
@@ -96,13 +96,13 @@ var end = moment();
         maxDate: moment(),
         ranges: {
            //'Today': [moment().startOf('day'), moment()],
-           //'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
-           //'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
+           'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
+           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
            'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
            'This Year': [moment().startOf('year').startOf('day'), moment().endOf('month')],
-           'Last Year': [moment().subtract(1, 'year').startOf('year').startOf('day'), moment().subtract(1, 'year').endOf('year')],
-           'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
-           'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+           //'Last Year': [moment().subtract(1, 'year').startOf('year').startOf('day'), moment().subtract(1, 'year').endOf('year')],
+           //'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+           //'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
         },
     }, cb);
     cb(start, end);

@@ -46,8 +46,7 @@ class ToDatabase:
                     'location': param.monitoring_id
                 }
 
-                mail_receipients = station.industry.user.email.split(';')
-
+                mail_receipients = station.user_email.split(';')
                 html_content = render_to_string(
                     'alerts-mail/exceedance.html', context)
                 send_mail(subject='Exceedance Alert',

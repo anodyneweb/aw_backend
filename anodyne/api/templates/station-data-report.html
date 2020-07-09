@@ -98,8 +98,11 @@ $(document).ready(function() {
     }
 });
 
-var fromDate = null;
-var toDate = null;
+var fromDate = '{{ from_date }}';
+var toDate = '{{ to_date }}';
+
+var dwld_fromDate = moment('{{ from_date }}').format('MM/DD/YYYY');
+var dwld_toDate = moment('{{ to_date }}').format('MM/DD/YYYY');
 var sessionObject;
 
 // Date Range Picker script start \\
@@ -109,7 +112,6 @@ var end = moment();
 
   function cb(start, end) {
     $('#reportrange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
-
     fromDate = start.format('MM/DD/YYYY');
     toDate = end.format('MM/DD/YYYY');
     }
@@ -145,7 +147,7 @@ function get_data2(){
 function fnExcelReport(fname){
     var site = $('#sList option:selected').val();
     var freq = $('#fList option:selected').val();
-    var URL  = '/dashboard/stationdata/'+site+'/'+freq+'/'+fromDate+'/'+toDate+'/'+fname;
+    var URL  = '/dashboard/stationdata/'+site+'/'+freq+'/'+dwld_fromDate+'/'+dwld_toDate+'/'+fname;
     window.open(URL, '_blank');
 }
 

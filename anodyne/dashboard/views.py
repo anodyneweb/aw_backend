@@ -77,6 +77,15 @@ def get_params_lmt(station, param):
     return ''
 
 
+def sms_context(station, param, unit, value, std_lmt, timestamp):
+    unit = unit.split(' ')[-1]
+    return '{station} Exceedance {param} {value} {unit}(Against {std_lmt}) ' \
+           'at {timestamp}'.format(
+        station=station, param=param, unit=unit, value=value, std_lmt=std_lmt,
+        timestamp=timestamp
+    )
+
+
 def get_status_label(status):
     if status == 'Live':
         label = 'success'
@@ -1320,17 +1329,15 @@ class StationDataReportView(AuthorizedView):
                     new_col[param] = param
 
             df.rename(columns=new_col, inplace=True)
-
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
-                df.to_excel(writer)
+                df.to_excel(writer)#, index=False)
                 writer.save()
                 return fpath
             df.reset_index(level=0, inplace=True)
-
             records2html = df.to_html(
                 classes="table table-bordered",
                 max_rows=50,
@@ -1357,7 +1364,6 @@ class ExceedanceCountReportView(AuthorizedView):
         from_date = kwargs.get('from_date')
         to_date = kwargs.get('to_date')
         dwld = kwargs.get('dwld')
-
         industries = request.user.assigned_industries.order_by(
             'name').values(**{
             "uid": F('uuid'),
@@ -1374,7 +1380,8 @@ class ExceedanceCountReportView(AuthorizedView):
             to_date = datetime.now()
         else:
             from_date = datetime.strptime(from_date, "%m/%d/%Y")
-            to_date = datetime.strptime(to_date, "%m/%d/%Y")
+            to_date = datetime.strptime(to_date, "%m/%d/%Y").replace(hour=23,
+                                                                     minute=59)
         if pk:
             industry = Industry.objects.get(uuid=pk)
             context.update({
@@ -1383,8 +1390,8 @@ class ExceedanceCountReportView(AuthorizedView):
             })
 
             q = {
-                'reading__timestamp__gte': from_date,
-                'reading__timestamp__lte': to_date,
+                'from_date': from_date,
+                'to_date': to_date,
                 'industry': industry,
                 'dwld': dwld  # this will come via ajax,
             }
@@ -1419,19 +1426,23 @@ class ExceedanceCountReportView(AuthorizedView):
     def get_exceedance_data(self, **q):
         industry = q.pop('industry')
         dwld = q.pop('dwld')
-        from_date = q.get('reading__timestamp__gte')
-        to_date = q.get('reading__timestamp__lte')
+        from_date = q.get('from_date')
+        to_date = q.get('to_date')
         current_readings = Exceedance.objects.filter(
             station__industry=industry,
             timestamp__gte=from_date,
             timestamp__lte=to_date
-            ).values(
+        ).values(
             **{
                 "uuid": F('station__uuid'),
-                "Stations": F('station__name'),
+                "Category": F('station__industry__type'),
+                "Industry Name": F('station__industry__name'),
+                "City": F('station__industry__city__name'),
+                "Monitoring Type": F('station__monitoring_type'),
+                "Monitoring Station": F('station__name'),
                 "Parameter": F('parameter'),
-                "Value": F('value'),
-                "Timestamp": F('timestamp'),
+                "Time Created": F('timestamp'),
+                "Value": F('value')
             }
         )
         df = pd.DataFrame(current_readings)
@@ -1439,16 +1450,39 @@ class ExceedanceCountReportView(AuthorizedView):
         fname = '%s_%s.xlsx' % (str(industry.name).replace(' ', '_'), rdate)
 
         if not df.empty:
+            set_msg = np.vectorize(sms_context)
             get_p_limit = np.vectorize(get_params_lmt)
+
             df["Parameter Standard Limit"] = get_p_limit(station=df['uuid'],
                                                          param=df['Parameter'])
-            df = df[['Stations', 'Timestamp', 'Parameter', 'Value', 'Parameter Standard Limit']]
+            df['Message'] = set_msg(df['Monitoring Station'],
+                                    df['Parameter'],
+                                    df["Parameter Standard Limit"],
+                                    # split for units
+                                    df['Value'],
+                                    df["Parameter Standard Limit"],
+                                    df["Time Created"]
+                                    )
+            df['S No.'] = [idx + 1 for idx, _ in enumerate(df['uuid'])]
+            df = df[[
+                "S No.",
+                "Category",
+                "Industry Name",
+                "City",
+                "Monitoring Type",
+                "Monitoring Station",
+                "Parameter",
+                "Time Created",
+                "Value",
+                "Parameter Standard Limit",
+                "Message"
+            ]]
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
-                df.to_excel(writer)
+                df.to_excel(writer, index=False)
                 writer.save()
                 return fpath
 
@@ -1542,60 +1576,33 @@ class ExceedanceReportView(AuthorizedView):
         dwld = q.pop('dwld')
         from_date = q.get('reading__timestamp__gte')
         to_date = q.get('reading__timestamp__lte')
-        current_readings = Reading.objects.filter(station__industry=industry,
-                                                  **q).values('station__name',
-                                                              'reading'
-                                                              )
-        readings = list(current_readings)
-
+        current_readings = Exceedance.objects.filter(
+            station__industry=industry,
+            timestamp__gte=from_date,
+            timestamp__lte=to_date
+        ).values(
+            **{
+                "uuid": F('station__uuid'),
+                "Stations": F('station__name'),
+                "Parameter": F('parameter'),
+                "Value": F('value'),
+                "Timestamp": F('timestamp'),
+            }
+        )
+        df = pd.DataFrame(current_readings)
         rdate = datetime.now().strftime('%d_%m_%Y')
         fname = '%s_%s.xlsx' % (str(industry.name).replace(' ', '_'), rdate)
-        df = pd.DataFrame(readings)
-        df = pd.concat(
-            [df.drop(['reading'], axis=1), df['reading'].apply(pd.Series)],
-            axis=1)
-        adict = {'Between Date': '%s to %s' % (from_date.strftime('%d-%B-%Y'),
-                                               to_date.strftime('%d-%B-%Y'))
-                 }
-        records = []
         if not df.empty:
-            cols = df.columns.drop('timestamp')
-            spmeta = StationParameter.objects.filter(
-                station__industry=industry).distinct('parameter__name').values(
-                **{
-                    'name': F('parameter__name'),
-                    'max': F('maximum'),
-                    'min': F('minimum'),
-                }
-            )
-            pmeta = {}
-            for p in spmeta:
-                pmeta[p.get('name')] = p.get('min'), p.get('max')
-
-            for col in cols:
-                newdf = df[['timestamp', col]]
-                param_val = pmeta.get(col) or (0, 0)
-                col_min, col_max = param_val
-                # current_val > pmax
-                newdf[col] = newdf[col].apply(pd.to_numeric, errors='coerce')
-                # cdf = newdf[(newdf < col_min) | (newdf > col_max)]
-                cdf = newdf[(newdf[col] > col_max)]
-                cdf.fillna(' ', inplace=True)
-                records.extend(cdf.head().to_dict('records'))
-                # adict['Param'] = col
-                # df = df.loc[exceed_mask]
-                # exceed_mask = df[(df[col] < col_min) | (df[col] > col_max)]
-            newdf = pd.DataFrame(records)
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
-                newdf.to_excel(writer)
+                df.to_excel(writer)
                 writer.save()
                 return fpath
 
-            records2html = newdf.to_html(
+            records2html = df.to_html(
                 classes="table table-bordered",
                 index=False,
                 max_rows=50,
