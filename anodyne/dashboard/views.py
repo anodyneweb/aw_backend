@@ -917,9 +917,9 @@ def make_chart(**kwargs):
                 station=site).latest('reading__timestamp').reading.get(
                 'timestamp')
             last_seen = datetime.strptime(last_seen, '%Y-%m-%d %H:%M:%S')
-            from_date = last_seen - timedelta(hours=10)
+            from_date = last_seen - timedelta(hours=24)
         except Reading.DoesNotExist:
-            from_date = datetime.now() - timedelta(days=13, hours=10)
+            from_date = datetime.now() - timedelta(days=14)
     else:
         from_date = datetime.strptime(from_date, "%d/%m/%Y %H:%M")
         to_date = datetime.strptime(to_date, "%d/%m/%Y %H:%M")
@@ -1003,6 +1003,7 @@ def make_chart(**kwargs):
             'min_allowed': s.minimum,
         }
     traces = []  # parameter lines
+    threshld_shapes = []
     for param in list(df.columns):
         # param should be in parameters list else its blocked
         if param != 'timestamp':
@@ -1038,9 +1039,28 @@ def make_chart(**kwargs):
                          )
             traces.append(trace)
             obj_layout.add_trace(trace)
+            pmax_val = None
+            if parameters.get(param):
+                pmax_val = parameters.get(param).get('max_allowed')
+            if pmax_val and pmax_val > 0:
+                threshld_shapes.append(dict(
+                    type='line',
+                    x0=list(df.index)[0],
+                    y0=pmax_val,
+                    x1=list(df.index)[-1],
+                    y1=pmax_val,
+                    opacity=0.5,
+                    line=dict(
+                        color=clr,
+                        width=0.5,
+                        dash='dot'
+                    )
+                ))
+                obj_layout.update_layout(shapes=threshld_shapes)
+                js_layout.update(dict(shapes=threshld_shapes))
+
     # threshold scenario
     # if threshold:
-    #     obj_layout.update_layout(shapes=threshld_shapes)
     #     js_layout.update(dict(shapes=threshld_shapes))
     plot_div = Markup(plot(obj_layout, output_type='div', config={
         'displaylogo': False,
