@@ -51,7 +51,7 @@ class ToDatabase:
                     'alerts-mail/exceedance.html', context)
                 send_mail(subject='Exceedance Alert',
                           recipient_list=mail_receipients,
-                          cc=['info@anodyne.in', 'incompletesagar@gmail.com'],
+                          cc=['info@anodyne.in'],
                           html_message=html_content,
                           message='',
                           from_email=settings.EMAIL_HOST_USER

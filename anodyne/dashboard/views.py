@@ -1040,8 +1040,10 @@ def make_chart(**kwargs):
             traces.append(trace)
             obj_layout.add_trace(trace)
             pmax_val = None
+            pmin_val = None
             if parameters.get(param):
                 pmax_val = parameters.get(param).get('max_allowed')
+                pmin_val = parameters.get(param).get('min_allowed')
             if pmax_val and pmax_val > 0:
                 threshld_shapes.append(dict(
                     type='line',
@@ -1049,6 +1051,22 @@ def make_chart(**kwargs):
                     y0=pmax_val,
                     x1=list(df.index)[-1],
                     y1=pmax_val,
+                    opacity=0.5,
+                    line=dict(
+                        color=clr,
+                        width=0.5,
+                        dash='dot'
+                    )
+                ))
+                obj_layout.update_layout(shapes=threshld_shapes)
+                js_layout.update(dict(shapes=threshld_shapes))
+            if param.lower() == 'ph' and pmin_val and pmin_val > 0:
+                threshld_shapes.append(dict(
+                    type='line',
+                    x0=list(df.index)[0],
+                    y0=pmin_val,
+                    x1=list(df.index)[-1],
+                    y1=pmin_val,
                     opacity=0.5,
                     line=dict(
                         color=clr,
@@ -1263,7 +1281,7 @@ class StationDataReportView(AuthorizedView):
 
             q = {
                 'reading__timestamp__gte': from_date,
-                'reading__timestamp__lte': to_date,
+                'reading__timestamp__lte': to_date.replace(hour=23, minute=59),
                 'station': station,
                 'freq': freq,
                 'dwld': dwld  # this will come via ajax,
@@ -1347,14 +1365,14 @@ class StationDataReportView(AuthorizedView):
                     new_col[param] = '%s (%s)' % (p.name, p.unit)
                 except Parameter.DoesNotExist:
                     new_col[param] = param
-
             df.rename(columns=new_col, inplace=True)
             if dwld:
                 fpath = os.path.join(TMP_PATH, fname)
                 writer = ExcelWriter(fpath, engine='xlsxwriter',
                                      datetime_format='mm-dd-yyyy hh:mm:ss',
                                      date_format='mm-dd-yyyy')
-                df.to_excel(writer)#, index=False)
+
+                df.to_excel(writer)  # , index=False)
                 writer.save()
                 return fpath
             df.reset_index(level=0, inplace=True)
@@ -2216,7 +2234,9 @@ class MaintenanceView(AuthorizedView):
         maintenance = Maintenance.objects.all().select_related(
             'station').values(
             ID=F('id'),
-            Name=F('station__name'),
+            Name=Concat(F('station__name'), Value(' | '),
+                        F('station__industry__name'),
+                        output_field=CharField()),
             Parameter=F('parameter__name'),
             Start=F('start_date'),
             To=F('send_to_pcb__name'),
