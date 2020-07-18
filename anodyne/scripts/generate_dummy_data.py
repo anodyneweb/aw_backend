@@ -93,20 +93,18 @@ def randm_state():
     return random.choice(STATES)[0]
 
 
-import requests
 import json
 import pandas as pd
 from requests.auth import HTTPBasicAuth
+import requests
 
-URL = "http://ec2-3-6-144-180.ap-south-1.compute.amazonaws.com:8000"
+URL = "URL_OF_SERVER"
 
 sess = requests.Session()
-
-
 def get_header():
     dd = sess.post(
         url=URL + "/api/token/",
-        data={"email": "incompletesagar@gmail.com", "password": "sagar"})
+        data={"email": "email_id@xyz.com", "password": ""})
     data = json.loads(dd.text)
     access_key = data.get('access')
     header = {

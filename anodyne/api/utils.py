@@ -424,10 +424,8 @@ def send_sms(**kwargs):
     try:
         numbers = kwargs.get('numbers')  # semicolon separated string
         content = kwargs.get('content')
-        URL = 'https://api.textlocal.in/send/?apiKey=NkszOug7Ul0-L8UH4vBRYbtLtnPmoZ2cSgdvbhnEiW&sender=AWCEPL&numbers={numbers}&message={content}'
-        # URL = 'http://zipping.vispl.in/vapi/pushsms?user=Anodyne&authkey=010fW5J5000nt1A9cUPa&sender=AWECL&mobile={numbers}&text={content}'
+        URL= "http://api.textlocal.in/send/?apikey=NkszOug7Ul0-L8UH4vBRYbtLtnPmoZ2cSgdvbhnEiW&sender=AWECPL&numbers={numbers}&message={content}"
         numbers = numbers.replace(';', ',')
-        numbers += ',7840021989'
         URL = URL.format(numbers=numbers, content=content)
         log.info('SMS Initiated: %s' % URL)
         response = requests.get(URL)

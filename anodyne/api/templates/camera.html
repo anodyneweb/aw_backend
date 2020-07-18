@@ -166,12 +166,20 @@ function moveCam(pos){
 /* pos=4 --> Reset/Home
 /* pos=5 --> Zoom In
 /* pos=6 --> Zoom Out
-}*/
+}
+/cam/camera0001/pos=0
+*/
+
     var camurl = $('#id_camera').prop('src');
-    console.log(movement_url);
+    var arr = camurl.split('/');
+    var htp = arr[0];
+    var cam_ip = arr[2];
+    var cam_name = arr[4]
+    camurl = htp + '//'+ cam_ip + '/cam/'+ cam_name+ '/pos=' + pos;
     $.ajax({
-        url: camurl + "/pos=" + pos,
+        url: camurl,
     }).done(function(v) {
+
         /* do something here is success */
     });
 }
