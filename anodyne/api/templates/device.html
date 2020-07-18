@@ -1,0 +1,81 @@
+{% extends "layout.html" %} {% load static %} {% load crispy_forms_tags %}
+{% block content %}
+<!-- Begin Page Content -->
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary">Device Management</h5>
+            <a class="dropdown-toggle" href="#" role="button"
+               id="dropdownMenuLink" data-toggle="dropdown"
+               aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                <div class="dropdown-header">Actions:</div>
+                <a href="#" data-placement="left" data-original-title="Station"
+                   data-target="#device-form" data-toggle="modal"
+                   class="dropdown-item" aria-hidden="true">Add</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                {{ tabular|safe }}
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="device-form">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class='modal-title'>
+                        <b>Add Device</b>
+                    </h3>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <form action="{% url 'dashboard:device' %}" method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-6">
+                                {{ form.name|as_crispy_field }}
+                                {{ form.make|as_crispy_field }}
+                                {{ form.upload_method|as_crispy_field }}
+                                {{ form.process_attached|as_crispy_field }}
+                                {{ form.type|as_crispy_field }}
+                                {{ form.system_certified|as_crispy_field }}
+
+                            </div>
+                            <div class="col-6">
+                                {{ form.frequency|as_crispy_field }}
+                                {{ form.manufacture|as_crispy_field }}
+                                {{ form.model|as_crispy_field }}
+                                {{ form.serial_no|as_crispy_field }}
+                                {{ form.oem_vendor|as_crispy_field }}
+
+                            </div>
+                            <div class="col-12">
+                                {{ form.description|as_crispy_field }}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">Add Device</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+</div>
+</div>
+<!-- /.container-fluid -->
+{% endblock %}
+{% block scripts %}
+  <!-- Page level plugins -->
+  <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+  <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+  <!-- Page level custom scripts -->
+  <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<!-- Bootstrap core Table View JavaScript Ends-->
+
+{% endblock %}

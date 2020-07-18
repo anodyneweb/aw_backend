@@ -2,7 +2,8 @@
 import csv
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from pytz import timezone
 
 from anodyne.connectors import prequisite
 from anodyne.connectors.to_database import ToDatabase
@@ -33,8 +34,9 @@ class ReadCSV:
                     readings[param] = value
                     try:
                         tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
-                    except:
-                        tstamp = tstamp
+                        tstamp = tstamp + timedelta(hours=5, minutes=30)
+                    except ValueError:
+                        log.exception('Incorrect timestamp')
             readings['timestamp'] = tstamp
         return readings
         # df = pd.DataFrame([readings])

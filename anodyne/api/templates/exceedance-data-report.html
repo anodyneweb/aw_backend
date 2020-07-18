@@ -1,0 +1,130 @@
+{% extends "layout.html" %} {% load static %}
+{% block content %}
+<style>
+</style>
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <h1 class="h3 mb-2 text-gray-800">Exceedance Count Report</h1>
+  <div class="card shadow mb-4">
+    <!-- Card Header - Dropdown -->
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+      <h6 class="m-0 font-weight-bold text-primary">{{ industry }}</h6>
+    </div>
+    <!-- Card Body -->
+    <div class="card-body">
+      <label id="iList_label" for="iList">Industry</label>
+          <div class="btn-group" role="group" aria-label="Row Item 1">
+            <select title="Report Type" id="iList" class="form-control col-md-10 select">
+                {% for uuid, industry in industry_options %}
+                <option value={{uuid}}>{{industry}}</option>
+                {% endfor %}
+            </select>
+          </div>
+      <div class="btn-group" role="group" aria-label="Row Item 3">
+          <button class="btn-secondary btn-sm btn" type="button" >
+              <a id="reportrange">
+                <i class="fa fa-calendar"></i>&nbsp;
+                <span></span> <i class="fa fa-caret-down"></i>
+              </a>
+            </button>
+          <button type="button" title="Update Chart" id="updateChart"
+                    onclick="get_data2();" class="btn btn-primary btn-sm">
+              Update
+            </button>
+                      {% if can_download %}&nbsp;&nbsp;&nbsp;
+            <a href="javascript:fnExcelReport('{{reportname}}');"
+             class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-download fa-sm text-white-50"></i>&nbsp;Download
+          </a>
+            {% endif %}
+        </div>
+        <br>
+        <span id="loader" style="visibility: hidden; padding:5px">&nbsp;&nbsp;&nbsp;Please wait...&nbsp;<img src="/static/img/loader.gif" class="loader" height="20" width="20"></span>
+
+      <div id="tabular">
+      {{ tabular|safe }}
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+  <!-- Page level plugins -->
+  <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+  <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+
+  <!-- Page level custom scripts -->
+  <script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<!-- Bootstrap core Table View JavaScript Ends-->
+<script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/moment.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chart.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/daterangepicker.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chartjs-plugin-zoom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/dropdown.min.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/daterangepicker.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/dropdown.min.css' %}">
+
+
+<script>
+$(document).ready(function() {
+if ('{{ current_industry }}' != 'None') {
+    $('#iList').val("{{current_industry}}");
+    }
+});
+
+var fromDate = null;
+var toDate = null;
+var sessionObject;
+
+// Date Range Picker script start \\
+$(function() {
+var start = moment().subtract(24, 'hour');
+var end = moment();
+
+  function cb(start, end) {
+    $('#reportrange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+
+    fromDate = start.format('MM/DD/YYYY');
+    toDate = end.format('MM/DD/YYYY');
+    }
+    $('#reportrange').daterangepicker({
+        timePicker: true,
+        startDate:start,
+        endDate: end,
+        maxDate: moment(),
+        ranges: {
+           //'Today': [moment().startOf('day'), moment()],
+           //'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
+           //'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment()],
+           'This Year': [moment().startOf('year').startOf('day'), moment().endOf('month')],
+           'Last Year': [moment().subtract(1, 'year').startOf('year').startOf('day'), moment().subtract(1, 'year').endOf('year')],
+           'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+           'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+        },
+    }, cb);
+    cb(start, end);
+});
+
+
+function get_data2(){
+    var industry = $('#iList option:selected').val();
+    var freq = $('#fList option:selected').val();
+    var siteTable = document.getElementById('tabular');
+    var URL  = '/dashboard/exceedancedata/'+industry+'/'+fromDate+'/'+toDate;
+    console.log(URL);
+    document.location.href = URL;
+}
+
+function fnExcelReport(fname){
+    var industry = $('#iList option:selected').val();
+    var freq = $('#fList option:selected').val();
+    var URL  = '/dashboard/exceedancedata/'+industry+'/'+fromDate+'/'+toDate+'/'+fname;
+    window.open(URL, '_blank');
+}
+
+
+</script>
+{% endblock %}

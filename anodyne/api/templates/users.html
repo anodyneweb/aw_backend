@@ -17,9 +17,6 @@
               <a href="#" data-placement="left" data-original-title="Station"
                        data-target="#users-form" data-toggle="modal"
                        class="dropdown-item" aria-hidden="true">Add</a>
-              <a class="dropdown-item" href="#">Another action</a>
-              <div class="dropdown-divider"></div>
-              <a class="dropdown-item" href="#">Something else here</a>
             </div>
     </div>
     <div class="card-body">
@@ -58,8 +55,9 @@
                             {{ form.city|as_crispy_field }}
                         </div>
                         <div class="col-12">
-                            {{ form.password|as_crispy_field }}
-                            {{ form.confirm_password|as_crispy_field }}
+                        </div>
+                        <div class="col-12">
+                            {{ form.station }}
                         </div>
                     </div>
                     <button type="submit" class="btn btn-success">Add User</button>

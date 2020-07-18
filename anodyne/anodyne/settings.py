@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'rest_framework',
     'rest_framework.authtoken',
     'api',
@@ -128,7 +129,7 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_L10N = True
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
@@ -150,15 +151,16 @@ EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'vepolink@anodyne.in'
-EMAIL_HOST_PASSWORD = 'awecdelhi340@'
+EMAIL_HOST_PASSWORD = 'awecdelhi@340'
 APP_NAME = 'VepoLink'
-
+#https://myaccount.google.com/security
+# https://myaccount.google.com/lesssecureapps
 
 # Logging Setup
 # can set environ LOGLEVEL=debug/info/error etc
 LOGLEVEL = os.environ.get('LOGLEVEL', 'debug').upper()
 LOG_PATH = os.path.join('/var/log/', 'vepolink')
-
+TMP_PATH = '/tmp/'
 if not os.path.exists(LOG_PATH):
     os.makedirs(LOG_PATH)
 

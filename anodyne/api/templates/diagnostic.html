@@ -1,0 +1,170 @@
+{% extends "layout.html" %} {% load static %}
+
+{% block content %}
+<style>
+  .ScrollStyle
+{
+    max-widht: 600px;
+    overflow-y: scroll;
+
+}
+
+</style>
+<!-- Begin Page Content -->
+
+
+
+
+<div class="container-fluid">
+  <!-- Content Row -->
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <div class="d-sm-flex align-items-center justify-content-between">
+          <h3 class="h3 mb-0 text-gray-800">Analyzer Parameter & Diagnostic</h3>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group col-md-3">
+            <label id="iList_label" for="iList">Site</label>
+            <select title="Report Type" id="iList" class="form-control select">
+              <option value=''>Select Industry</option>
+              {% for uuid, industry in industry_options %}
+              <option value={{uuid}}>{{industry}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-2">
+            <label id="mList_label" for="mList">Monitoring Type:</label>
+            <select title="Report Type" id="mList" class="form-control select">
+              {% for m, mt in monitoring_type_options %}
+              <option value="{{m}}">{{mt}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-md-2">
+            <label id="muList_label" for="muList">Monitoring Unit:</label>
+            <select title="Report Type" id="muList" class="form-control select">
+              <option value="ETP_OUTLET">ETP_OUTLET</option>
+              <option value="ETP_OUTLET">ETP_OUTLET1</option>
+            </select>
+          </div>
+          <div class="form-group col-md-2">
+            <label id="aList_label" for="aList">Analyzer Unit:</label>
+
+            <select title="Report Type" id="aList" class="form-control select">
+              {% for name in analyzer_type_options %}
+              <option value={{name}}>{{name}}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-group" role="group" aria-label="Row Item 3">
+          <button class="btn-secondary btn-sm btn mr-2" type="button" >
+            <a id="reportrange">
+              <i class="fa fa-calendar"></i>&nbsp;
+                <span></span> <i class="fa fa-caret-down"></i>
+              </a>
+            </button>
+          <button type="button" title="Update Chart" id="updateChart"
+                    onclick="get_data2();" class="btn btn-primary btn-sm mr-3">
+              Fetch
+            </button>
+                    {% if can_download %}&nbsp;&nbsp;&nbsp;
+            <a href="javascript:fnExcelReport('{{reportname}}');"
+             class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-download fa-sm text-white-50"></i>&nbsp;Download
+          </a>
+            {% endif %}
+
+        </div>
+        <br>
+
+        <span id="loader" style="visibility: hidden; padding:5px">&nbsp;&nbsp;&nbsp;Please wait...&nbsp;<img src="/static/img/loader.gif" class="loader" height="20" width="20"></span>
+        <h3>{{ station_name }}</h3>
+        <h4>{{ industry_name }}</h4>
+        <div class="table-responsive ScrollStyle" id="tabular">
+          {{ tabular|safe }}
+        </div>
+      </div>
+    </div>
+</div>
+<!-- /.container-fluid -->
+{% endblock %}
+{% block scripts %}
+<!-- Bootstrap core  Table View JavaScript-->
+<!-- Table level plugins -->
+<script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+<!-- Table level custom scripts -->
+<script src="{% static 'js/demo/datatables-demo.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/moment.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chart.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/daterangepicker.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/chartjs-plugin-zoom.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/dropdown.min.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/daterangepicker.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/dropdown.min.css' %}">
+
+<!-- Bootstrap core Table View JavaScript Ends-->
+<script>
+$(document).ready(function() {
+if ('{{current_industry}}') {
+    $('#iList').val("{{current_industry}}");
+    }
+});
+
+var fromDate = null;
+var toDate = null;
+var sessionObject;
+
+// Date Range Picker script start \\
+$(function() {
+var start = moment().subtract(24, 'hour');
+var end = moment();
+
+  function cb(start, end) {
+    $('#reportrange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+
+    fromDate = start.format('MM/DD/YYYY');
+    toDate = end.format('MM/DD/YYYY');
+
+    }
+    $('#reportrange').daterangepicker({
+        timePicker: true,
+        startDate:start,
+        endDate: end,
+        maxDate: moment(),
+        ranges: {
+           //'Today': [moment().startOf('day'), moment()],
+           //'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment()],
+           'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
+           'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
+           'Last 2 Year': [moment().subtract(2, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+           'Last 5 Year': [moment().subtract(5, 'year').startOf('year').startOf('day'), moment().subtract(0, 'year').endOf('year')],
+        },
+    }, cb);
+    cb(start, end);
+});
+
+function get_data2(){
+    var rtype = $('#rList option:selected').val();
+    var industry = $('#iList option:selected').val();
+    if (industry) {
+      var URL  = '/dashboard/diagnostic-info/'+industry;
+      console.log(URL);
+      document.location.href = URL;
+      }
+}
+function fnExcelReport(fname){
+    var industry = $('#iList option:selected').val();
+    var URL  = '/dashboard/diagnostic-info/'+industry+'/'+fname;
+    window.open(URL, '_blank');
+}
+
+
+
+</script>
+{% endblock %}

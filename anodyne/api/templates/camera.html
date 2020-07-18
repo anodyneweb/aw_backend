@@ -8,41 +8,88 @@
     overflow-y: scroll;
 
 }
+table {
+    width: 60%;
+}
+th {
+        background-color: white!important;
+        background-image: white!important;
+}
+tr:hover {
+             background-color: white!important;
+        background-image: white!important;
+}
+tr:hover > td > * {
+        color: white;
+}
+
+.dropbtn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+  background-color: #3e8e41;
+}
+
+#myInput {
+  box-sizing: border-box;
+  background-position: 14px 12px;
+  background-repeat: no-repeat;
+  font-size: 16px;
+  padding: 14px 20px 12px 20px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+
+#myInput:focus {outline: 3px solid #ddd;}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-content {
+  position: absolute;
+  background-color: #f6f6f6;
+  max-height: 500px;
+  overflow-y: scroll;
+  overflow: auto;
+  border: 1px solid #ddd;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
 </style>
 <div class="container-fluid">
     <!-- Page Heading -->
     <h1 class="h3 mb-4 text-gray-800">Cameras</h1>
     <div class="row">
-        <div class="camera-list-column col-3">
-            <div class="card ScrollStyle">
-                <div class="card shadow mb-4 ScrollStyle">
-                    {% for industry, station in industries.items %}
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">{{ industry }}</h6>
-                    </div>
-                    {% for name, url in station %}
-                    <div class="card-body">
-                        <a class="station_name" title="{{ name }}" href="javascript:DispCam('{{industry}}', '{{name}}', '{{url}}');">{{name}}&nbsp;
-                            <i class="fas fa-camera" style="font-size:14px;color:lightseagreen"></i>
-                        </a>
-                    </div>
-                    {% endfor %}
-                    <hr>{% endfor %}
-                </div>
-            </div>
-        </div>
-        <div class="camera-view-column card col-sm-8" id="camera_details" style="display:none">
+        <div class="camera-view-column card col-md-10" id="camera_details" style="display:none">
+            <br>
             <div class="card-title">
                 <h2 id="industry_name"></h2>
                 <hr>
                 <h3 id="station_name"></h3>
             </div>
             <div class="row">
-                <img id='id_camera' class="col-8 img-responsive"
-                     src="https://i.ytimg.com/vi/Xvb1ToqYTmg/maxresdefault.jpg"
-                     height="150px" width="150px" alt="&nbsp;
+                <img id='id_camera' class="col-9 img-responsive" src=""
+                     height="400px" width="150px" alt="&nbsp;
                      No Feed Check Connection...">
-                <div class="row col-4">
+                <div class="row col-3">
                     <table class="table-cam-btn">
                         <tbody>
                         <tr>
@@ -79,6 +126,21 @@
                 </div>
             </div>
         </div>
+        <div class="camera-list-column col-2">
+            <div class="dropdown">
+                <div id="myDropdown" class="dropdown-content">
+                    <input type="text" placeholder="Search Station.." id="myInput" onkeyup="filterFunction()">
+                    {% for industry, station in industries.items %}
+                    {% for name, url in station %}
+                    <a title="{{ name }}" href="javascript:DispCam('{{industry}}', '{{name}}', '{{url}}');">{{industry}} | {{name}}&nbsp;
+                        <i class="fas fa-camera" style="font-size:14px;color:lightseagreen"></i>
+                    </a>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 <!-- /.container-fluid -->
@@ -104,15 +166,42 @@ function moveCam(pos){
 /* pos=4 --> Reset/Home
 /* pos=5 --> Zoom In
 /* pos=6 --> Zoom Out
-}*/
+}
+/cam/camera0001/pos=0
+*/
+
     var camurl = $('#id_camera').prop('src');
-    console.log(movement_url);
+    var arr = camurl.split('/');
+    var htp = arr[0];
+    var cam_ip = arr[2];
+    var cam_name = arr[4]
+    camurl = htp + '//'+ cam_ip + '/cam/'+ cam_name+ '/pos=' + pos;
     $.ajax({
-        url: camurl + "/pos=" + pos,
+        url: camurl,
     }).done(function(v) {
+
         /* do something here is success */
     });
 }
+document.getElementById("myDropdown").classList.toggle("show");
+
+
+function filterFunction() {
+  var input, filter, ul, li, a, i;
+  input = document.getElementById("myInput");
+  filter = input.value.toUpperCase();
+  div = document.getElementById("myDropdown");
+  a = div.getElementsByTagName("a");
+  for (i = 0; i < a.length; i++) {
+    txtValue = a[i].textContent || a[i].innerText;
+    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+      a[i].style.display = "";
+    } else {
+      a[i].style.display = "none";
+    }
+  }
+}
+
 
 </script>
 {% endblock %}

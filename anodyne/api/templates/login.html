@@ -19,29 +19,38 @@
   <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
 <style>
 .bg-login-image2 {
-  background: url("https://40.media.tumblr.com/ff661e73622d6907f0f2816c712b3abb/tumblr_ngfahxmwa81tgmvjco1_500.jpg");
+  background: url(/static/img/vepolink_login.jpeg);
   background-position: center;
   background-size: cover;
+
+
 }
+.bg-gradient-login{
+background: url(/static/img/vepolink_login_2.jpeg);
+  background-position: center;
+  background-size: cover;
+
+}
+.sub_div {
+                position: fixed;
+    right: 15%;
+    left: 15%;
+    /* bottom: 35%; */
+            }
 
 </style>
 </head>
 
-<body class="bg-gradient-primary">
-
+<body class="bg-gradient-login">
   <div class="container">
-
     <!-- Outer Row -->
-    <div class="row justify-content-center">
+    <div class="row justify-content-center sub_div">
 
-      <div class="col-xl-10 col-lg-12 col-md-9">
+      <div class="col-xl-6 col-lg-12 col-md-9">
 
-        <div class="card o-hidden border-0 shadow-lg my-5">
+        <div class="card o-hidden border-0 shadow-lg my-1">
           <div class="card-body p-0">
-            <!-- Nested Row within Card Body -->
-            <div class="row">
-              <div class="col-lg-6 d-none d-lg-block bg-login-image2"></div>
-              <div class="col-lg-6">
+              <div class="col-lg-12">
                 <div class="p-5">
                   <div class="text-center">
                       <div class="message">
@@ -51,8 +60,9 @@
                           </div>
                           {% endfor %}
                       </div>
-                    <h1 class="h4 text-gray-900 mb-4"><small>Welcome Back on:</small> <b>VepoLink!</b></h1>
-                    <p>You All-in-One Monitoring Solution</p>
+                    <h1 class="h4 text-gray-900 mb-4">
+                      <img src="/static/img/logo.png" style="max-width: 100%;max-height: 100%;display: block;">
+                    </h1>
                   </div>
                     <form class="user" action="{% url 'authenticate' %}" method="POST" role="form">
                       {% csrf_token %}
@@ -66,7 +76,7 @@
                     </div>
                     <div class="form-group">
                       <div class="custom-control custom-checkbox small">
-                        <input type="checkbox" class="custom-control-input" id="customCheck">
+                        <input type="checkbox" checked class="custom-control-input" id="customCheck">
                         <label class="custom-control-label" for="customCheck">Remember Me</label>
                       </div>
                     </div>
@@ -75,21 +85,25 @@
                                id="login-button" value="Sign In">
                       </div>
                   </form>
-                  <hr>
+                  <br>
                   <div class="text-center">
-                    <a class="small" href="forgot-password.html">Forgot Password?</a>
+                    <a class="small" href="{% url 'forgot-password' %}">Forgot Password?</a>
                   </div>
                   <div class="text-center">
-                    <a class="small" href="register.html">Create an Account!</a>
+                    <a class="small" href="{% url 'submit-query' %}">Customer Support</a>
+                  </div>
+                  <hr>
+                  <div class="text-center">
+                    Reach Us At:<br>
+                    <small><i class="fas fa-envelope fa-2x text-gray-300"></i>&nbsp; customercare@anodyne.in</small>
+                        <br>
+                      <small><i class="fas fa-phone fa-2x text-gray-300"></i>&nbsp; +91-9899033877,+91-7494965025,+91-7496969763</small>
                   </div>
                 </div>
               </div>
-            </div>
           </div>
         </div>
-
       </div>
-
     </div>
 
   </div>

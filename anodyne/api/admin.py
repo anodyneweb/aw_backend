@@ -13,17 +13,25 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('admin',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ()}),
-        ('Permissions', {'fields': ('admin',)}),
+        ('Personal info', {'fields': ('name', 'phone', 'address', 'zipcode')}),
+        ('Permissions', {'fields': ('admin', 'staff', 'is_cpcb', 'station')}),
     )
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'name',
-                       'password1', 'password2', 'type', 'admin', 'staff',
-                       'phone', 'address', 'zipcode')}
+            'fields': ('email',
+                       'name',
+                       'password1', 'password2',
+                       'station',
+                       'admin',
+                       'is_cpcb',
+                       'staff',
+                       'phone',
+                       'address',
+                       'zipcode'
+                       )}
          ),
     )
     search_fields = ('email',)
@@ -42,5 +50,10 @@ admin.site.register(StationParameter)
 admin.site.register(Parameter)
 admin.site.register(Registration)
 admin.site.register(Unit)
+admin.site.register(Exceedance)
+admin.site.register(SMSAlert)
+admin.site.register(Calibration)
+admin.site.register(Diagnostic)
+admin.site.register(Analyzer)
 # Remove Group Model from admin. We're not using it.
 admin.site.unregister(Group)

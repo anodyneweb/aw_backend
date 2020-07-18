@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.contrib.postgres.fields import CICharField
 from django.db import models
+
 log = logging.getLogger('vepolink')
 from django.contrib.postgres.fields import HStoreField
 
@@ -47,6 +48,10 @@ class Category(models.Model):
 
 class PCB(models.Model):
     name = models.CharField(max_length=256, unique=True)
+    email = models.EmailField(verbose_name='PCB Email',
+                              max_length=255,
+                              blank=True
+                              )
     var1 = models.CharField(max_length=256)
     var2 = models.CharField(max_length=256)
     var3 = models.TextField(default=None)
@@ -116,6 +121,8 @@ class User(AbstractBaseUser):
                                  help_text='uncheck to block user (inactivate)',
                                  )
     staff = models.BooleanField(default=True)  # a staff not using it for now;
+    is_cpcb = models.BooleanField(default=False,
+                                  help_text='Only for CPCB user')
     admin = models.BooleanField(default=False,
                                 help_text='admin user can add/edit/delete details')
     created = models.DateTimeField(default=django.utils.timezone.now,
@@ -134,6 +141,8 @@ class User(AbstractBaseUser):
                               to_field='name', null=True)
     city = models.ForeignKey(City, on_delete=models.CASCADE, null=True)
     country = models.CharField(max_length=80, default='India', editable=False)
+    station = models.ManyToManyField('Station', default=None)
+
     # USER DETAILS ENDS
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name', ]
@@ -197,6 +206,32 @@ class User(AbstractBaseUser):
         a "dynamic property".
         """
         return self._generate_jwt_token()
+
+    # @staticmethod
+    # def new_user_hook(sender, instance, created, **kwargs):
+    #     """
+    #     A User post_save hook to create a User Profile
+    #     """
+    #     if created and instance.email != settings.ANONYMOUS_USER_NAME:
+    #         if instance.is_superuser:
+    #             # to add multiple many2many obj. use 'set' else 'add'
+    #             sites = Station.objects.select_related()
+    #             instance.site.set(sites)
+    #             instance.save()
+
+    @property
+    def assigned_stations(self):
+        if self.admin:
+            return Station.objects.select_related('industry')
+        return self.station.select_related('industry')
+
+    @property
+    def assigned_industries(self):
+        if self.is_admin:
+            return Industry.objects.all()
+        uuids = self.station.values_list('industry__uuid')
+        industries = Industry.objects.filter(uuid__in=uuids)
+        return industries
 
     # hook in the New Manager to our Model
     objects = UserManager()
@@ -308,6 +343,7 @@ class Station(models.Model):
     MONITORING_TYPE_CHOICES = (
         ('Effluent', 'Effluent'),
         ('Emission', 'Emission'),
+        ('Ambient', 'Ambient'),
         ('CAAQMS', 'CAAQMS'),
     )
 
@@ -362,25 +398,27 @@ class Station(models.Model):
     # emails/phone of customer
     user_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='Customer Alert Email',
-                                  help_text='for multiple emails user semi-colon(;)',
+                                  help_text='for multiple emails use semi-colon(;)',
                                   blank=True)
     user_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='Customer Alert Contact',
-                               help_text='for multiple emails user semi-colon(;)',
+                               help_text='for multiple contacts use semi-colon(;)',
                                blank=True)
     is_cpcb = models.BooleanField(default=False, verbose_name='Is CPCB',
                                   help_text='send data to cpcb also',
                                   blank=True)
     cpcb_email = models.TextField(max_length=255, default=None, null=True,
                                   verbose_name='CPCB Alert Email',
-                                  help_text='for multiple emails user semi-colon(;)',
+                                  help_text='for multiple emails use semi-colon(;)',
                                   blank=True)
     cpcb_ph = models.TextField(max_length=255, default=None, null=True,
                                verbose_name='CPCB Alert Contacts',
-                               help_text='for multiple emails user semi-colon(;)',
+                               help_text='for multiple contacts use semi-colon(;)',
                                blank=True)
-    closure_status = models.CharField(max_length=20, choices=CLOSURE_CHOICES,
+    closure_status = models.TextField(max_length=255,
+                                      verbose_name='Offline Reason',
                                       default=None,
+                                      help_text='Mention Offline Reason if any',
                                       blank=True)
     monitoring_type = models.CharField(max_length=20, default=None,
                                        choices=MONITORING_TYPE_CHOICES,
@@ -577,9 +615,11 @@ class StationParameter(models.Model):
 
 
 class Reading(models.Model):
-    station = models.ForeignKey(Station, null=True, to_field='prefix',
+    station = models.ForeignKey(Station,
+                                null=True,
                                 on_delete=models.CASCADE,
-                                db_index=True)
+                                db_index=True
+                                )
     reading = HStoreField(max_length=1024, blank=True)
 
     class Meta:
@@ -593,26 +633,248 @@ class Registration(models.Model):
     email = models.EmailField(
         verbose_name='email address',
         max_length=255,
-        unique=True
+        unique=True,
+        help_text="use semi-colon(;) for multiple emails"
     )
     fname = models.CharField(
-        max_length=120, verbose_name='First Name',
+        max_length=120, verbose_name='Contact Person Name',
     )
-    lname = models.CharField(
-        max_length=120,
-        verbose_name='Last Name',
-        blank=True
-    )
-    phone = models.CharField(
-        max_length=120,
-    )
-    industry = models.CharField(
-        max_length=120,
-        blank=True
-    )
+    # lname = models.CharField(
+    #     max_length=120,
+    #     verbose_name='Last Name',
+    #     blank=True
+    # )
+    phone = models.CharField(max_length=120,
+                             help_text="use semi-colon(;) for multiple numbers")
+    # industry = models.CharField(
+    #     max_length=120,
+    #     blank=True
+    # )
     query = models.TextField(
         default=None,
         blank=True
     )
 
-##############################################################################
+class Exceedance(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    parameter = models.CharField(
+        max_length=20,
+        default=None,
+        null=True,
+    )
+    value = models.FloatField(
+        default=0,
+        null=True
+    )
+    timestamp = models.DateTimeField()
+
+    def __str__(self):
+        return '%s: %s (%s)' % (self.station, self.parameter, self.value)
+
+    class Meta:
+        unique_together = (('station', 'parameter', 'value', 'timestamp'),)
+
+
+class SMSAlert(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    message = models.TextField(default=None)
+    contact = models.TextField(default=None,
+                               help_text='Contacts Semicolon separated')
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return '%s: %s' % (self.station, self.message)
+
+
+class Device(models.Model):
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Name')
+    make = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Device Make')
+    upload_method = models.CharField(
+        max_length=256,
+        choices=(
+            ('MODBUS', 'MODBUS'),
+            ('API', 'API'),
+            ('CLIENT SW', 'CLIENT SW'),
+        ),
+        blank=True,
+        verbose_name='Upload Method')
+    process_attached = models.CharField(
+        max_length=256,
+        choices=(
+            ('ETP', 'ETP'),
+            ('STACK', 'STACK'),
+            ('STP', 'STP'),
+        ),
+        blank=True,
+        verbose_name='Process Attached')
+    type = models.CharField(
+        max_length=256,
+        blank=True,
+        choices=(
+            ('GROUND WATER', 'GROUND WATER'),
+            ('CAAQMS', 'CAAQMS'),
+            ('CEMS', 'CEMS'),
+            ('ASH', 'ASH'),
+            ('GPS', 'GPS'),
+            ('ANALYZER', 'ANALYZER'),
+            ('CAMERA', 'CAMERA'),
+        ),
+        verbose_name='Type')
+    system_certified = models.BooleanField(
+        max_length=256,
+        blank=True,
+        verbose_name='System Certified')
+    frequency = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Frequency')
+    manufacture = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Manufacture')
+    model = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Model')
+    serial_no = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Serial No.')
+    description = models.TextField(
+        blank=True,
+        verbose_name='Description')
+    oem_vendor = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='OEM Vendor')
+
+
+class Maintenance(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
+    parameter = models.ManyToManyField(Parameter)
+    start_date = models.DateField(default=django.utils.timezone.now,
+                                  blank=True,
+                                  verbose_name='Start Date')
+    end_date = models.DateField(default=django.utils.timezone.now,
+                                blank=True,
+                                verbose_name='End Date')
+    send_to_pcb = models.ManyToManyField(PCB,
+                                    verbose_name='Send To')
+    # send_to_pcb = models.ForeignKey(PCB,
+    #                                 on_delete=models.CASCADE,
+    #                                 verbose_name='Send To')
+    comments = models.TextField()
+
+    ##############################################################################
+
+class Calibration(models.Model):
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Calibration Name')
+    calibrator = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Calibrator')
+    monitoring_label = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Monitoring Label')
+    parameter = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Parameter Name')
+    analyzer = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Analyzer')
+    start_time = models.DateTimeField(
+        blank=True,
+        verbose_name='Start Time'
+    )
+    frequency = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Frequecny')
+    frequency_time = models.TimeField(
+        blank=True,
+        verbose_name='Frequency Time')
+
+
+class Diagnostic(models.Model):
+    station = models.ForeignKey(Station,
+                                null=True,
+                                on_delete=models.CASCADE,
+                                db_index=True
+                                )
+    timestamp = models.DateTimeField(auto_now_add=True,
+                                     blank=True)
+    no_signal = models.BooleanField(default=True,
+                                    verbose_name='FAULT ALARM:No Signal (No '
+                                                 'signal from spectograph)')
+    light_high = models.BooleanField(default=True,
+                                     verbose_name='FAULT ALARM:Light Too High'
+                                                  '(Bubble inside the flow'
+                                                  ' cell or No sample)')
+    light_low = models.BooleanField(default=True,
+                                    verbose_name='FAULT ALARM:Light Too '
+                                                 'High(Deposit or dirty on '
+                                                 'the flow cell)')
+    maintenance = models.BooleanField(default=True,
+                                      verbose_name='Maintenance Status')
+    cleaning = models.BooleanField(default=True,
+                                   verbose_name='Cleaning')
+    in_config = models.BooleanField(default=True,
+                                    verbose_name='In Configuration')
+    in_calibration = models.BooleanField(default=True,
+                                         verbose_name='In Calibration')
+    no_measurement = models.BooleanField(default=False,
+                                         verbose_name='No Measurement'
+                                                      ' Available')
+    sample_mode = models.BooleanField(default=True, verbose_name='Sample Mode')
+    # Emission
+    usable = models.BooleanField(default=False, verbose_name='Usable')
+    calibration = models.BooleanField(default=True, verbose_name='Calibration')
+    faulty = models.BooleanField(default=True, verbose_name='Faulty')
+    zero = models.BooleanField(default=True, verbose_name='Zero')
+    calibration_drift = models.BooleanField(default=True,
+                                            verbose_name='Calibration Drift')
+
+    def __str__(self):
+        return self.station.name
+
+
+class Analyzer(models.Model):
+    name = models.CharField(
+        max_length=256,
+        blank=True,
+        verbose_name='Analyzer')
+
+    def __str__(self):
+        return self.name

@@ -7,6 +7,7 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h5 class="m-0 font-weight-bold text-primary">{{ parameter.name }}</h5>
+            {% if request.user.is_admin %}
             <a class="dropdown-toggle" href="#" role="button"
                id="dropdownMenuLink" data-toggle="dropdown"
                aria-haspopup="true" aria-expanded="false">
@@ -21,8 +22,8 @@
                    data-target="#delete-form" data-toggle="modal"
                    class="dropdown-item" aria-hidden="true">Delete</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#">Something else here</a>
             </div>
+            {% endif %}
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -80,13 +81,16 @@
 {% endblock %}
 {% block scripts %}
 <script>
+console.log('settings...')
+var color_code = document.getElementById('id_color_code');
+color_code.type = 'color';
 
 $('#delete-confirm').click(function () {
 // Sending as Delete request
     $('#delete-form').modal('hide');
     console.log('DELETING....');
     $.ajax({
-        url: "/dashboard/parameter-info/{{ param.id }}",
+        url: "/dashboard/parameter-info/{{ pk }}",
         type: 'DELETE',
         beforeSend: function(xhr) {
             xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');

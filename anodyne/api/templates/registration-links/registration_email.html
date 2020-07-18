@@ -1,0 +1,16 @@
+{% block content %}
+<br>
+Hello {{ user.first_name }},
+<br>
+<h3>Welcome on Board</h3>
+Please follow the link to login:<br>
+{% block reset_link %}
+http://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+{% endblock %}
+<br>
+Your username, in case you've forgotten: {{ user.username }}
+<br>
+<br>
+Thanks for registering!
+<br>
+{% endblock %}
