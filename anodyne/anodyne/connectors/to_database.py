@@ -57,12 +57,7 @@ class ToDatabase:
                           from_email=settings.EMAIL_HOST_USER
                           )
                 phone_receipients = station.user_ph
-                sms_context = "SMS ALERT FROM Vepolink%n" \
-                              "ALERT:{alert_type}%nIndustry Name:{industry}%n" \
-                              "Category:{category}%nLocation:{location}%n" \
-                              "EXCEEDING PARAMETER:{param}%nVALUE: {value}%n{timestamp}%n" \
-                              "Avg Value for last 15 Min%n" \
-                              "Respond at customercare@anodyne.in".format(**context)
+                sms_context = "SMS ALERT FROM VEPOLINK%nALERT: {alert_type}%nIndustry Name:{industry}%nCATEGORY:{category}%nLOCATION:{location}%nEXCEEDING PARAMETER:{param}%nVALUE:{value}%n{timestamp}%nAvg Value for last 15 Min%nRespond at customercare@anodyne.in".format(**context)
                 log.info('Initiating Exceedance SMS')
                 send_sms(numbers=phone_receipients, content=sms_context)
         except:
