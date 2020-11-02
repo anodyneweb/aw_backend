@@ -1,4 +1,4 @@
-from anodyne.PCBS import MPPCB, HSPCB
+from anodyne.PCBS import MPPCB, HSPCB, GMDA
 from api.models import Station
 
 
@@ -27,6 +27,8 @@ class ToPCB:
                 pcb_obj = MPPCB
             elif pcb == 'HSPCB':
                 pcb_obj = HSPCB
+            elif pcb == 'GMDA':
+                pcb_obj = GMDA
             else:
                 pcb_obj = None
                 message = '%s: PCB %s not configured' % (self.basename, pcb)

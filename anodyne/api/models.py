@@ -92,7 +92,8 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password, name, type):
+    def create_superuser(self, email, password, name, type=None):
+    #def create_superuser(self, email, password, name):
         """
         Creates and saves a superuser with the given email and password.
         """
@@ -103,8 +104,9 @@ class UserManager(BaseUserManager):
         user.staff = True
         user.admin = True
         user.name = name
-        user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN',
-                                     'STAFF'] else 'ADMIN'
+        if type:
+            user.type = type if type in ['CUSTOMER', 'CPCB', 'ADMIN',
+                                    'STAFF'] else 'ADMIN'
         user.save(using=self._db)
         return user
 
@@ -324,6 +326,7 @@ class Station(models.Model):
     MPPCB = 'MPPCB'
     TSPCB = 'TSPCB'
     HSPCB = 'HSPCB'
+    GMDA = 'GMDA',
     UPPCB = 'UPPCB'
     DPCC = 'DPCC'
     JSPCB = 'JSPCB'

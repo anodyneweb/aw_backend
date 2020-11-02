@@ -52,7 +52,7 @@ class Handle:
                     )
                     param_unit = p.unit
                     param = str(param).lower()
-                    deviceId = '_'.join(['an',
+                    deviceId = '_'.join(['xx',
                                          self.site.industry.industry_id,
                                          self.site.site_id,
                                          param])
