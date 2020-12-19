@@ -34,7 +34,7 @@ class ReadCSV:
                     readings[param] = value
                     try:
                         tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
-                        tstamp = tstamp + timedelta(hours=5, minutes=30)
+                        #tstamp = tstamp + timedelta(hours=5, minutes=30)
                     except ValueError:
                         log.exception('Incorrect timestamp')
             readings['timestamp'] = tstamp
