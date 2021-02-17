@@ -58,7 +58,7 @@ class Handle:
                         unt = p.unit.name
                         tmp_data = {
                             "input": {
-                                "date_time": self.readings.get('timestamp').strftime('%Y-%m-%dT%H:%M:%SZ'),
+                                "date_time": self.readings.get('timestamp').strftime('%Y-%m-%dT%H:%M:%S.000Z'),
                                 "WaterMeterReading": reading,
                                 "unit": unt,
                                 "deviceId": self.site.name,
