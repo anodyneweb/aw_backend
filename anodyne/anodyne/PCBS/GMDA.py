@@ -77,7 +77,7 @@ class Handle:
                                 "consumerNo": "1232342342",
                                 "InstantaneousFlow": 45.56
                             }}
-                        log.info('data created from the reading: %s ' % data)
+                        log.info('data created from the reading: %s ' % tmp_data)
                         #data.append(tmp_data)
                     except Exception as err:
                         log.exception('GMDA Upload failure:%s' % err)
