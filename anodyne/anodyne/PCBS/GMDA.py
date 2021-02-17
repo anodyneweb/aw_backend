@@ -48,7 +48,7 @@ class Handle:
         return head
 
     def _get_data(self):
-        data = []
+        #data = []
         if self.readings:
             for param, value in self.readings.items():
                 if param != 'timestamp':
@@ -78,13 +78,13 @@ class Handle:
                                 "InstantaneousFlow": 45.56
                             }}
                         log.info('data created from the reading: %s ' % data)
-                        data.append(tmp_data)
+                        #data.append(tmp_data)
                     except Exception as err:
                         log.exception('GMDA Upload failure:%s' % err)
 
-        log.info('GMDA URL:%s' % self.URL)
-        log.info('GMDA DATA:%s' % data)
-        return json.dumps(data)
+        #log.info('GMDA URL:%s' % self.URL)
+        #log.info('GMDA DATA:%s' % data)
+        return json.dumps(tmp_data)
 
     def upload(self):
         log.info('Initiating upload for the data upload')
