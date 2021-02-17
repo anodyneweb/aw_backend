@@ -31,6 +31,8 @@ class ReadCSV:
                     if '_' in param:
                         param = str(param.split('_')[-1]) #.lower() citext is used
                     tstamp, value = reader[idx + 2][:2]
+                    if float(value) < 0:
+                        value = 0
                     readings[param] = value
                     try:
                         tstamp = datetime.strptime(tstamp, "%y%m%d%H%M%S")
