@@ -4,7 +4,7 @@ import requests
 import logging
 
 from api import utils
-from api.models import Parameter, Station
+from api.models import Parameter, Station, StationParameter
 
 log = logging.getLogger('vepolink')
 
@@ -16,7 +16,6 @@ class Handle:
         self.key = 'MDgwMzIwMTlfYW5vZHluZV93YXRlcl9lbmdpbmVlcmluZ19jb19wdnRfbHRkXzE2MTMyMA=='
         industry_id = self.site.industry.industry_id
         self.URL = 'http://164.100.160.248/hrcpcb-api/api/industry/{industryId}/station/{stationId}/data'.format(industryId=industry_id, stationId=self.site.site_id)
-        self.deviceId = 'Anodyne_466'
 
     def get_headers(self):
         headers = {
@@ -79,11 +78,13 @@ class Handle:
                 if param != 'timestamp':
                     reading = value
 
-                    ts = self.readings.get('timestamp')
-                    ts = str(ts)
-                    ts = utils.epoch_timestamp(ts)
-                    ts = ts * 1000
+                    ts = str(self.readings.get('timestamp'))
+                    #ts = str(ts)
+                    ts = utils.epoch_timestamp(ts) * 1000
+                    #ts = ts * 1000
                     try:
+                        site_param = StationParameter.objects.get(station=self.site, allowed=True)
+                        mon_id = site_param.monitoring_id
                         tmp_data = [{
                             "params": [{
                                 "flag": "U",
@@ -92,7 +93,7 @@ class Handle:
                                 "unit": "m3/hr",
                                 "value": reading
                             }],
-                            "deviceId": self.deviceId,
+                            "deviceId": mon_id,
                         }]
                     except Exception as err:
                         log.exception('HSPCB Upload failure:%s' % err)
