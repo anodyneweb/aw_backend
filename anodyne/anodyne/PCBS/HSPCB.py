@@ -77,20 +77,22 @@ class Handle:
             for param, value in self.readings.items():
                 if param != 'timestamp':
                     reading = value
+                    param = param
 
                     ts = str(self.readings.get('timestamp'))
-                    #ts = str(ts)
                     ts = utils.epoch_timestamp(ts) * 1000
-                    #ts = ts * 1000
                     try:
+                        p = Parameter.objects.get(name__icontains=param)
+                        unt = p.unit.name
+                        alias = p.alias
                         site_param = StationParameter.objects.get(station=self.site, allowed=True)
                         mon_id = site_param.monitoring_id
                         tmp_data = [{
                             "params": [{
                                 "flag": "U",
-                                "parameter": "Flow",
+                                "parameter": alias,
                                 "timestamp": str(ts),
-                                "unit": "m3/hr",
+                                "unit": unt,
                                 "value": reading
                             }],
                             "deviceId": mon_id,
