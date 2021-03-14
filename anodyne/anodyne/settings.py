@@ -100,7 +100,7 @@ DATABASES = {
         'NAME': 'anodyne_db',
         'USER': 'anodyne',
         'PASSWORD': '@n0dyn3',
-        'HOST': 'ec2-13-233-134-201.ap-south-1.compute.amazonaws.com',
+        'HOST': 'ec2-15-206-209-236.ap-south-1.compute.amazonaws.com',
         'PORT': '5432',
     }
 }
