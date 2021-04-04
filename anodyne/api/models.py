@@ -326,10 +326,11 @@ class Station(models.Model):
     MPPCB = 'MPPCB'
     TSPCB = 'TSPCB'
     HSPCB = 'HSPCB'
-    GMDA = 'GMDA',
+    GMDA = 'GMDA'
     UPPCB = 'UPPCB'
     DPCC = 'DPCC'
     JSPCB = 'JSPCB'
+    CPCB = 'CPCB'
 
     CLOSURE_CHOICES = (
         (None, 'None'),

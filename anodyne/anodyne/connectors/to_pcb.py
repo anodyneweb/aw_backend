@@ -1,4 +1,4 @@
-from anodyne.PCBS import MPPCB, HSPCB, GMDA
+from anodyne.PCBS import MPPCB, HSPCB, GMDA, CPCB
 from api.models import Station
 
 
@@ -23,6 +23,13 @@ class ToPCB:
             # Process to PCBs
             station = Station.objects.get(prefix=self.kwargs.get('prefix'))
             pcb = station.pcb.name
+            if station.is_cpcb:
+                log.info('### CPCB enabled ###')
+                pcb_obj = CPCB
+                Handle = getattr(pcb_obj, 'Handle')
+                handle = Handle(**self.kwargs)
+                status, message = handle.upload()
+
             if pcb == 'MPPCB':
                 pcb_obj = MPPCB
             elif pcb == 'HSPCB':

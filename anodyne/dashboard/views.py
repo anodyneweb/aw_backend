@@ -951,7 +951,7 @@ def make_chart(**kwargs):
     # Join both database
     df = pd.DataFrame(readings)
     xaxis = dict(showgrid=True, title_text='Time', linecolor='grey')
-    yaxis = dict(showgrid=True, title_text='Param Value', linecolor='grey')
+    yaxis = dict(showgrid=True, title_text='Param Value', linecolor='grey', rangemode='tozero')
     layout = dict(autosize=True,
                   paper_bgcolor='white',
                   plot_bgcolor='white',
