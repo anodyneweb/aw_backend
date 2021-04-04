@@ -82,10 +82,10 @@ class Handle:
                     ts = str(self.readings.get('timestamp'))
                     ts = utils.epoch_timestamp(ts) * 1000
                     try:
-                        p = Parameter.objects.get(name__icontains=param)
+                        p = Parameter.objects.get(name__iexact=param)
                         unt = p.unit.name
                         alias = p.alias
-                        site_param = StationParameter.objects.get(station=self.site, allowed=True)
+                        site_param = StationParameter.objects.get(parameter=p, station=self.site, allowed=True)
                         mon_id = site_param.monitoring_id
                         tmp_data = [{
                             "params": [{
