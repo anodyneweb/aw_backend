@@ -1,6 +1,8 @@
 from anodyne.PCBS import MPPCB, HSPCB, GMDA, CPCB
 from api.models import Station
+import logging
 
+log = logging.getLogger('vepolink')
 
 class ToPCB:
     def __init__(self, **kwargs):
@@ -23,6 +25,7 @@ class ToPCB:
             # Process to PCBs
             station = Station.objects.get(prefix=self.kwargs.get('prefix'))
             pcb = station.pcb.name
+            log.info('CPCB enabled or not: %s' % station.is_cpcb)
             if station.is_cpcb:
                 log.info('### CPCB enabled ###')
                 pcb_obj = CPCB

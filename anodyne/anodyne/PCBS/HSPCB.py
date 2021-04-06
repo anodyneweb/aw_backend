@@ -31,7 +31,7 @@ class Handle:
             headers=self.get_headers(),
             data=self.get_data()
         )
-        log.info('HSPCB Upload Status :%s' % status)
+        log.info('HSPCB Upload Status :%s' % status.json())
         return status
 
     def _get_data(self):

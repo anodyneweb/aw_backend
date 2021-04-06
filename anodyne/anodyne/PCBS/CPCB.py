@@ -10,7 +10,7 @@ log = logging.getLogger('vepolink')
 
 class Handle:
     def __init__(self, **kwargs):
-        self.site = kwargs.get('station')
+        self.site = Station.objects.get(prefix=kwargs.get('prefix')) 
         log.info('cpcb site: %s' % self.site)
         self.prefix = kwargs.get('prefix')
         log.info('cpcb prefix: %s' % self.prefix)
@@ -40,9 +40,10 @@ class Handle:
                     param = param
 
                 ts = str(self.readings.get('timestamp'))
-                ts = utils.epoch_timestamp(ts) * 1000
+                ts = utils.epoch_timestamp(ts)
                 try:
-                    p = Parameter.objects.get(name__iexact=param)
+                    if param != 'timestamp':
+                        p = Parameter.objects.get(name__iexact=param)
                     unt = p.unit.name
                     alias = p.alias
                     site_param = StationParameter.objects.get(parameter=p, station=self.site, allowed=True)
@@ -51,9 +52,9 @@ class Handle:
                         u"params": [{
                             u"timestamp": str(ts),
                             u"flag": u"U",
-                            u"parameter": alias,
+                            u"parameter": alias.lower(),
                             u"unit": unt,
-                            u"value": value
+                            u"value": reading
                         }],
                         u"deviceId": mon_id,
                         u"diagnostics": []
